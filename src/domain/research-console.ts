@@ -311,7 +311,8 @@ export function mountResearchConsole(container: HTMLElement): void {
           pageLimit: 1000,
           maxCandles: settings.historyLimit,
         }, fetch, now);
-        if (candles.length < settings.pipeline.folds.trainBars + settings.pipeline.folds.testBars + settings.pipeline.folds.embargoBars) {
+        const embargoBars = settings.pipeline.folds.embargoBars ?? 0;
+        if (candles.length < settings.pipeline.folds.trainBars + settings.pipeline.folds.testBars + embargoBars) {
           throw new Error(`Insufficient history: received ${candles.length} candles for the requested training/test windows`);
         }
         status.textContent = `Evaluating ${candles.length.toLocaleString()} candles across walk-forward folds…`;
