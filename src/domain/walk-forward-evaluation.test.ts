@@ -65,4 +65,26 @@ describe("evaluateWalkForward", () => {
       fit: () => 42 as never,
     })).toThrow();
   });
+
+
+  it("routes every out-of-sample fold through the execution-aware fill model when configured", () => {
+    const result = evaluateWalkForward(candles, {
+      folds: { trainBars: 6, testBars: 4, stepBars: 4, embargoBars: 0 },
+      backtest: { initialCapital: 1000, feeRate: 0, slippageBps: 0, allocationFraction: 0.5 },
+      executionModel: {
+        feeRate: 0,
+        baseSlippageBps: 0,
+        halfSpreadBps: 0,
+        maxParticipationRate: 0.01,
+        marketImpactBpsAtMaxParticipation: 0,
+      },
+      fit: (training) => (history) =>
+        history.length === training.length + 1 ? "buy" : "hold",
+    });
+    expect(result.folds).toHaveLength(2);
+    expect(result.folds.every((fold) => fold.result.openPosition !== null)).toBe(true);
+    expect(result.folds.every((fold) => fold.result.completedTrades === 0)).toBe(true);
+    expect(result.folds.every((fold) => fold.result.totalFees).toBe(0));
+    expect(result.folds.every((fold) => fold.result.totalReturnPct).toBeGreaterThan(0));
+  });
 });
