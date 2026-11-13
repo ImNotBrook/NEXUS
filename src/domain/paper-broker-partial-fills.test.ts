@@ -14,7 +14,8 @@ describe("paper broker partial-fill lifecycle", () => {
 
   it("keeps a submitted order pending until a candle provides liquidity", () => {
     const account = createPaperAccount({
-      initialCash: 20_000,\n      maxPositionValueFraction: 0.9,
+      initialCash: 20_000,
+      maxPositionValueFraction: 0.9,
       executionModel: execution,
     }, start);
     const submitted = submitPaperOrder(account, {
@@ -29,7 +30,8 @@ describe("paper broker partial-fill lifecycle", () => {
 
   it("carries a partial buy remainder and updates cash, fees and weighted average entry", () => {
     const account = createPaperAccount({
-      initialCash: 20_000,\n      maxPositionValueFraction: 0.9,
+      initialCash: 20_000,
+      maxPositionValueFraction: 0.9,
       executionModel: execution,
     }, start);
     const submitted = submitPaperOrder(account, {
@@ -58,7 +60,8 @@ describe("paper broker partial-fill lifecycle", () => {
 
   it("partially sells an existing position and realizes PnL only on the filled quantity", () => {
     const account = createPaperAccount({
-      initialCash: 20_000,\n      maxPositionValueFraction: 0.9,
+      initialCash: 20_000,
+      maxPositionValueFraction: 0.9,
       executionModel: execution,
     }, start);
     const buyOrder = submitPaperOrder(account, {
@@ -82,7 +85,8 @@ describe("paper broker partial-fill lifecycle", () => {
 
   it("does not fill an order on a zero-volume candle", () => {
     const account = createPaperAccount({
-      initialCash: 20_000,\n      maxPositionValueFraction: 0.9,
+      initialCash: 20_000,
+      maxPositionValueFraction: 0.9,
       executionModel: execution,
     }, start);
     const submitted = submitPaperOrder(account, {
@@ -99,7 +103,8 @@ describe("paper broker partial-fill lifecycle", () => {
 
   it("supports explicit cancellation of a residual order without reversing prior fills", () => {
     const account = createPaperAccount({
-      initialCash: 20_000,\n      maxPositionValueFraction: 0.9,
+      initialCash: 20_000,
+      maxPositionValueFraction: 0.9,
       executionModel: execution,
     }, start);
     const submitted = submitPaperOrder(account, {
