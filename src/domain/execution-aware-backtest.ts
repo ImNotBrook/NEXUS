@@ -1,4 +1,4 @@
-import { resolveMarketFill, validateMarketExecutionConfig, type MarketExecutionConfig, type MarketOrderSide } from "./execution-model";
+import { resolveMarketFill, validateMarketExecutionConfig, type MarketExecutionConfig, type MarketOrderSide, type MarketFillStatus } from "./execution-model";
 import { validateCandles, type Candle } from "./candles";
 import type { BacktestPosition, BacktestResult, BacktestTrade, StrategyEvaluator } from "./backtest";
 import { resolveLongProtectiveExit, validateProtectiveExitConfig, type ProtectiveExitConfig } from "./protective-orders";
@@ -97,7 +97,7 @@ export function runExecutionAwareBacktest(
       const limitExecutable = pending.kind !== "limit" ||
         (pending.limitPrice !== undefined && candle.high >= pending.limitPrice);
       if (requested > 1e-12 && limitExecutable) {
-        const fill = pending.kind === "limit"
+        const fill: { status: MarketFillStatus; filledQuantity: number; notional: number; fee: number; executionPrice: number } = pending.kind === "limit"
           ? (() => {
               const executionPrice = Math.max(pending.limitPrice!, candle.open);
               const filledQuantity = Math.min(requested,
@@ -122,14 +122,14 @@ export function runExecutionAwareBacktest(
           if (fill.status === "partial") partialFillEvents += 1;
           totalFees += fill.fee;
           if (pending.side === "buy") {
-            const previousPosition = position;
+            const previousPosition: ActivePosition | null = position;
             const oldQuantity = previousPosition?.quantity ?? 0;
-            const nextQuantity = oldQuantity + fill.filledQuantity;
+            const nextQuantity: number = oldQuantity + fill.filledQuantity;
             const oldEntryCost = previousPosition?.entryCost ?? 0;
             const oldEntryFee = previousPosition?.entryFee ?? 0;
             const nextEntryCost = oldEntryCost + fill.notional + fill.fee;
             const nextEntryFee = oldEntryFee + fill.fee;
-            const nextEntryNotional = (previousPosition?.entryPrice ?? 0) * oldQuantity +
+            const nextEntryNotional: number = (previousPosition?.entryPrice ?? 0) * oldQuantity +
               fill.filledQuantity * fill.executionPrice;
             position = {
               entryTimestamp: previousPosition?.entryTimestamp ?? candle.timestamp,
