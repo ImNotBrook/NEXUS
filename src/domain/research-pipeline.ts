@@ -1,4 +1,5 @@
 import { validateCandles, type Candle } from "./candles";
+import type { MarketExecutionConfig } from "./execution-model";
 import { buildRegimeScorecard, type MarketRegimeConfig, type RegimeScorecard } from "./market-regimes";
 import { buildStrategyScorecard, type StrategyScorecard } from "./strategy-scorecard";
 import {
@@ -19,6 +20,8 @@ export interface ResearchCandidate {
 export interface ResearchPipelineConfig {
   folds: WalkForwardEvaluationConfig["folds"];
   backtest: WalkForwardEvaluationConfig["backtest"];
+  /** When present, all folds use the candle-volume-aware partial-fill simulator. */
+  executionModel?: MarketExecutionConfig;
   regime: MarketRegimeConfig;
 }
 
@@ -114,6 +117,7 @@ export function runResearchBatch(
     config: {
       folds: { ...config.folds },
       backtest: { ...config.backtest },
+      ...(config.executionModel ? { executionModel: { ...config.executionModel } } : {}),
       regime: { ...config.regime },
     },
     candidateResults,
