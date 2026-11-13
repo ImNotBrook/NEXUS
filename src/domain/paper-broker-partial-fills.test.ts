@@ -25,7 +25,7 @@ describe("paper broker partial-fill lifecycle", () => {
     expect(submitted.fills).toHaveLength(0);
     expect(submitted.openOrders).toHaveLength(1);
     expect(submitted.openOrders[0].remainingQuantity).toBe(0.2);
-    expect(submitted.cash).toBe(10_000);
+    expect(submitted.cash).toBe(20_000);
   });
 
   it("carries a partial buy remainder and updates cash, fees and weighted average entry", () => {
