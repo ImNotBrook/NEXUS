@@ -1,6 +1,6 @@
 import { resolveMarketFill, type MarketExecutionConfig, type MarketOrderSide } from "./execution-model";
 import { validateCandles, type Candle } from "./candles";
-import type { BacktestPosition, BacktestResult, BacktestSignal, BacktestTrade, StrategyEvaluator } from "./backtest";
+import type { BacktestPosition, BacktestResult, BacktestTrade, StrategyEvaluator } from "./backtest";
 
 export interface ExecutionAwareBacktestConfig {
   initialCapital: number;
@@ -92,7 +92,7 @@ export function runExecutionAwareBacktest(
         if (fill.filledQuantity > 0) {
           totalFees += fill.fee;
           if (pending.side === "buy") {
-            const previousPosition: ActivePosition | null = position;
+            const previousPosition = position as unknown as ActivePosition | null;
             const oldQuantity: number = previousPosition?.quantity ?? 0;
             const nextQuantity: number = oldQuantity + fill.filledQuantity;
             const oldEntryCost: number = previousPosition?.entryCost ?? 0;
