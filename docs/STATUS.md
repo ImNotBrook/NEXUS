@@ -294,3 +294,13 @@ Updated: 2026-11-14
 - Added tests for buy/sell price direction, partial fills, zero liquidity, fee treatment, impact scaling and invalid inputs.
 - Added `docs/EXECUTION_COST_MODEL.md` with the assumptions and explicit boundaries.
 - This is a standalone domain increment only. The existing backtest and paper broker are not yet wired to it; integrating residual-order lifecycle and partial position accounting is a separate follow-up.
+
+
+## Partial-fill execution lifecycle integration
+
+- Added a canonical open-order list to the paper account contract and a separate paper broker lifecycle API: submit, execute against subsequent candles, carry residual quantities and explicitly cancel remaining quantity.
+- The paper broker shares the spread/slippage/impact resolver, caps aggregate per-symbol candle participation, charges fees only on fills, updates fee-inclusive weighted-average entries, and realizes P&L only on executed sell quantity. Existing IndexedDB snapshots naturally persist the new order list; legacy accounts without it should be initialized through the account migration/recreation path before calling the new API.
+- Added paper lifecycle tests for pending orders, partial entries, partial exits, zero-volume candles and cancellation. Paper broker integration passed the 170-test suite and strict production build before merge.
+- Added `runExecutionAwareBacktest`, preserving the existing `runBacktest` API. The new mode executes next-candle-open orders against candle volume, carries partial fills, accounts for fees and average entry cost, and only records completed trades when the position is fully closed.
+- Added 4 execution-aware backtest specifications. Latest PR CI passed 174 tests across 35 files, npm audit (0 vulnerabilities) and strict TypeScript/Vite production build.
+- Both changes remain paper/historical simulation only. The legacy backtest and existing UI/research console have not yet been switched to the new execution-aware function; protective stop/target orders are not yet supported in that mode. See `docs/PAPER_PARTIAL_FILL_LIFECYCLE.md` and `docs/EXECUTION_AWARE_BACKTEST.md`.
