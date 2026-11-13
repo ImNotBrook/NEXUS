@@ -28,9 +28,12 @@ export function compareResearchRuns(
       baseline.dataset.lastTimestamp !== candidate.dataset.lastTimestamp) {
     reasons.push("Market dataset differs");
   }
-  if (!baseline.dataset.metadata || !candidate.dataset.metadata ||
-      JSON.stringify(baseline.dataset.metadata) !== JSON.stringify(candidate.dataset.metadata)) {
-    reasons.push("Market provenance is missing or symbol, interval or provider differs");
+  if (!baseline.dataset.metadata || !candidate.dataset.metadata) {
+    reasons.push("Market provenance is missing");
+  } else if (baseline.dataset.metadata.symbol !== candidate.dataset.metadata.symbol ||
+      baseline.dataset.metadata.interval !== candidate.dataset.metadata.interval ||
+      baseline.dataset.metadata.provider !== candidate.dataset.metadata.provider) {
+    reasons.push("Market symbol, interval or provider differs");
   }
   if (JSON.stringify(baseline.config) !== JSON.stringify(candidate.config)) {
     reasons.push("Walk-forward or execution assumptions differ");
