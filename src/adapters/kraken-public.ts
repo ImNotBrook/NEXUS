@@ -4,7 +4,7 @@ export const KRAKEN_PUBLIC_OHLC_URL = "https://api.kraken.com/0/public/OHLC";
 
 export interface KrakenCandleRequest {
   symbol: string;
-  interval: "1h";
+  interval: string;
 }
 
 interface KrakenResponse {
