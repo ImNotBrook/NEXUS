@@ -22,10 +22,7 @@ describe("createResearchRunSettings", () => {
       trainBars: 600, testBars: 120, stepBars: 120, embargoBars: 2, expanding: true,
     });
     expect(settings.pipeline.backtest).toMatchObject({
-      initialCapital: 10_000, feeRate: 0.001, slippageBps: 5,
-      halfSpreadBps: 2,
-      maxParticipationPct: 1,
-      marketImpactBps: 25, allocationFraction: 0.25,
+      initialCapital: 10_000, feeRate: 0.001, slippageBps: 5, allocationFraction: 0.25,
     });
     expect(settings.pipeline.executionModel).toEqual({ feeRate: 0.001, baseSlippageBps: 5, halfSpreadBps: 2, maxParticipationRate: 0.01, marketImpactBpsAtMaxParticipation: 25 });
   });
