@@ -30,7 +30,9 @@ describe("runProtectiveExitSensitivity", () => {
       id: "buy-once",
       name: "Buy once",
       fit: (training) => (history) => history.length === training.length + 1 ? "buy" : "hold",
-    }], config, { stopLossValuesPct: [5], takeProfitValuesPct: [2] });
+    }], config, { stopLossValuesPct: [5], takeProfitValuesPct: [2] }, {
+      symbol: "BTCUSDT", interval: "1h", provider: "Binance public spot",
+    });
 
     expect(result.scenarios).toHaveLength(4);
     expect(result.scenarios[0]).toMatchObject({
@@ -46,6 +48,8 @@ describe("runProtectiveExitSensitivity", () => {
     expect(combined.report.candidateResults[0].evaluation.folds[0].result.trades[0]?.exitReason).toBe("stop-loss");
     expect(result.scenarios.every((scenario) =>
       scenario.report.dataset.fingerprint === result.datasetFingerprint)).toBe(true);
+    expect(result.scenarios.every((scenario) =>
+      scenario.report.dataset.metadata?.symbol === "BTCUSDT")).toBe(true);
   });
 
   it("uses the same execution-aware fill model and OOS folds for every scenario", () => {
