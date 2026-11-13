@@ -1,9 +1,10 @@
 import { resolveMarketFill, type MarketExecutionConfig } from "./execution-model";
+import type { PaperAccount, PaperBrokerConfig, PaperFill, PaperPosition } from "./paper-broker";
 
-export interface PaperBrokerConfig {
-  executionModel?: MarketExecutionConfig;
+declare module "./paper-broker" {
+  interface PaperBrokerConfig { executionModel?: MarketExecutionConfig }
+  interface PaperAccount { openOrders?: readonly PaperOpenOrder[] }
 }
-
 export interface PaperOpenOrder {
   id: string;
   symbol: string;
@@ -62,7 +63,7 @@ export function submitPaperOrder(
   const day = utcDay(request.timestamp);
   if (day !== account.tradingDay) throw new Error("Mark the account for the new trading day before submitting orders");
 
-  const equity = equityOf(account);
+  const equity = account.cash + Object.values(account.positions).reduce((sum, p) => sum + p.quantity * p.markPrice, 0);
   const dailyLoss = (account.dailyStartEquity - equity) / account.dailyStartEquity;
   const orders = [...(account.openOrders ?? [])];
   if (request.side === "buy") {
@@ -130,7 +131,7 @@ export function processPaperCandle(
     if (order.side === "sell") {
       requested = Math.min(requested, next.positions[symbol]?.quantity ?? 0);
     } else {
-      const equity = equityOf(next);
+      const equity = next.cash + Object.values(next.positions).reduce((sum, p) => sum + p.quantity * p.markPrice, 0);
       const position = next.positions[symbol];
       const maxValue = Math.max(0, equity * next.config.maxPositionValueFraction -
         (position?.quantity ?? 0) * candle.open);
