@@ -95,4 +95,19 @@ describe("runResearchBatch", () => {
     expect(report.candidateResults[0].evaluation.totalPendingQuantity).toBe(0);
   });
 
+
+  it("persists protective exit assumptions with the research batch configuration", () => {
+    const report = runResearchBatch(candles, [
+      { id: "hold", name: "Hold", fit: () => () => "hold" },
+    ], {
+      ...baseConfig,
+      executionModel: {
+        feeRate: 0.001, baseSlippageBps: 5, halfSpreadBps: 2,
+        maxParticipationRate: 0.01, marketImpactBpsAtMaxParticipation: 25,
+      },
+      backtest: { ...baseConfig.backtest, protectiveOrders: { stopLossPct: 4, takeProfitPct: 8 } },
+    });
+    expect(report.config.backtest.protectiveOrders).toEqual({ stopLossPct: 4, takeProfitPct: 8 });
+  });
+
 });
