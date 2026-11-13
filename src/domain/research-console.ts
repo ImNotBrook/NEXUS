@@ -310,6 +310,9 @@ export function mountResearchConsole(container: HTMLElement): void {
         testBars: Number(data.get("testBars")),
         feeBps: Number(data.get("feeBps")),
         slippageBps: Number(data.get("slippageBps")),
+        halfSpreadBps: Number(data.get("halfSpreadBps")),
+        maxParticipationPct: Number(data.get("maxParticipationPct")),
+        marketImpactBps: Number(data.get("marketImpactBps")),
       });
     } catch (error) {
       status.textContent = error instanceof Error ? error.message : "Invalid research configuration";
