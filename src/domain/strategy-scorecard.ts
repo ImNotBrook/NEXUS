@@ -19,6 +19,11 @@ export interface StrategyScorecard {
   expectancyPerTrade: number | null;
   totalFees: number;
   worstFoldDrawdownPct: number | null;
+  totalFillEvents: number;
+  totalPartialFillEvents: number;
+  foldsWithOpenPositions: number;
+  foldsWithPendingOrders: number;
+  totalPendingQuantity: number;
 }
 
 function finite(value: number, label: string): void {
@@ -94,5 +99,10 @@ export function buildStrategyScorecard(evaluation: WalkForwardEvaluationResult):
     worstFoldDrawdownPct: returns.length
       ? Math.max(...evaluation.folds.map((fold) => fold.result.maxDrawdownPct))
       : null,
+    totalFillEvents: evaluation.totalFillEvents,
+    totalPartialFillEvents: evaluation.totalPartialFillEvents,
+    foldsWithOpenPositions: evaluation.foldsWithOpenPositions,
+    foldsWithPendingOrders: evaluation.foldsWithPendingOrders,
+    totalPendingQuantity: evaluation.totalPendingQuantity,
   };
 }
