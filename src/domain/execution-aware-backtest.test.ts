@@ -76,4 +76,55 @@ describe("runExecutionAwareBacktest", () => {
     expect(result.openPosition).toBeNull();
     expect(result.trades).toHaveLength(1);
   });
+
+  it("executes an intrabar stop through the market execution model and records its reason", () => {
+    const candles: Candle[] = [
+      { timestamp: 1, open: 100, high: 101, low: 99, close: 100, volume: 100 },
+      { timestamp: 2, open: 100, high: 101, low: 99, close: 100, volume: 100 },
+      { timestamp: 3, open: 100, high: 102, low: 94, close: 96, volume: 100 },
+    ];
+    const result = runExecutionAwareBacktest(candles,
+      history => history.length === 1 ? "buy" : "hold",
+      { initialCapital: 1_000, allocationFraction: 1, executionModel: model,
+        protectiveOrders: { stopLossPct: 5 } });
+    expect(result.trades).toHaveLength(1);
+    expect(result.trades[0].exitReason).toBe("stop-loss");
+    expect(result.trades[0].exitPrice).toBeLessThan(95);
+    expect(result.openPosition).toBeNull();
+    expect(result.pendingOrder).toBeNull();
+  });
+
+  it("executes a take-profit as a limit fill without adverse slippage", () => {
+    const candles: Candle[] = [
+      { timestamp: 1, open: 100, high: 101, low: 99, close: 100, volume: 100 },
+      { timestamp: 2, open: 100, high: 101, low: 99, close: 100, volume: 100 },
+      { timestamp: 3, open: 100, high: 112, low: 99, close: 111, volume: 100 },
+    ];
+    const result = runExecutionAwareBacktest(candles,
+      history => history.length === 1 ? "buy" : "hold",
+      { initialCapital: 1_000, allocationFraction: 1, executionModel: model,
+        protectiveOrders: { takeProfitPct: 10 } });
+    expect(result.trades).toHaveLength(1);
+    expect(result.trades[0].exitReason).toBe("take-profit");
+    expect(result.trades[0].exitPrice).toBe(110);
+    expect(result.openPosition).toBeNull();
+  });
+
+  it("keeps a partially filled protective exit open until the residual quantity is filled", () => {
+    const candles: Candle[] = [
+      { timestamp: 1, open: 100, high: 101, low: 99, close: 100, volume: 100 },
+      { timestamp: 2, open: 100, high: 101, low: 99, close: 100, volume: 100 },
+      { timestamp: 3, open: 100, high: 102, low: 94, close: 96, volume: 10 },
+      { timestamp: 4, open: 90, high: 92, low: 88, close: 90, volume: 100 },
+    ];
+    const result = runExecutionAwareBacktest(candles,
+      history => history.length === 1 ? "buy" : "hold",
+      { initialCapital: 1_000, allocationFraction: 1, executionModel: model,
+        protectiveOrders: { stopLossPct: 5 } });
+    expect(result.trades).toHaveLength(1);
+    expect(result.trades[0].exitReason).toBe("stop-loss");
+    expect(result.pendingOrder).toBeNull();
+    expect(result.openPosition).toBeNull();
+  });
+
 });
