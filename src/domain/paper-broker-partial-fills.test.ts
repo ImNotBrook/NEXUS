@@ -3,7 +3,7 @@ import {
   createPaperAccount,
   processPaperCandle,
   submitPaperOrder,
-} from "./paper-broker";
+} from "./paper-broker-partial-fills";
 
 describe("paper broker partial-fill lifecycle", () => {
   const start = Date.UTC(2026, 0, 1);
