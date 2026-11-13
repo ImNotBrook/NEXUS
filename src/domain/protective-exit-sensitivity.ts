@@ -4,6 +4,7 @@ import {
   type ResearchBatchResult,
   type ResearchCandidate,
   type ResearchPipelineConfig,
+  type ResearchDatasetMetadata,
 } from "./research-pipeline";
 
 export interface ProtectiveExitSensitivityGrid {
@@ -72,6 +73,7 @@ export function runProtectiveExitSensitivity(
   candidates: readonly ResearchCandidate[],
   config: ResearchPipelineConfig,
   grid: ProtectiveExitSensitivityGrid,
+  metadata?: ResearchDatasetMetadata,
 ): ProtectiveExitSensitivityResult {
   validateAxis(grid.stopLossValuesPct, "stopLossValuesPct", 100);
   validateAxis(grid.takeProfitValuesPct, "takeProfitValuesPct");
@@ -105,7 +107,7 @@ export function runProtectiveExitSensitivity(
       };
       if (!protectiveOrders) delete scenarioConfig.backtest.protectiveOrders;
 
-      const report = runResearchBatch(candles, candidates, scenarioConfig);
+      const report = runResearchBatch(candles, candidates, scenarioConfig, metadata);
       if (datasetFingerprint === undefined) datasetFingerprint = report.dataset.fingerprint;
       else if (datasetFingerprint !== report.dataset.fingerprint) {
         throw new Error("Sensitivity scenarios did not use the same market dataset");
