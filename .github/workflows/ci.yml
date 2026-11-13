@@ -18,9 +18,7 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - name: Report dependency audit
-        run: |
-          npm audit --json > npm-audit.json || true
-          node -e 'const report = require("./npm-audit.json"); console.log(JSON.stringify(report.vulnerabilities ?? {}, null, 2))'
+      - name: Enforce dependency security audit
+        run: npm audit --audit-level=moderate
       - run: npm test
       - run: npm run build
