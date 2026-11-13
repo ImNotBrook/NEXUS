@@ -285,3 +285,12 @@ Updated: 2026-11-14
 - A standalone deterministic Node harness passed 9 assertions covering stop/target trigger resolution, stop and target gaps, adverse intrabar ambiguity, fee/slippage accounting, entry-candle exclusion and invalid configuration rejection.
 - The first harness pass exposed a floating-point equality issue in the 10% target calculation; the level calculation was corrected and the harness then passed. The integration test's expected stop fill was also corrected to include both entry and exit slippage.
 - This is not a Vitest or full-project build result. GitHub Actions runs 43517203022 (CI) and 43517203000 (Pages) failed before runner allocation: runner ID 0, empty runner name, zero steps. Cause remains unknown; no billing changes were made.
+
+
+## Dependency security and execution-cost model increment
+
+- Upgraded Vitest from the vulnerable 3.x line to 5.1.0. GitHub Actions npm audit reports zero vulnerabilities; CI and Pages workflows now enforce `npm audit --audit-level=moderate` before tests/build.
+- Added a deterministic, pure execution-cost resolver that estimates adverse half-spread, baseline slippage and linear participation-scaled market impact; caps one-candle fill quantity at configured participation of candle volume; and reports partial/unfilled quantity and fee only on executed notional.
+- Added tests for buy/sell price direction, partial fills, zero liquidity, fee treatment, impact scaling and invalid inputs.
+- Added `docs/EXECUTION_COST_MODEL.md` with the assumptions and explicit boundaries.
+- This is a standalone domain increment only. The existing backtest and paper broker are not yet wired to it; integrating residual-order lifecycle and partial position accounting is a separate follow-up.
