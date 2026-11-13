@@ -29,6 +29,8 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Enforce dependency security audit
+        run: npm audit --audit-level=moderate
       - name: Run tests
         run: npm test
       - name: Build production PWA
