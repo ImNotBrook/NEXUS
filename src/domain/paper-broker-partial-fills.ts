@@ -46,6 +46,13 @@ function executionConfig(config: PaperBrokerConfig): MarketExecutionConfig {
   };
 }
 
+function utcDay(timestamp: number): string {
+  if (!Number.isSafeInteger(timestamp) || timestamp < 0) {
+    throw new RangeError("timestamp must be a non-negative safe integer");
+  }
+  return new Date(timestamp).toISOString().slice(0, 10);
+}
+
 function paperSymbol(value: string): string {
   const symbol = value.trim().toUpperCase();
   if (!/^[A-Z0-9]{5,20}$/.test(symbol)) throw new TypeError("symbol must be an exchange-style alphanumeric pair");
