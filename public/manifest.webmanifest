@@ -1,0 +1,13 @@
+{
+  "name": "NEXUS AI Trading Intelligence",
+  "short_name": "NEXUS",
+  "description": "Research, strategy validation and simulated paper trading.",
+  "start_url": "/NEXUS/",
+  "scope": "/NEXUS/",
+  "display": "standalone",
+  "background_color": "#07101d",
+  "theme_color": "#08111f",
+  "icons": [
+    { "src": "/NEXUS/nexus-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

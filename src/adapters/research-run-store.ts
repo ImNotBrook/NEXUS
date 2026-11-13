@@ -1,0 +1,95 @@
+import type { ResearchBatchResult } from "../domain/research-pipeline";
+import { RESEARCH_RUN_STORE, openNexusDatabase } from "./nexus-database";
+
+export interface StoredResearchRun {
+  id: string;
+  createdAt: number;
+  report: ResearchBatchResult;
+}
+
+function requestResult<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error("IndexedDB request failed"));
+  });
+}
+
+function transactionComplete(transaction: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error ?? new Error("IndexedDB transaction aborted"));
+    transaction.onerror = () => reject(transaction.error ?? new Error("IndexedDB transaction failed"));
+  });
+}
+
+function isValidReport(report: ResearchBatchResult): boolean {
+  return !!report && typeof report === "object" &&
+    !!report.dataset && Number.isSafeInteger(report.dataset.candleCount) && report.dataset.candleCount > 0 &&
+    Number.isSafeInteger(report.dataset.firstTimestamp) &&
+    Number.isSafeInteger(report.dataset.lastTimestamp) &&
+    typeof report.dataset.fingerprint === "string" && report.dataset.fingerprint.length > 0 &&
+    !!report.config && Array.isArray(report.candidateResults);
+}
+
+let sequence = 0;
+
+/** Device-local, auditable research history. Records never leave this browser. */
+export class ResearchRunStore {
+  private databasePromise: Promise<IDBDatabase> | null = null;
+
+  constructor(private readonly factory: IDBFactory = indexedDB) {}
+
+  private openDatabase(): Promise<IDBDatabase> {
+    if (this.databasePromise) return this.databasePromise;
+    this.databasePromise = openNexusDatabase(this.factory).catch((error: unknown) => {
+      this.databasePromise = null;
+      throw error;
+    });
+    return this.databasePromise;
+  }
+
+  async save(report: ResearchBatchResult, createdAt = Date.now()): Promise<StoredResearchRun> {
+    if (!Number.isSafeInteger(createdAt) || createdAt < 0) {
+      throw new RangeError("createdAt must be a non-negative safe integer");
+    }
+    if (!isValidReport(report)) throw new TypeError("A complete research report is required");
+    const id = createdAt + "-" + report.dataset.fingerprint + "-" + (++sequence);
+    const record: StoredResearchRun = { id, createdAt, report: structuredClone(report) };
+    const database = await this.openDatabase();
+    const transaction = database.transaction(RESEARCH_RUN_STORE, "readwrite");
+    const done = transactionComplete(transaction);
+    transaction.objectStore(RESEARCH_RUN_STORE).put(record);
+    await done;
+    return record;
+  }
+
+  async list(limit = 50): Promise<StoredResearchRun[]> {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 200) {
+      throw new RangeError("limit must be an integer between 1 and 200");
+    }
+    const database = await this.openDatabase();
+    const transaction = database.transaction(RESEARCH_RUN_STORE, "readonly");
+    const done = transactionComplete(transaction);
+    const request = requestResult(
+      transaction.objectStore(RESEARCH_RUN_STORE).getAll() as IDBRequest<StoredResearchRun[]>,
+    );
+    const [records] = await Promise.all([request, done]);
+    return records.sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id)).slice(0, limit);
+  }
+
+  async delete(id: string): Promise<void> {
+    if (typeof id !== "string" || id.trim().length === 0) throw new TypeError("A research run ID is required");
+    const database = await this.openDatabase();
+    const transaction = database.transaction(RESEARCH_RUN_STORE, "readwrite");
+    const done = transactionComplete(transaction);
+    transaction.objectStore(RESEARCH_RUN_STORE).delete(id);
+    await done;
+  }
+
+  async close(): Promise<void> {
+    if (!this.databasePromise) return;
+    const database = await this.databasePromise;
+    database.close();
+    this.databasePromise = null;
+  }
+}
