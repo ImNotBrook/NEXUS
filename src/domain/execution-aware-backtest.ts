@@ -1,18 +1,21 @@
 import { resolveMarketFill, validateMarketExecutionConfig, type MarketExecutionConfig, type MarketOrderSide } from "./execution-model";
 import { validateCandles, type Candle } from "./candles";
 import type { BacktestPosition, BacktestResult, BacktestTrade, StrategyEvaluator } from "./backtest";
+import { resolveLongProtectiveExit, validateProtectiveExitConfig, type ProtectiveExitConfig } from "./protective-orders";
 
 export interface ExecutionAwareBacktestConfig {
   initialCapital: number;
   allocationFraction: number;
   warmupBars?: number;
   executionModel: MarketExecutionConfig;
+  protectiveOrders?: ProtectiveExitConfig;
 }
 
 export interface PendingBacktestOrder {
   side: MarketOrderSide;
   remainingQuantity: number;
   submittedAt: number;
+  exitReason?: BacktestTrade["exitReason"];
 }
 
 export interface ExecutionAwareBacktestResult extends BacktestResult {
@@ -52,6 +55,7 @@ export function runExecutionAwareBacktest(
 ): ExecutionAwareBacktestResult {
   validateConfig(config);
   validateMarketExecutionConfig(config.executionModel);
+  if (config.protectiveOrders) validateProtectiveExitConfig(config.protectiveOrders);
   const candles = validateCandles(inputCandles);
   if (candles.some(c => c.open <= 0 || c.high <= 0 || c.low <= 0 || c.close <= 0)) {
     throw new RangeError("Spot backtests require strictly positive OHLC prices");
@@ -140,7 +144,7 @@ export function runExecutionAwareBacktest(
                 exitFee: position.exitFee,
                 pnl,
                 pnlPct: (pnl / position.originalEntryCost) * 100,
-                exitReason: "signal",
+                exitReason: pending.exitReason ?? "signal",
               });
               position = null;
             } else {
@@ -154,6 +158,57 @@ export function runExecutionAwareBacktest(
         }
       }
       if (pending.remainingQuantity <= 1e-12) pending = null;
+    }
+
+    // Protective orders are inactive on the entry candle. Stop exits incur adverse
+    // market costs; target exits are limit fills at the target or better opening price.
+    if (position && candle.timestamp > position.entryTimestamp && config.protectiveOrders) {
+      const protective = resolveLongProtectiveExit(position.entryPrice, candle, config.protectiveOrders);
+      if (protective) {
+        const isTarget = protective.reason === "take-profit";
+        const requested = position.quantity;
+        const capacity = candle.volume * config.executionModel.maxParticipationRate;
+        const filledQuantity = Math.min(requested, capacity);
+        if (filledQuantity > 1e-12) {
+          const adverseBps = isTarget ? 0 : config.executionModel.baseSlippageBps +
+            config.executionModel.halfSpreadBps + config.executionModel.marketImpactBpsAtMaxParticipation;
+          const executionPrice = isTarget ? protective.referencePrice :
+            protective.referencePrice * (1 - adverseBps / 10_000);
+          const notional = filledQuantity * executionPrice;
+          const fee = notional * config.executionModel.feeRate;
+          fillEvents += 1;
+          if (filledQuantity < requested - 1e-12) partialFillEvents += 1;
+          totalFees += fee;
+          cash += notional - fee;
+          position.exitNotional += notional;
+          position.exitFee += fee;
+          position.exitQuantity += filledQuantity;
+          const remaining = Math.max(0, position.quantity - filledQuantity);
+          if (remaining <= 1e-12) {
+            const pnl = position.exitNotional - position.exitFee - position.originalEntryCost;
+            trades.push({
+              entryTimestamp: position.entryTimestamp,
+              exitTimestamp: candle.timestamp,
+              entryPrice: position.entryPrice,
+              exitPrice: position.exitNotional / position.exitQuantity,
+              quantity: position.originalQuantity,
+              entryFee: position.originalEntryFee,
+              exitFee: position.exitFee,
+              pnl,
+              pnlPct: (pnl / position.originalEntryCost) * 100,
+              exitReason: protective.reason,
+            });
+            position = null;
+            pending = null;
+          } else {
+            const fraction = remaining / position.quantity;
+            position.quantity = remaining;
+            position.entryCost *= fraction;
+            position.entryFee *= fraction;
+            pending = { side: "sell", remainingQuantity: remaining, submittedAt: candle.timestamp, exitReason: protective.reason };
+          }
+        }
+      }
     }
 
     const positionValue = position ? position.quantity * candle.close : 0;
@@ -181,6 +236,7 @@ export function runExecutionAwareBacktest(
         side: "sell",
         remainingQuantity: position.quantity,
         submittedAt: candle.timestamp,
+        exitReason: "signal",
       };
     }
   }
