@@ -84,7 +84,11 @@ describe("evaluateWalkForward", () => {
     expect(result.folds).toHaveLength(2);
     expect(result.folds.every((fold) => fold.result.openPosition !== null)).toBe(true);
     expect(result.folds.every((fold) => fold.result.completedTrades === 0)).toBe(true);
-    expect(result.folds.every((fold) => fold.result.totalFees).toBe(0));
-    expect(result.folds.every((fold) => fold.result.totalReturnPct).toBeGreaterThan(0));
+    expect(result.folds.every((fold) => fold.result.totalFees === 0)).toBe(true);
+    expect(result.folds.every((fold) => fold.result.totalReturnPct > 0)).toBe(true);
+    expect(result.totalFillEvents).toBeGreaterThan(0);
+    expect(result.totalPartialFillEvents).toBeGreaterThan(0);
+    expect(result.foldsWithOpenPositions).toBe(2);
+    expect(result.foldsWithPendingOrders).toBe(0);
   });
 });
