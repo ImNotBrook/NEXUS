@@ -20,6 +20,9 @@ export interface ResearchRunInput {
   testBars: number;
   feeBps: number;
   slippageBps: number;
+  halfSpreadBps: number;
+  maxParticipationPct: number;
+  marketImpactBps: number;
 }
 
 export interface ResearchRunSettings {
@@ -51,6 +54,11 @@ export function createResearchRunSettings(input: ResearchRunInput): ResearchRunS
       !Number.isFinite(input.slippageBps) || input.slippageBps < 0 || input.slippageBps > 500) {
     throw new RangeError("Fee must be 0–100 bps and slippage 0–500 bps");
   }
+  if (!Number.isFinite(input.halfSpreadBps) || input.halfSpreadBps < 0 || input.halfSpreadBps > 100 ||
+      !Number.isFinite(input.maxParticipationPct) || input.maxParticipationPct <= 0 || input.maxParticipationPct > 100 ||
+      !Number.isFinite(input.marketImpactBps) || input.marketImpactBps < 0 || input.marketImpactBps > 500) {
+    throw new RangeError("Spread must be 0–100 bps, participation 0–100%, and impact 0–500 bps");
+  }
 
   return {
     symbol,
@@ -70,6 +78,13 @@ export function createResearchRunSettings(input: ResearchRunInput): ResearchRunS
         feeRate: input.feeBps / 10_000,
         slippageBps: input.slippageBps,
         allocationFraction: 0.25,
+      },
+      executionModel: {
+        feeRate: input.feeBps / 10_000,
+        baseSlippageBps: input.slippageBps,
+        halfSpreadBps: input.halfSpreadBps,
+        maxParticipationRate: input.maxParticipationPct / 100,
+        marketImpactBpsAtMaxParticipation: input.marketImpactBps,
       },
       regime: {
         fastEmaPeriod: 10,
@@ -99,6 +114,10 @@ function metric(label: string, value: string): HTMLElement {
 function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
   target.replaceChildren();
   const summary = el("div", "research-summary");
+  const execution = report.config.executionModel;
+  target.append(el("p", "small execution-model-label", execution
+    ? `EXECUTION-AWARE · fee ${(execution.feeRate * 10_000).toFixed(1)} bps · slippage ${execution.baseSlippageBps} bps · half-spread ${execution.halfSpreadBps} bps · participation cap ${(execution.maxParticipationRate * 100).toFixed(2)}% · impact-at-cap ${execution.marketImpactBpsAtMaxParticipation} bps`
+    : "LEGACY MODEL · immediate full fills · fee and fixed slippage only"));
   summary.append(
     metric("CANDLES", report.dataset.candleCount.toLocaleString()),
     metric("WALK-FORWARD CANDIDATES", String(report.candidateResults.length)),
@@ -168,7 +187,10 @@ export function mountResearchConsole(container: HTMLElement): void {
         <label>Training bars<input name="trainBars" type="number" min="100" value="600" required /></label>
         <label>Test bars<input name="testBars" type="number" min="20" value="120" required /></label>
         <label>Fee (basis points)<input name="feeBps" type="number" min="0" max="100" step="1" value="10" required /></label>
-        <label>Slippage (basis points)<input name="slippageBps" type="number" min="0" max="500" step="1" value="5" required /></label>
+        <label>Base slippage (bps)<input name="slippageBps" type="number" min="0" max="500" step="1" value="5" required /></label>
+        <label>Half-spread (bps)<input name="halfSpreadBps" type="number" min="0" max="100" step="0.5" value="2" required /></label>
+        <label>Max candle participation (%)<input name="maxParticipationPct" type="number" min="0.01" max="100" step="0.01" value="1" required /></label>
+        <label>Impact at participation cap (bps)<input name="marketImpactBps" type="number" min="0" max="500" step="1" value="25" required /></label>
         <button id="run-research" type="submit">Run research batch</button>
       </form>
       <p id="research-status" class="paper-status" role="status">Ready · public Binance spot data · no API key required</p>
@@ -246,7 +268,7 @@ export function mountResearchConsole(container: HTMLElement): void {
           refreshHistory();
         });
         info.append(
-          el("strong", "", record.report.config ? record.report.candidateResults.length + " strategies · " + record.report.dataset.candleCount.toLocaleString() + " candles" : "Saved experiment"),
+          el("strong", "", record.report.config ? (record.report.config.executionModel ? "Execution-aware" : "Legacy") + " · " + record.report.candidateResults.length + " strategies · " + record.report.dataset.candleCount.toLocaleString() + " candles" : "Saved experiment"),
           el("span", "small", new Date(record.createdAt).toLocaleString() + " · " + record.report.dataset.fingerprint),
         );
         const actions = el("div", "saved-run-actions");
@@ -321,13 +343,42 @@ export function mountResearchConsole(container: HTMLElement): void {
           rsi: { period: 14, oversold: 30, overbought: 70 },
           donchian: { period: 20 },
         });
-        const report = runResearchBatch(candles, candidates, settings.pipeline, {
+        const metadata = {
           symbol: settings.symbol, interval: settings.interval, provider: "Binance public spot",
-        });
-        renderReport(results, report);
-        const saved = await runStore.save(report);
+        };
+        const legacyPipeline: ResearchPipelineConfig = {
+          folds: { ...settings.pipeline.folds },
+          backtest: { ...settings.pipeline.backtest },
+          regime: { ...settings.pipeline.regime },
+        };
+        const legacyReport = runResearchBatch(candles, candidates, legacyPipeline, metadata);
+        const executionReport = runResearchBatch(candles, candidates, settings.pipeline, metadata);
+        results.replaceChildren();
+        const comparisonGrid = el("div", "execution-comparison-grid");
+        const legacyPanel = el("section", "execution-comparison-panel");
+        const executionPanel = el("section", "execution-comparison-panel");
+        legacyPanel.append(el("h3", "", "Legacy execution"));
+        executionPanel.append(el("h3", "", "Execution-aware"));
+        const legacyTarget = el("div", "execution-report");
+        const executionTarget = el("div", "execution-report");
+        legacyPanel.append(legacyTarget);
+        executionPanel.append(executionTarget);
+        comparisonGrid.append(legacyPanel, executionPanel);
+        results.append(comparisonGrid);
+        renderReport(legacyTarget, legacyReport);
+        renderReport(executionTarget, executionReport);
+        const sensitivity = compareResearchRuns(legacyReport, executionReport);
+        const sensitivityPanel = el("section", "research-result execution-sensitivity");
+        sensitivityPanel.append(el("h3", "", "Execution-cost sensitivity · execution-aware minus legacy"));
+        sensitivityPanel.append(el("p", "small", "Same candles, folds, strategies and capital. This is an execution-model sensitivity analysis, not an apples-to-apples strategy comparison: the fill assumptions intentionally differ."));
+        for (const delta of sensitivity.candidateDeltas) {
+          sensitivityPanel.append(el("p", "small", delta.name + " · OOS return " + delta.returnDeltaPct.toFixed(2) + " pp · worst drawdown " + (delta.worstFoldDrawdownDeltaPct?.toFixed(2) ?? "—") + " pp · completed trade delta " + delta.tradeCountDelta));
+        }
+        results.append(sensitivityPanel);
+        const legacySaved = await runStore.save(legacyReport);
+        const executionSaved = await runStore.save(executionReport);
         await refreshHistory();
-        status.textContent = `Completed and saved · ${candles.length.toLocaleString()} candles · ${report.candidateResults[0].evaluation.foldCount} out-of-sample folds per strategy · ${settings.symbol} ${settings.interval} · ${saved.id}`;
+        status.textContent = `Completed · ${candles.length.toLocaleString()} candles · ${legacyReport.candidateResults[0].evaluation.foldCount} OOS folds per strategy · legacy ${legacySaved.id} · execution-aware ${executionSaved.id}`;
       } catch (error) {
         status.textContent = error instanceof Error ? error.message : "Research batch failed";
       } finally {
