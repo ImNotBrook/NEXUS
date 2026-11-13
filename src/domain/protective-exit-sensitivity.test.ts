@@ -5,8 +5,8 @@ import type { Candle } from "./candles";
 const candles: Candle[] = Array.from({ length: 16 }, (_, index) => ({
   timestamp: index * 60_000,
   open: 100 + index,
-  high: index === 7 ? 115 : 102 + index,
-  low: index === 7 ? 99 : 99 + index,
+  high: index === 8 ? 115 : 102 + index,
+  low: index === 8 ? 100 : 99 + index,
   close: 101 + index,
   volume: 1_000,
 }));
