@@ -202,7 +202,7 @@ describe("runExecutionAwareBacktest", () => {
       { timestamp: 4, open: 100, high: 112, low: 99, close: 111, volume: 100 },
     ];
     const result = runExecutionAwareBacktest(candles,
-      () => "buy",
+      history => history.length <= 3 ? "buy" : "hold",
       { initialCapital: 1_000, allocationFraction: 1, executionModel: model,
         protectiveOrders: { takeProfitPct: 10 } });
     expect(result.trades).toHaveLength(1);
