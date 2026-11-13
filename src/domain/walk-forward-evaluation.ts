@@ -1,4 +1,6 @@
 import { runBacktest, type BacktestConfig, type BacktestResult, type StrategyEvaluator } from "./backtest";
+import { runExecutionAwareBacktest } from "./execution-aware-backtest";
+import type { MarketExecutionConfig } from "./execution-model";
 import type { Candle } from "./candles";
 import { buildWalkForwardFolds, type WalkForwardConfig } from "./walk-forward";
 
@@ -7,6 +9,8 @@ export type StrategyFactory = (training: readonly Candle[]) => StrategyEvaluator
 export interface WalkForwardEvaluationConfig {
   folds: WalkForwardConfig;
   backtest: Omit<BacktestConfig, "warmupBars">;
+  /** Optional realistic candle-volume execution model; absent preserves legacy fills. */
+  executionModel?: MarketExecutionConfig;
   /** Fit parameters using training candles only; return a frozen test-time evaluator. */
   fit: StrategyFactory;
 }
@@ -51,10 +55,20 @@ export function evaluateWalkForward(
       throw new TypeError("Strategy factory must return a strategy evaluator");
     }
     const testSeries = [...fold.train, ...fold.embargo, ...fold.test];
-    const result = runBacktest(testSeries, evaluator, {
-      ...config.backtest,
-      warmupBars: fold.train.length + fold.embargo.length,
-    });
+    if (config.executionModel && config.backtest.protectiveOrders) {
+      throw new RangeError("Execution-aware backtesting does not yet support protective stop/target orders");
+    }
+    const result = config.executionModel
+      ? runExecutionAwareBacktest(testSeries, evaluator, {
+        initialCapital: config.backtest.initialCapital,
+        allocationFraction: config.backtest.allocationFraction,
+        warmupBars: fold.train.length + fold.embargo.length,
+        executionModel: config.executionModel,
+      })
+      : runBacktest(testSeries, evaluator, {
+        ...config.backtest,
+        warmupBars: fold.train.length + fold.embargo.length,
+      });
     results.push({
       index: fold.index,
       trainStartTimestamp: fold.train[0].timestamp,
