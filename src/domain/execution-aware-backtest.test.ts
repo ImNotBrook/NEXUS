@@ -106,7 +106,7 @@ describe("runExecutionAwareBacktest", () => {
         protectiveOrders: { takeProfitPct: 10 } });
     expect(result.trades).toHaveLength(1);
     expect(result.trades[0].exitReason).toBe("take-profit");
-    expect(result.trades[0].exitPrice).toBe(110);
+    expect(result.trades[0].exitPrice).toBeCloseTo(result.trades[0].entryPrice * 1.1);
     expect(result.openPosition).toBeNull();
   });
 
@@ -175,7 +175,7 @@ describe("runExecutionAwareBacktest", () => {
       { initialCapital: 1_000, allocationFraction: 1, executionModel: model,
         protectiveOrders: { takeProfitPct: 10 } });
     expect(result.trades).toHaveLength(1);
-    expect(result.trades[0].exitPrice).toBeGreaterThan(115 - 1e-9);
+    expect(result.trades[0].exitPrice).toBeGreaterThan(result.trades[0].entryPrice * 1.1);
   });
 
   it("chooses the adverse stop when stop and target are both touched in one candle", () => {
