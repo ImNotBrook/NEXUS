@@ -315,3 +315,15 @@ Updated: 2026-11-14
 - Strategy scorecards expose fill events, partial-fill events, folds with open positions, folds with pending orders and aggregate unfilled quantity. Open inventory and pending remainder are explicitly not completed trades.
 - Full CI verification on the feature branch: 35 test files passed, npm audit reported 0 vulnerabilities, and strict TypeScript/Vite production build passed.
 - Remaining limitations: UI layout has build/unit verification but no real-device browser E2E verification in this change; candle-volume liquidity is a coarse proxy, the model is long-only, and protective stop/target orders are not yet supported by the execution-aware path.
+
+
+## Execution-aware protective-order integration
+
+- Integrated optional long-only stop-loss and take-profit orders into `runExecutionAwareBacktest`; the legacy `runBacktest` API remains unchanged.
+- Stop exits use the shared market execution resolver, including participation-scaled impact, adverse spread/slippage and fees. Stop residuals continue as market orders.
+- Take-profit exits use limit semantics. Partial residuals retain their original limit price and cannot fill on a later candle unless its high reaches the limit; opening gaps above the target receive price improvement. Fees apply to executed quantity.
+- Once a protective exit is triggered, an opposing strategy signal cannot cancel its residual order. Protective exits are not retriggered while an exit remainder is pending.
+- When both protective levels are touched in one candle, the existing resolver selects the adverse stop. Protective orders activate only after the entry candle.
+- Added integration tests for stop execution costs, target limit fills, partial stop/target exits, untouched target limits, target gap improvement, stop/target collisions and protection against strategy-signal cancellation.
+- The branch has a successful full CI run on commit `882355b`: 183 tests, zero reported dependency vulnerabilities, and strict TypeScript/Vite production build. A subsequent regression test for strategy-signal cancellation has been added and requires a fresh passing CI run before merge.
+- Historical simulation only. Candle volume is a liquidity proxy; queue position, order-book depth, latency and actual intrabar price paths are not modelled. No live order routing is enabled.

@@ -1,18 +1,23 @@
-import { resolveMarketFill, validateMarketExecutionConfig, type MarketExecutionConfig, type MarketOrderSide } from "./execution-model";
+import { resolveMarketFill, validateMarketExecutionConfig, type MarketExecutionConfig, type MarketOrderSide, type MarketFillStatus } from "./execution-model";
 import { validateCandles, type Candle } from "./candles";
 import type { BacktestPosition, BacktestResult, BacktestTrade, StrategyEvaluator } from "./backtest";
+import { resolveLongProtectiveExit, validateProtectiveExitConfig, type ProtectiveExitConfig } from "./protective-orders";
 
 export interface ExecutionAwareBacktestConfig {
   initialCapital: number;
   allocationFraction: number;
   warmupBars?: number;
   executionModel: MarketExecutionConfig;
+  protectiveOrders?: ProtectiveExitConfig;
 }
 
 export interface PendingBacktestOrder {
   side: MarketOrderSide;
   remainingQuantity: number;
   submittedAt: number;
+  exitReason?: BacktestTrade["exitReason"];
+  kind?: "market" | "limit";
+  limitPrice?: number;
 }
 
 export interface ExecutionAwareBacktestResult extends BacktestResult {
@@ -52,6 +57,7 @@ export function runExecutionAwareBacktest(
 ): ExecutionAwareBacktestResult {
   validateConfig(config);
   validateMarketExecutionConfig(config.executionModel);
+  if (config.protectiveOrders) validateProtectiveExitConfig(config.protectiveOrders);
   const candles = validateCandles(inputCandles);
   if (candles.some(c => c.open <= 0 || c.high <= 0 || c.low <= 0 || c.close <= 0)) {
     throw new RangeError("Spot backtests require strictly positive OHLC prices");
@@ -86,13 +92,30 @@ export function runExecutionAwareBacktest(
         requested = Math.min(requested, position?.quantity ?? 0);
       }
 
-      if (requested > 1e-12) {
-        const fill = resolveMarketFill({
-          side: pending.side,
-          requestedQuantity: requested,
-          referencePrice: candle.open,
-          candleVolume: candle.volume,
-        }, config.executionModel);
+      // A triggered take-profit remainder remains a true limit order. It cannot
+      // execute unless the candle trades at or above its limit; opening gaps improve price.
+      const limitExecutable = pending.kind !== "limit" ||
+        (pending.limitPrice !== undefined && candle.high >= pending.limitPrice);
+      if (requested > 1e-12 && limitExecutable) {
+        const fill: { status: MarketFillStatus; filledQuantity: number; notional: number; fee: number; executionPrice: number } = pending.kind === "limit"
+          ? (() => {
+              const executionPrice = Math.max(pending.limitPrice!, candle.open);
+              const filledQuantity = Math.min(requested,
+                candle.volume * config.executionModel.maxParticipationRate);
+              const notional = filledQuantity * executionPrice;
+              const fee = notional * config.executionModel.feeRate;
+              return {
+                status: filledQuantity <= 0 ? "unfilled" as const :
+                  filledQuantity < requested ? "partial" as const : "filled" as const,
+                filledQuantity, notional, fee, executionPrice,
+              };
+            })()
+          : resolveMarketFill({
+              side: pending.side,
+              requestedQuantity: requested,
+              referencePrice: candle.open,
+              candleVolume: candle.volume,
+            }, config.executionModel);
 
         if (fill.filledQuantity > 0) {
           fillEvents += 1;
@@ -106,19 +129,20 @@ export function runExecutionAwareBacktest(
             const oldEntryFee: number = previousPosition?.entryFee ?? 0;
             const nextEntryCost: number = oldEntryCost + fill.notional + fill.fee;
             const nextEntryFee: number = oldEntryFee + fill.fee;
-            const nextEntryNotional: number = (previousPosition?.entryPrice ?? 0) * oldQuantity + fill.notional;
+            const nextEntryNotional: number = (previousPosition?.entryPrice ?? 0) * oldQuantity +
+              fill.filledQuantity * fill.executionPrice;
             position = {
               entryTimestamp: previousPosition?.entryTimestamp ?? candle.timestamp,
               entryPrice: nextEntryNotional / nextQuantity,
               quantity: nextQuantity,
               entryFee: nextEntryFee,
               entryCost: nextEntryCost,
-              originalEntryCost: nextEntryCost,
-              originalEntryFee: nextEntryFee,
-              originalQuantity: nextQuantity,
-              exitNotional: 0,
-              exitFee: 0,
-              exitQuantity: 0,
+              originalEntryCost: (previousPosition?.originalEntryCost ?? 0) + fill.notional + fill.fee,
+              originalEntryFee: (previousPosition?.originalEntryFee ?? 0) + fill.fee,
+              originalQuantity: oldQuantity + fill.filledQuantity,
+              exitNotional: previousPosition?.exitNotional ?? 0,
+              exitFee: previousPosition?.exitFee ?? 0,
+              exitQuantity: previousPosition?.exitQuantity ?? 0,
             };
             cash -= fill.notional + fill.fee;
           } else if (position) {
@@ -140,7 +164,7 @@ export function runExecutionAwareBacktest(
                 exitFee: position.exitFee,
                 pnl,
                 pnlPct: (pnl / position.originalEntryCost) * 100,
-                exitReason: "signal",
+                exitReason: pending.exitReason ?? "signal",
               });
               position = null;
             } else {
@@ -156,6 +180,61 @@ export function runExecutionAwareBacktest(
       if (pending.remainingQuantity <= 1e-12) pending = null;
     }
 
+    // Protective orders are inactive on the entry candle. Stop exits incur adverse
+    // market costs; target exits are limit fills at the target or better opening price.
+    if (position && !pending && candle.timestamp > position.entryTimestamp && config.protectiveOrders) {
+      const protective = resolveLongProtectiveExit(position.entryPrice, candle, config.protectiveOrders);
+      if (protective) {
+        const isTarget = protective.reason === "take-profit";
+        const requested = position.quantity;
+        const capacity = candle.volume * config.executionModel.maxParticipationRate;
+        const filledQuantity = Math.min(requested, capacity);
+        if (filledQuantity > 1e-12) {
+          const marketFill = isTarget ? null : resolveMarketFill({
+            side: "sell", requestedQuantity: filledQuantity,
+            referencePrice: protective.referencePrice, candleVolume: candle.volume,
+          }, config.executionModel);
+          const executionPrice = isTarget ? protective.referencePrice : marketFill!.executionPrice;
+          const executedQuantity = isTarget ? filledQuantity : marketFill!.filledQuantity;
+          const notional = executedQuantity * executionPrice;
+          const fee = notional * config.executionModel.feeRate;
+          fillEvents += 1;
+          if (executedQuantity < requested - 1e-12) partialFillEvents += 1;
+          totalFees += fee;
+          cash += notional - fee;
+          position.exitNotional += notional;
+          position.exitFee += fee;
+          position.exitQuantity += executedQuantity;
+          const remaining = Math.max(0, position.quantity - executedQuantity);
+          if (remaining <= 1e-12) {
+            const pnl = position.exitNotional - position.exitFee - position.originalEntryCost;
+            trades.push({
+              entryTimestamp: position.entryTimestamp,
+              exitTimestamp: candle.timestamp,
+              entryPrice: position.entryPrice,
+              exitPrice: position.exitNotional / position.exitQuantity,
+              quantity: position.originalQuantity,
+              entryFee: position.originalEntryFee,
+              exitFee: position.exitFee,
+              pnl,
+              pnlPct: (pnl / position.originalEntryCost) * 100,
+              exitReason: protective.reason,
+            });
+            position = null;
+            pending = null;
+          } else {
+            const fraction = remaining / position.quantity;
+            position.quantity = remaining;
+            position.entryCost *= fraction;
+            position.entryFee *= fraction;
+            pending = { side: "sell", remainingQuantity: remaining, submittedAt: candle.timestamp,
+              exitReason: protective.reason, kind: isTarget ? "limit" : "market",
+              ...(isTarget ? { limitPrice: protective.referencePrice } : {}) };
+          }
+        }
+      }
+    }
+
     const positionValue = position ? position.quantity * candle.close : 0;
     const equity = cash + positionValue;
     equityCurve.push({ timestamp: candle.timestamp, equity, cash, positionValue });
@@ -167,7 +246,7 @@ export function runExecutionAwareBacktest(
     }
 
     if (pending && ((pending.side === "buy" && signal === "sell") ||
-        (pending.side === "sell" && signal === "buy"))) {
+        (pending.side === "sell" && pending.exitReason === "signal" && signal === "buy"))) {
       pending = null;
     }
     if (!pending && signal === "buy" && !position) {
@@ -181,6 +260,7 @@ export function runExecutionAwareBacktest(
         side: "sell",
         remainingQuantity: position.quantity,
         submittedAt: candle.timestamp,
+        exitReason: "signal",
       };
     }
   }
