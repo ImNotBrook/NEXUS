@@ -17,6 +17,8 @@ export interface PendingBacktestOrder {
 
 export interface ExecutionAwareBacktestResult extends BacktestResult {
   pendingOrder: PendingBacktestOrder | null;
+  fillEvents: number;
+  partialFillEvents: number;
 }
 
 interface ActivePosition {
@@ -63,6 +65,8 @@ export function runExecutionAwareBacktest(
   let position: ActivePosition | null = null;
   let pending: PendingBacktestOrder | null = null;
   let totalFees = 0;
+  let fillEvents = 0;
+  let partialFillEvents = 0;
   const trades: BacktestTrade[] = [];
   const equityCurve: BacktestResult["equityCurve"] = [];
 
@@ -90,6 +94,8 @@ export function runExecutionAwareBacktest(
         }, config.executionModel);
 
         if (fill.filledQuantity > 0) {
+          fillEvents += 1;
+          if (fill.status === "partial") partialFillEvents += 1;
           totalFees += fill.fee;
           if (pending.side === "buy") {
             const previousPosition = position as unknown as ActivePosition | null;
@@ -209,5 +215,7 @@ export function runExecutionAwareBacktest(
     equityCurve,
     openPosition,
     pendingOrder: pending ? { ...pending } : null,
+    fillEvents,
+    partialFillEvents,
   };
 }
