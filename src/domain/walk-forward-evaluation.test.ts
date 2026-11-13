@@ -92,4 +92,23 @@ describe("evaluateWalkForward", () => {
     expect(result.foldsWithPendingOrders).toBe(2);
     expect(result.totalPendingQuantity).toBeGreaterThan(0);
   });
+
+  it("propagates protective exits through the execution-aware out-of-sample fold", () => {
+    const testCandles = candles.map((candle, index) => index === 8
+      ? { ...candle, low: 100 }
+      : candle);
+    const result = evaluateWalkForward(testCandles, {
+      folds: { trainBars: 6, testBars: 4, stepBars: 4, embargoBars: 0 },
+      backtest: { initialCapital: 1000, feeRate: 0, slippageBps: 0, allocationFraction: 1,
+        protectiveOrders: { stopLossPct: 5 } },
+      executionModel: {
+        feeRate: 0, baseSlippageBps: 0, halfSpreadBps: 0,
+        maxParticipationRate: 1, marketImpactBpsAtMaxParticipation: 0,
+      },
+      fit: () => (history) => history.length === 7 ? "buy" : "hold",
+    });
+    expect(result.folds[0].result.trades[0]?.exitReason).toBe("stop-loss");
+    expect(result.totalCompletedTrades).toBe(1);
+  });
+
 });
