@@ -94,4 +94,5 @@ describe("runResearchBatch", () => {
     expect(report.candidateResults[0].evaluation.totalFillEvents).toBe(0);
     expect(report.candidateResults[0].evaluation.totalPendingQuantity).toBe(0);
   });
-\n});
+
+});
