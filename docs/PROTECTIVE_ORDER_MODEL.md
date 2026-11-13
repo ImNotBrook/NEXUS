@@ -18,3 +18,8 @@ The NEXUS long-only spot backtesters optionally accept `protectiveOrders` with a
 This is a bar-based approximation, not exchange matching-engine simulation. Candle volume is a coarse liquidity proxy, not order-book depth. The model does not simulate queue priority, latency, tick/lot rounding, exchange rejections, or the true intrabar path. Stop fills can be worse than the modelled costs in fast markets. Results must not be treated as a guarantee of executable prices.
 
 Protective exits are optional and disabled unless configured. They are confined to historical simulation; they do not create broker orders or enable live execution.
+
+
+## Walk-forward research integration
+
+When the research pipeline selects the execution-aware fill model, the same optional stop/target configuration is passed to every out-of-sample fold. The mobile research console exposes stop-loss and take-profit percentages; either can be disabled independently. Research reports retain the complete protective-order configuration, and run comparison rejects different protective settings as non-comparable. Exit-reason counts are displayed with the candidate scorecard. These settings affect historical simulation only and do not create broker-side orders.
