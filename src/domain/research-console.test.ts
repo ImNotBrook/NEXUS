@@ -57,4 +57,14 @@ describe("createResearchRunSettings", () => {
       marketImpactBps: 25,
     })).toThrow();
   });
+
+  it("includes validated protective stop and target settings in the execution-aware pipeline config", () => {
+    const settings = createResearchRunSettings({
+      symbol: "BTCUSDT", interval: "1h", candleCount: 1500, trainBars: 600,
+      testBars: 120, feeBps: 10, slippageBps: 5, halfSpreadBps: 2,
+      maxParticipationPct: 1, marketImpactBps: 25, stopLossPct: 4, takeProfitPct: 8,
+    });
+    expect(settings.pipeline.backtest.protectiveOrders).toEqual({ stopLossPct: 4, takeProfitPct: 8 });
+  });
+
 });
