@@ -81,6 +81,9 @@ export function createRsiMeanReversion(config: RsiMeanReversionConfig): Strategy
   };
 
   const calculateRsi = (): number => {
+    if (averageGain === null || averageLoss === null) {
+      throw new Error("RSI averages are not initialized");
+    }
     if (averageGain === 0 && averageLoss === 0) return 50;
     if (averageLoss === 0) return 100;
     if (averageGain === 0) return 0;
