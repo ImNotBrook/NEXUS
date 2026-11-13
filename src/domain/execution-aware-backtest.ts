@@ -1,4 +1,4 @@
-import { resolveMarketFill, type MarketExecutionConfig, type MarketOrderSide } from "./execution-model";
+import { resolveMarketFill, validateMarketExecutionConfig, type MarketExecutionConfig, type MarketOrderSide } from "./execution-model";
 import { validateCandles, type Candle } from "./candles";
 import type { BacktestPosition, BacktestResult, BacktestTrade, StrategyEvaluator } from "./backtest";
 
@@ -51,6 +51,7 @@ export function runExecutionAwareBacktest(
   config: ExecutionAwareBacktestConfig,
 ): ExecutionAwareBacktestResult {
   validateConfig(config);
+  validateMarketExecutionConfig(config.executionModel);
   const candles = validateCandles(inputCandles);
   if (candles.some(c => c.open <= 0 || c.high <= 0 || c.low <= 0 || c.close <= 0)) {
     throw new RangeError("Spot backtests require strictly positive OHLC prices");
