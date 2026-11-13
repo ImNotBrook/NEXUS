@@ -193,4 +193,22 @@ describe("runExecutionAwareBacktest", () => {
     expect(result.trades[0].exitPrice).toBeLessThan(result.trades[0].entryPrice * 0.95);
   });
 
+
+  it("does not let a strategy reversal cancel an already-triggered protective limit exit", () => {
+    const candles: Candle[] = [
+      { timestamp: 1, open: 100, high: 101, low: 99, close: 100, volume: 100 },
+      { timestamp: 2, open: 100, high: 101, low: 99, close: 100, volume: 100 },
+      { timestamp: 3, open: 100, high: 112, low: 99, close: 111, volume: 20 },
+      { timestamp: 4, open: 100, high: 112, low: 99, close: 111, volume: 100 },
+    ];
+    const result = runExecutionAwareBacktest(candles,
+      () => "buy",
+      { initialCapital: 1_000, allocationFraction: 1, executionModel: model,
+        protectiveOrders: { takeProfitPct: 10 } });
+    expect(result.trades).toHaveLength(1);
+    expect(result.trades[0].exitReason).toBe("take-profit");
+    expect(result.pendingOrder).toBeNull();
+    expect(result.openPosition).toBeNull();
+  });
+
 });
