@@ -1,9 +1,23 @@
+import type { MarketExecutionConfig } from "./execution-model";
 export interface PaperBrokerConfig {
   initialCash: number;
   feeRate: number;
   slippageRate: number;
   maxPositionValueFraction: number;
   maxDailyLossFraction: number;
+  executionModel?: MarketExecutionConfig;
+}
+
+export interface PaperOpenOrder {
+  id: string;
+  symbol: string;
+  side: "buy" | "sell";
+  requestedQuantity: number;
+  remainingQuantity: number;
+  referencePrice: number;
+  createdAt: number;
+  lastAttemptAt: number;
+  status: "open" | "partial";
 }
 
 export interface PaperPosition {
@@ -35,6 +49,7 @@ export interface PaperAccount {
   readonly fills: readonly PaperFill[];
   readonly dailyStartEquity: number;
   readonly tradingDay: string;
+  readonly openOrders: readonly PaperOpenOrder[];
 }
 
 export interface PaperOrderRequest {
@@ -90,6 +105,7 @@ export function createPaperAccount(overrides: Partial<PaperBrokerConfig> = {}, t
     fills: [],
     dailyStartEquity: config.initialCash,
     tradingDay: utcDay(timestamp),
+    openOrders: [],
   };
 }
 
