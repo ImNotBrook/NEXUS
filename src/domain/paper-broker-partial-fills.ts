@@ -1,26 +1,5 @@
 import { resolveMarketFill, type MarketExecutionConfig } from "./execution-model";
-import type { PaperAccount, PaperBrokerConfig, PaperFill, PaperPosition } from "./paper-broker";
-
-declare module "./paper-broker" {
-  interface PaperBrokerConfig { executionModel?: MarketExecutionConfig }
-  interface PaperAccount { openOrders?: readonly PaperOpenOrder[] }
-}
-export interface PaperOpenOrder {
-  id: string;
-  symbol: string;
-  side: "buy" | "sell";
-  requestedQuantity: number;
-  remainingQuantity: number;
-  referencePrice: number;
-  createdAt: number;
-  lastAttemptAt: number;
-  status: "open" | "partial";
-}
-
-export interface PaperAccount {
-  openOrders?: readonly PaperOpenOrder[];
-}
-
+import type { PaperAccount, PaperBrokerConfig, PaperFill, PaperOpenOrder } from "./paper-broker";
 export interface SubmitPaperOrderRequest {
   symbol: string;
   side: "buy" | "sell";
