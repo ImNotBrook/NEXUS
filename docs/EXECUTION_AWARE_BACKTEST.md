@@ -27,7 +27,7 @@ The function accepts initial capital, allocation fraction, optional warm-up bars
 ## Limitations and research controls
 
 - Candle volume is a coarse liquidity proxy, not historical order-book depth. The model does not simulate queue priority, latency, tick/lot rounding, exchange rejections or intrabar execution path.
-- This first execution-aware mode is long-only and does not yet apply the legacy backtest's protective stop/target orders. It does not model leverage, shorts or funding.
+- This execution-aware mode is long-only and optionally supports protective stop/target exits. Protective stop residuals remain market orders; target residuals preserve their limit price. It does not model leverage, shorts or funding.
 - The legacy `runBacktest` remains unchanged. Research pipelines must explicitly select `runExecutionAwareBacktest` before claiming partial-fill execution realism.
 - This does not remove overfitting, regime, data-quality, survivorship or market-impact calibration risk. Validate assumptions by venue, symbol and timeframe using out-of-sample data.
 - Paper and historical simulation only; no live order routing.
