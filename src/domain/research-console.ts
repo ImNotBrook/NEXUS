@@ -262,7 +262,7 @@ export function mountResearchConsole(container: HTMLElement): void {
   if (!form || !button || !status || !results || !history || !compareButton || !comparisonTarget ||
       !sensitivityButton || !sensitivityStops || !sensitivityTargets || !sensitivityResults) return;
   const runStore = new ResearchRunStore();
-  let sensitivityContext: { candles: Candle[]; candidates: ReturnType<typeof createBaselineResearchCandidates>; pipeline: ResearchPipelineConfig } | null = null;
+  let sensitivityContext: { candles: Candle[]; candidates: ReturnType<typeof createBaselineResearchCandidates>; pipeline: ResearchPipelineConfig; metadata: { symbol: string; interval: string; provider: string } } | null = null;
   const selectedRunIds = new Set<string>();
   let cachedRuns: StoredResearchRun[] = [];
 
@@ -361,7 +361,7 @@ export function mountResearchConsole(container: HTMLElement): void {
       sensitivityButton.textContent = "Running sensitivity grid…";
       sensitivityResults.replaceChildren();
       status.textContent = "Running protective-exit sensitivity scenarios…";
-      const report = runProtectiveExitSensitivity(sensitivityContext.candles, sensitivityContext.candidates, sensitivityContext.pipeline, grid);
+      const report = runProtectiveExitSensitivity(sensitivityContext.candles, sensitivityContext.candidates, sensitivityContext.pipeline, grid, sensitivityContext.metadata);
       const panel = el("div", "research-result");
       panel.append(el("h4", "", report.scenarioCount + " protective-exit scenarios"));
       panel.append(el("p", "small", report.selectionWarning));
@@ -462,7 +462,7 @@ export function mountResearchConsole(container: HTMLElement): void {
         };
         const legacyReport = runResearchBatch(candles, candidates, legacyPipeline, metadata);
         const executionReport = runResearchBatch(candles, candidates, settings.pipeline, metadata);
-        sensitivityContext = { candles, candidates, pipeline: settings.pipeline };
+        sensitivityContext = { candles, candidates, pipeline: settings.pipeline, metadata };
         sensitivityButton.disabled = false;
         results.replaceChildren();
         const comparisonGrid = el("div", "execution-comparison-grid");
