@@ -89,6 +89,7 @@ describe("evaluateWalkForward", () => {
     expect(result.totalFillEvents).toBeGreaterThan(0);
     expect(result.totalPartialFillEvents).toBeGreaterThan(0);
     expect(result.foldsWithOpenPositions).toBe(2);
-    expect(result.foldsWithPendingOrders).toBe(0);
+    expect(result.foldsWithPendingOrders).toBe(2);
+    expect(result.totalPendingQuantity).toBeGreaterThan(0);
   });
 });
