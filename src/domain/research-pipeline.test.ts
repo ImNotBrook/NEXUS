@@ -77,4 +77,22 @@ describe("runResearchBatch", () => {
     runResearchBatch(candles, [{ id: "hold", name: "Hold", fit: () => () => "hold" }], baseConfig);
     expect(JSON.stringify(candles)).toBe(before);
   });
+
+
+  it("stores the complete execution model alongside the evaluated research results", () => {
+    const executionModel = {
+      feeRate: 0.001,
+      baseSlippageBps: 5,
+      halfSpreadBps: 2,
+      maxParticipationRate: 0.01,
+      marketImpactBpsAtMaxParticipation: 25,
+    };
+    const report = runResearchBatch(candles, [
+      { id: "hold", name: "Hold", fit: () => () => "hold" },
+    ], { ...baseConfig, executionModel });
+    expect(report.config.executionModel).toEqual(executionModel);
+    expect(report.candidateResults[0].evaluation.totalFillEvents).toBe(0);
+    expect(report.candidateResults[0].evaluation.totalPendingQuantity).toBe(0);
+  });
+
 });

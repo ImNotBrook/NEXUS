@@ -304,3 +304,14 @@ Updated: 2026-11-14
 - Added `runExecutionAwareBacktest`, preserving the existing `runBacktest` API. The new mode executes next-candle-open orders against candle volume, carries partial fills, accounts for fees and average entry cost, and only records completed trades when the position is fully closed.
 - Added 4 execution-aware backtest specifications. Latest PR CI passed 174 tests across 35 files, npm audit (0 vulnerabilities) and strict TypeScript/Vite production build.
 - Both changes remain paper/historical simulation only. The legacy backtest and existing UI/research console have not yet been switched to the new execution-aware function; protective stop/target orders are not yet supported in that mode. See `docs/PAPER_PARTIAL_FILL_LIFECYCLE.md` and `docs/EXECUTION_AWARE_BACKTEST.md`.
+
+
+## Research pipeline execution-model integration
+
+- Walk-forward evaluation can now explicitly select the shared execution-aware backtester per fold. Legacy behavior remains the default when no execution model is configured.
+- Research reports persist the full execution model, allowing comparison logic to detect different fill assumptions.
+- Mobile research console runs each candidate set twice on the same fetched candles and fold schedule: legacy immediate fills and execution-aware partial fills. Results are rendered side by side and both reports are saved locally.
+- Execution assumptions are configurable in the console: fees, base slippage, half-spread, maximum candle-volume participation and market impact at the cap.
+- Strategy scorecards expose fill events, partial-fill events, folds with open positions, folds with pending orders and aggregate unfilled quantity. Open inventory and pending remainder are explicitly not completed trades.
+- Full CI verification on the feature branch: 35 test files passed, npm audit reported 0 vulnerabilities, and strict TypeScript/Vite production build passed.
+- Remaining limitations: UI layout has build/unit verification but no real-device browser E2E verification in this change; candle-volume liquidity is a coarse proxy, the model is long-only, and protective stop/target orders are not yet supported by the execution-aware path.

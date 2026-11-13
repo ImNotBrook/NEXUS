@@ -48,6 +48,11 @@ function evaluation(returns: number[], trades: Array<{ pnl: number; pnlPct: numb
     compoundedReturnPct: 0,
     worstFoldDrawdownPct: Math.max(...folds.map((fold) => fold.result.maxDrawdownPct)),
     aggregateWinRatePct: allTrades.length ? winners / allTrades.length * 100 : 0,
+    totalFillEvents: 0,
+    totalPartialFillEvents: 0,
+    foldsWithOpenPositions: 0,
+    foldsWithPendingOrders: 0,
+    totalPendingQuantity: 0,
   };
 }
 

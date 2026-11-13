@@ -1,4 +1,4 @@
-import { resolveMarketFill, type MarketExecutionConfig, type MarketOrderSide } from "./execution-model";
+import { resolveMarketFill, validateMarketExecutionConfig, type MarketExecutionConfig, type MarketOrderSide } from "./execution-model";
 import { validateCandles, type Candle } from "./candles";
 import type { BacktestPosition, BacktestResult, BacktestTrade, StrategyEvaluator } from "./backtest";
 
@@ -17,6 +17,8 @@ export interface PendingBacktestOrder {
 
 export interface ExecutionAwareBacktestResult extends BacktestResult {
   pendingOrder: PendingBacktestOrder | null;
+  fillEvents: number;
+  partialFillEvents: number;
 }
 
 interface ActivePosition {
@@ -49,6 +51,7 @@ export function runExecutionAwareBacktest(
   config: ExecutionAwareBacktestConfig,
 ): ExecutionAwareBacktestResult {
   validateConfig(config);
+  validateMarketExecutionConfig(config.executionModel);
   const candles = validateCandles(inputCandles);
   if (candles.some(c => c.open <= 0 || c.high <= 0 || c.low <= 0 || c.close <= 0)) {
     throw new RangeError("Spot backtests require strictly positive OHLC prices");
@@ -63,6 +66,8 @@ export function runExecutionAwareBacktest(
   let position: ActivePosition | null = null;
   let pending: PendingBacktestOrder | null = null;
   let totalFees = 0;
+  let fillEvents = 0;
+  let partialFillEvents = 0;
   const trades: BacktestTrade[] = [];
   const equityCurve: BacktestResult["equityCurve"] = [];
 
@@ -90,6 +95,8 @@ export function runExecutionAwareBacktest(
         }, config.executionModel);
 
         if (fill.filledQuantity > 0) {
+          fillEvents += 1;
+          if (fill.status === "partial") partialFillEvents += 1;
           totalFees += fill.fee;
           if (pending.side === "buy") {
             const previousPosition = position as unknown as ActivePosition | null;
@@ -209,5 +216,7 @@ export function runExecutionAwareBacktest(
     equityCurve,
     openPosition,
     pendingOrder: pending ? { ...pending } : null,
+    fillEvents,
+    partialFillEvents,
   };
 }

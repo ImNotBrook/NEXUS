@@ -39,7 +39,7 @@ export interface MarketExecutionResult {
   totalAdverseBps: number;
 }
 
-function validateConfig(config: MarketExecutionConfig): void {
+export function validateMarketExecutionConfig(config: MarketExecutionConfig): void {
   if (!Number.isFinite(config.feeRate) || config.feeRate < 0 || config.feeRate >= 1) {
     throw new RangeError("feeRate must be in [0, 1)");
   }
@@ -65,7 +65,7 @@ export function resolveMarketFill(
   request: MarketExecutionRequest,
   config: MarketExecutionConfig,
 ): MarketExecutionResult {
-  validateConfig(config);
+  validateMarketExecutionConfig(config);
   if (request.side !== "buy" && request.side !== "sell") {
     throw new TypeError("side must be buy or sell");
   }
