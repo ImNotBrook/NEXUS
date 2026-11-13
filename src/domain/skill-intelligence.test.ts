@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { approveSkill, assessSkill, createSkillRecord, type SkillInput } from "./skill-intelligence";
+import { assessSkill, createSkillRecord, type SkillInput } from "./skill-intelligence";
 
 const input: SkillInput = {
   id: "skill-ta-001", name: "Technical analysis patterns", description: "Reusable indicator and signal research patterns.",
