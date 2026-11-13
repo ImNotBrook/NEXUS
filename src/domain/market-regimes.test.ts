@@ -56,6 +56,11 @@ function evaluationWithTrades(trades: Array<{ exitTimestamp: number; pnl: number
     compoundedReturnPct: 0,
     worstFoldDrawdownPct: 0,
     aggregateWinRatePct: 0,
+    totalFillEvents: 0,
+    totalPartialFillEvents: 0,
+    foldsWithOpenPositions: 0,
+    foldsWithPendingOrders: 0,
+    totalPendingQuantity: 0,
   };
 }
 
