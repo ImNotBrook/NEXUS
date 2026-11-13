@@ -53,7 +53,7 @@ describe("validateSnapshotQuality", () => {
     const stale = validateSnapshotQuality(snapshot("Binance", candles, base), {
       now: base + 11_900_000, intervalMs: 3_600_000, maxAgeMs: 300_000,
     });
-    const future = validateSnapshotQuality(snapshot("Binance", candles, base + 9_000_000), {
+    const future = validateSnapshotQuality(snapshot("Binance", candles, base + 11_900_000), {
       now: base + 10_900_000, intervalMs: 3_600_000, maxAgeMs: 300_000,
     });
     expect(stale.status).toBe("fail");
