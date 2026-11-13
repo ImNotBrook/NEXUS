@@ -367,18 +367,28 @@ export function mountResearchConsole(container: HTMLElement): void {
       panel.append(el("p", "small", report.selectionWarning));
       const table = el("div", "regime-table");
       const header = el("div", "regime-row regime-header");
-      ["SCENARIO", "STRATEGY", "OOS RETURN", "WORST DD", "PF", "TRADES", "FEES", "POSITIVE FOLDS", "STOP EXITS", "TARGET EXITS", "PENDING QTY"].forEach((value) => header.append(el("span", "", value)));
+      ["SCENARIO", "STRATEGY", "OOS RETURN", "WORST DD", "FOLD σ", "PF", "EXPECTANCY", "TRADES", "FEES", "POSITIVE FOLDS", "AVG EXPOSURE", "COMPLETED TURNOVER", "STOP EXITS", "TARGET EXITS", "PENDING QTY"].forEach((value) => header.append(el("span", "", value)));
       table.append(header);
       for (const scenario of report.scenarios) {
         for (const candidate of scenario.report.candidateResults) {
           const row = el("div", "regime-row");
           const stopExits = candidate.evaluation.folds.reduce((sum, fold) => sum + fold.result.trades.filter((trade) => trade.exitReason === "stop-loss").length, 0);
           const targetExits = candidate.evaluation.folds.reduce((sum, fold) => sum + fold.result.trades.filter((trade) => trade.exitReason === "take-profit").length, 0);
+          const equityPoints = candidate.evaluation.folds.flatMap((fold) => fold.result.equityCurve);
+          const averageExposurePct = equityPoints.length
+            ? equityPoints.reduce((sum, point) => sum + (point.equity > 0 ? point.positionValue / point.equity : 0), 0) / equityPoints.length * 100
+            : 0;
+          const completedTurnover = candidate.evaluation.folds.reduce((sum, fold) =>
+            sum + fold.result.trades.reduce((tradeSum, trade) =>
+              tradeSum + trade.quantity * (trade.entryPrice + trade.exitPrice) / fold.result.startingCapital, 0), 0);
           [scenario.label, candidate.name, candidate.evaluation.compoundedReturnPct.toFixed(2) + "%",
             candidate.scorecard.worstFoldDrawdownPct === null ? "—" : candidate.scorecard.worstFoldDrawdownPct.toFixed(2) + "%",
+            candidate.scorecard.foldReturnStdDevPct === null ? "—" : candidate.scorecard.foldReturnStdDevPct.toFixed(2) + "%",
             candidate.scorecard.profitFactor === null ? "—" : candidate.scorecard.profitFactor.toFixed(2),
+            candidate.scorecard.expectancyPerTrade === null ? "—" : candidate.scorecard.expectancyPerTrade.toFixed(2),
             String(candidate.scorecard.completedTrades), candidate.scorecard.totalFees.toFixed(2),
             candidate.scorecard.positiveFoldPct === null ? "—" : candidate.scorecard.positiveFoldPct.toFixed(0) + "%",
+            averageExposurePct.toFixed(1) + "%", completedTurnover.toFixed(2) + "x",
             String(stopExits), String(targetExits), candidate.evaluation.totalPendingQuantity.toFixed(6)]
             .forEach((value) => row.append(el("span", "", value)));
           table.append(row);
