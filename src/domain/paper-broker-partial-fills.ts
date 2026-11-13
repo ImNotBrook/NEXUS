@@ -1,5 +1,5 @@
 import { resolveMarketFill, type MarketExecutionConfig } from "./execution-model";
-import type { PaperAccount, PaperBrokerConfig, PaperFill, PaperOpenOrder } from "./paper-broker";
+import type { PaperAccount, PaperBrokerConfig, PaperFill } from "./paper-broker";
 export interface SubmitPaperOrderRequest {
   symbol: string;
   side: "buy" | "sell";
