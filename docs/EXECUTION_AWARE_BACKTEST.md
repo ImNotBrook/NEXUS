@@ -31,3 +31,14 @@ The function accepts initial capital, allocation fraction, optional warm-up bars
 - The legacy `runBacktest` remains unchanged. Research pipelines must explicitly select `runExecutionAwareBacktest` before claiming partial-fill execution realism.
 - This does not remove overfitting, regime, data-quality, survivorship or market-impact calibration risk. Validate assumptions by venue, symbol and timeframe using out-of-sample data.
 - Paper and historical simulation only; no live order routing.
+
+
+## Walk-forward research integration
+
+The research pipeline accepts an optional `executionModel`. When supplied, every out-of-sample fold uses `runExecutionAwareBacktest`; when omitted, the legacy immediate-fill backtester remains in use. The full model is persisted in `ResearchBatchResult.config`, so run comparison detects changed execution assumptions rather than presenting those runs as directly comparable.
+
+The mobile research console now fetches one candle dataset and runs the same candidate set and walk-forward folds twice: legacy and execution-aware. It renders both result sets side by side, stores both reports locally, and shows the execution-cost sensitivity deltas. These deltas are deliberately labelled as a sensitivity analysis, not an apples-to-apples strategy comparison.
+
+Each strategy scorecard also includes fill-event count, partial-fill event count, number of folds ending with open positions, number of folds ending with pending orders, and aggregate unfilled residual quantity. Open positions and pending orders are not completed trades; completed-trade win rate and expectancy exclude them, while fold equity includes marked-to-market open inventory.
+
+The UI exposes fee, baseline slippage, half-spread, maximum candle-volume participation and market impact at the participation cap. Defaults are scenario assumptions, not empirically calibrated venue estimates. Calibrate them against exchange-specific historical order-book or trade data before interpreting the results.
