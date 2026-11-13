@@ -25,6 +25,7 @@ function evaluationWithTrades(trades: Array<{ exitTimestamp: number; pnl: number
     exitFee: 0,
     pnl: trade.pnl,
     pnlPct: trade.pnl,
+    exitReason: "signal" as const,
   }));
   const fold = {
     index: 0,
