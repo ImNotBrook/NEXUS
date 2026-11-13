@@ -14,6 +14,7 @@ function evaluation(returns: number[], trades: Array<{ pnl: number; pnlPct: numb
       exitFee: 0,
       pnl: trade.pnl,
       pnlPct: trade.pnlPct,
+      exitReason: "signal" as const,
     }));
     return {
       index,
