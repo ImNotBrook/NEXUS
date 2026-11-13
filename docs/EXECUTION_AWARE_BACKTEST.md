@@ -42,3 +42,8 @@ The mobile research console now fetches one candle dataset and runs the same can
 Each strategy scorecard also includes fill-event count, partial-fill event count, number of folds ending with open positions, number of folds ending with pending orders, and aggregate unfilled residual quantity. Open positions and pending orders are not completed trades; completed-trade win rate and expectancy exclude them, while fold equity includes marked-to-market open inventory.
 
 The UI exposes fee, baseline slippage, half-spread, maximum candle-volume participation and market impact at the participation cap. Defaults are scenario assumptions, not empirically calibrated venue estimates. Calibrate them against exchange-specific historical order-book or trade data before interpreting the results.
+
+
+## Protective exits in execution-aware walk-forward research
+
+The optional `backtest.protectiveOrders` configuration is propagated into every execution-aware out-of-sample fold. Stop-market exits use the configured market fill model; take-profit exits retain limit semantics and are not charged adverse market spread/slippage. The settings are retained in the research report configuration and strict run comparison rejects reports with different stop/target assumptions. The mobile console exposes independent optional stop-loss and take-profit percentages and reports completed stop-loss and take-profit exit counts. Empty fields disable that protective order.
