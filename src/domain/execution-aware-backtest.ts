@@ -122,13 +122,13 @@ export function runExecutionAwareBacktest(
           if (fill.status === "partial") partialFillEvents += 1;
           totalFees += fill.fee;
           if (pending.side === "buy") {
-            const previousPosition: ActivePosition | null = position;
-            const oldQuantity = previousPosition?.quantity ?? 0;
+            const previousPosition = position as unknown as ActivePosition | null;
+            const oldQuantity: number = previousPosition?.quantity ?? 0;
             const nextQuantity: number = oldQuantity + fill.filledQuantity;
-            const oldEntryCost = previousPosition?.entryCost ?? 0;
-            const oldEntryFee = previousPosition?.entryFee ?? 0;
-            const nextEntryCost = oldEntryCost + fill.notional + fill.fee;
-            const nextEntryFee = oldEntryFee + fill.fee;
+            const oldEntryCost: number = previousPosition?.entryCost ?? 0;
+            const oldEntryFee: number = previousPosition?.entryFee ?? 0;
+            const nextEntryCost: number = oldEntryCost + fill.notional + fill.fee;
+            const nextEntryFee: number = oldEntryFee + fill.fee;
             const nextEntryNotional: number = (previousPosition?.entryPrice ?? 0) * oldQuantity +
               fill.filledQuantity * fill.executionPrice;
             position = {
