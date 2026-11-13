@@ -141,6 +141,11 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
       metric("NET EXPECTANCY", candidate.scorecard.expectancyPerTrade === null ? "—" : candidate.scorecard.expectancyPerTrade.toFixed(2) + " USDT"),
       metric("POSITIVE FOLDS", candidate.scorecard.positiveFoldPct === null ? "—" : candidate.scorecard.positiveFoldPct.toFixed(1) + "%"),
       metric("TOTAL FEES", candidate.scorecard.totalFees.toFixed(2) + " USDT"),
+      metric("FILL EVENTS", String(candidate.evaluation.totalFillEvents)),
+      metric("PARTIAL FILL EVENTS", String(candidate.evaluation.totalPartialFillEvents)),
+      metric("FOLDS WITH OPEN POSITIONS", String(candidate.evaluation.foldsWithOpenPositions)),
+      metric("FOLDS WITH PENDING ORDERS", String(candidate.evaluation.foldsWithPendingOrders)),
+      metric("UNFILLED REMAINING QTY", candidate.evaluation.totalPendingQuantity.toFixed(6)),
     );
     card.append(stats);
 
