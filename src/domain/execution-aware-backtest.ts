@@ -92,15 +92,16 @@ export function runExecutionAwareBacktest(
         if (fill.filledQuantity > 0) {
           totalFees += fill.fee;
           if (pending.side === "buy") {
-            const oldQuantity = position?.quantity ?? 0;
-            const nextQuantity = oldQuantity + fill.filledQuantity;
-            const oldEntryCost = position?.entryCost ?? 0;
-            const oldEntryFee = position?.entryFee ?? 0;
-            const nextEntryCost = oldEntryCost + fill.notional + fill.fee;
-            const nextEntryFee = oldEntryFee + fill.fee;
-            const nextEntryNotional = (position?.entryPrice ?? 0) * oldQuantity + fill.notional;
+            const previousPosition: ActivePosition | null = position;
+            const oldQuantity: number = previousPosition?.quantity ?? 0;
+            const nextQuantity: number = oldQuantity + fill.filledQuantity;
+            const oldEntryCost: number = previousPosition?.entryCost ?? 0;
+            const oldEntryFee: number = previousPosition?.entryFee ?? 0;
+            const nextEntryCost: number = oldEntryCost + fill.notional + fill.fee;
+            const nextEntryFee: number = oldEntryFee + fill.fee;
+            const nextEntryNotional: number = (previousPosition?.entryPrice ?? 0) * oldQuantity + fill.notional;
             position = {
-              entryTimestamp: position?.entryTimestamp ?? candle.timestamp,
+              entryTimestamp: previousPosition?.entryTimestamp ?? candle.timestamp,
               entryPrice: nextEntryNotional / nextQuantity,
               quantity: nextQuantity,
               entryFee: nextEntryFee,
