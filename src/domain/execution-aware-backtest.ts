@@ -246,7 +246,7 @@ export function runExecutionAwareBacktest(
     }
 
     if (pending && ((pending.side === "buy" && signal === "sell") ||
-        (pending.side === "sell" && signal === "buy"))) {
+        (pending.side === "sell" && pending.exitReason === "signal" && signal === "buy"))) {
       pending = null;
     }
     if (!pending && signal === "buy" && !position) {
