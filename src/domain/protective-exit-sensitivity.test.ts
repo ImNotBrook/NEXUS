@@ -6,7 +6,7 @@ const candles: Candle[] = Array.from({ length: 16 }, (_, index) => ({
   timestamp: index * 60_000,
   open: 100 + index,
   high: index === 7 ? 115 : 102 + index,
-  low: index === 7 ? 104 : 99 + index,
+  low: index === 7 ? 99 : 99 + index,
   close: 101 + index,
   volume: 1_000,
 }));
@@ -38,6 +38,12 @@ describe("runProtectiveExitSensitivity", () => {
     });
     expect(result.scenarios.some((scenario) =>
       scenario.stopLossPct === 5 && scenario.takeProfitPct === 2)).toBe(true);
+    const targetOnly = result.scenarios.find((scenario) => scenario.stopLossPct === undefined && scenario.takeProfitPct === 2)!;
+    const stopOnly = result.scenarios.find((scenario) => scenario.stopLossPct === 5 && scenario.takeProfitPct === undefined)!;
+    const combined = result.scenarios.find((scenario) => scenario.stopLossPct === 5 && scenario.takeProfitPct === 2)!;
+    expect(targetOnly.report.candidateResults[0].evaluation.folds[0].result.trades[0]?.exitReason).toBe("take-profit");
+    expect(stopOnly.report.candidateResults[0].evaluation.folds[0].result.trades[0]?.exitReason).toBe("stop-loss");
+    expect(combined.report.candidateResults[0].evaluation.folds[0].result.trades[0]?.exitReason).toBe("stop-loss");
     expect(result.scenarios.every((scenario) =>
       scenario.report.dataset.fingerprint === result.datasetFingerprint)).toBe(true);
   });
