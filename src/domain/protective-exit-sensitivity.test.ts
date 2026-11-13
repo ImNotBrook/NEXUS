@@ -35,9 +35,9 @@ describe("runProtectiveExitSensitivity", () => {
     });
 
     expect(result.scenarios).toHaveLength(4);
-    expect(result.scenarios[0]).toMatchObject({
-      stopLossPct: undefined, takeProfitPct: undefined, label: "Stop off · target off",
-    });
+    expect(result.scenarios[0].stopLossPct).toBeUndefined();
+    expect(result.scenarios[0].takeProfitPct).toBeUndefined();
+    expect(result.scenarios[0].label).toBe("Stop off · target off");
     expect(result.scenarios.some((scenario) =>
       scenario.stopLossPct === 5 && scenario.takeProfitPct === 2)).toBe(true);
     const targetOnly = result.scenarios.find((scenario) => scenario.stopLossPct === undefined && scenario.takeProfitPct === 2)!;
