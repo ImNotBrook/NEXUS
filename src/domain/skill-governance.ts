@@ -81,7 +81,8 @@ function isVersionGreater(candidate: unknown, baseline: unknown): boolean {
 
 export function assessSkillProposal(proposal: SkillProposal): SkillAssessment {
   const reasons: string[] = [];
-  if (!proposal.id.trim() || !proposal.skillId.trim() || !proposal.title.trim() || !proposal.summary.trim()) {
+  if (!isNonBlankString(proposal.id) || !isNonBlankString(proposal.skillId) ||
+      !isNonBlankString(proposal.title) || !isNonBlankString(proposal.summary)) {
     reasons.push("Proposal identity, skill, title and summary are required");
   }
   const allowedChangeTypes: readonly string[] = [
@@ -91,7 +92,7 @@ export function assessSkillProposal(proposal: SkillProposal): SkillAssessment {
     reasons.push("Unknown skill change classification");
   }
   if (!Array.isArray(proposal.changedFiles) || proposal.changedFiles.length === 0 ||
-      proposal.changedFiles.some((path) => !path.trim() || path.startsWith("/") ||
+      proposal.changedFiles.some((path) => !isNonBlankString(path) || path.startsWith("/") ||
         path.includes("..") || path.includes("\\"))) {
     reasons.push("Proposal must identify safe, repository-relative changed file paths");
   }
@@ -102,7 +103,8 @@ export function assessSkillProposal(proposal: SkillProposal): SkillAssessment {
     reasons.push("Proposal timestamp must be a non-negative safe integer");
   }
   if (!Array.isArray(proposal.evidence) || proposal.evidence.length === 0 ||
-      proposal.evidence.some((item) => !item.source.trim() || !item.note.trim())) {
+      proposal.evidence.some((item) => !item || !isNonBlankString(item.source) ||
+        !isNonBlankString(item.note))) {
     reasons.push("At least one complete evidence reference is required");
   }
   const evaluation = proposal.evaluation;
