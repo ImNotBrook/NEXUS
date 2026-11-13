@@ -327,3 +327,14 @@ Updated: 2026-11-14
 - Added integration tests for stop execution costs, target limit fills, partial stop/target exits, untouched target limits, target gap improvement, stop/target collisions and protection against strategy-signal cancellation.
 - The branch has a successful full CI run on commit `882355b`: 183 tests, zero reported dependency vulnerabilities, and strict TypeScript/Vite production build. A subsequent regression test for strategy-signal cancellation has been added and requires a fresh passing CI run before merge.
 - Historical simulation only. Candle volume is a liquidity proxy; queue position, order-book depth, latency and actual intrabar price paths are not modelled. No live order routing is enabled.
+
+
+## Protective exits integrated into research (2026-11-14)
+
+- Propagated optional protective stop-loss and take-profit settings from walk-forward research configuration into the execution-aware backtester for every out-of-sample fold; removed the previous unsupported-combination rejection.
+- Extended the mobile research console with independent optional stop-loss and take-profit percentage inputs. Empty fields disable that order; values are validated before research starts.
+- Preserved protective-order settings in each run's stored configuration. Strict research-run comparison treats changes to stop/target assumptions as non-comparable.
+- Added stop-loss and take-profit exit counts to candidate result metrics.
+- Added regression tests for walk-forward protective execution, console configuration, report configuration persistence and mismatch rejection.
+- GitHub Actions verification for PR #14: dependency installation, dependency security audit, full Vitest suite and production build completed successfully. Final workflow completion is pending.
+- Historical research only; no exchange routing or live execution introduced.

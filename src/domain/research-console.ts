@@ -23,6 +23,8 @@ export interface ResearchRunInput {
   halfSpreadBps: number;
   maxParticipationPct: number;
   marketImpactBps: number;
+  stopLossPct?: number;
+  takeProfitPct?: number;
 }
 
 export interface ResearchRunSettings {
@@ -60,6 +62,15 @@ export function createResearchRunSettings(input: ResearchRunInput): ResearchRunS
     throw new RangeError("Spread must be 0–100 bps, participation 0–100%, and impact 0–500 bps");
   }
 
+  const stopLossPct = input.stopLossPct;
+  const takeProfitPct = input.takeProfitPct;
+  if (stopLossPct !== undefined && (!Number.isFinite(stopLossPct) || stopLossPct <= 0 || stopLossPct >= 100)) {
+    throw new RangeError("Stop loss must be greater than 0% and less than 100%");
+  }
+  if (takeProfitPct !== undefined && (!Number.isFinite(takeProfitPct) || takeProfitPct <= 0)) {
+    throw new RangeError("Take profit must be greater than 0%");
+  }
+
   return {
     symbol,
     interval,
@@ -78,6 +89,12 @@ export function createResearchRunSettings(input: ResearchRunInput): ResearchRunS
         feeRate: input.feeBps / 10_000,
         slippageBps: input.slippageBps,
         allocationFraction: 0.25,
+        ...(stopLossPct !== undefined || takeProfitPct !== undefined ? {
+          protectiveOrders: {
+            ...(stopLossPct !== undefined ? { stopLossPct } : {}),
+            ...(takeProfitPct !== undefined ? { takeProfitPct } : {}),
+          },
+        } : {}),
       },
       executionModel: {
         feeRate: input.feeBps / 10_000,
@@ -115,9 +132,13 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
   target.replaceChildren();
   const summary = el("div", "research-summary");
   const execution = report.config.executionModel;
+  const protective = report.config.backtest.protectiveOrders;
   target.append(el("p", "small execution-model-label", execution
     ? `EXECUTION-AWARE · fee ${(execution.feeRate * 10_000).toFixed(1)} bps · slippage ${execution.baseSlippageBps} bps · half-spread ${execution.halfSpreadBps} bps · participation cap ${(execution.maxParticipationRate * 100).toFixed(2)}% · impact-at-cap ${execution.marketImpactBpsAtMaxParticipation} bps`
     : "LEGACY MODEL · immediate full fills · fee and fixed slippage only"));
+  target.append(el("p", "small protective-order-label", protective
+    ? `PROTECTIVE EXITS · stop ${protective.stopLossPct === undefined ? "off" : protective.stopLossPct + "%"} · target ${protective.takeProfitPct === undefined ? "off" : protective.takeProfitPct + "%"}`
+    : "PROTECTIVE EXITS · disabled"));
   summary.append(
     metric("CANDLES", report.dataset.candleCount.toLocaleString()),
     metric("WALK-FORWARD CANDIDATES", String(report.candidateResults.length)),
@@ -146,6 +167,8 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
       metric("FOLDS WITH OPEN POSITIONS", String(candidate.evaluation.foldsWithOpenPositions)),
       metric("FOLDS WITH PENDING ORDERS", String(candidate.evaluation.foldsWithPendingOrders)),
       metric("UNFILLED REMAINING QTY", candidate.evaluation.totalPendingQuantity.toFixed(6)),
+      metric("STOP-LOSS EXITS", String(candidate.evaluation.folds.reduce((sum, fold) => sum + fold.result.trades.filter((trade) => trade.exitReason === "stop-loss").length, 0))),
+      metric("TAKE-PROFIT EXITS", String(candidate.evaluation.folds.reduce((sum, fold) => sum + fold.result.trades.filter((trade) => trade.exitReason === "take-profit").length, 0))),
     );
     card.append(stats);
 
@@ -196,6 +219,8 @@ export function mountResearchConsole(container: HTMLElement): void {
         <label>Half-spread (bps)<input name="halfSpreadBps" type="number" min="0" max="100" step="0.5" value="2" required /></label>
         <label>Max candle participation (%)<input name="maxParticipationPct" type="number" min="0.01" max="100" step="0.01" value="1" required /></label>
         <label>Impact at participation cap (bps)<input name="marketImpactBps" type="number" min="0" max="500" step="1" value="25" required /></label>
+        <label>Protective stop loss (%)<input name="stopLossPct" type="number" min="0.01" max="99.99" step="0.1" placeholder="Disabled" /></label>
+        <label>Protective take profit (%)<input name="takeProfitPct" type="number" min="0.01" step="0.1" placeholder="Disabled" /></label>
         <button id="run-research" type="submit">Run research batch</button>
       </form>
       <p id="research-status" class="paper-status" role="status">Ready · public Binance spot data · no API key required</p>
@@ -318,6 +343,8 @@ export function mountResearchConsole(container: HTMLElement): void {
         halfSpreadBps: Number(data.get("halfSpreadBps")),
         maxParticipationPct: Number(data.get("maxParticipationPct")),
         marketImpactBps: Number(data.get("marketImpactBps")),
+        stopLossPct: String(data.get("stopLossPct") ?? "").trim() === "" ? undefined : Number(data.get("stopLossPct")),
+        takeProfitPct: String(data.get("takeProfitPct") ?? "").trim() === "" ? undefined : Number(data.get("takeProfitPct")),
       });
     } catch (error) {
       status.textContent = error instanceof Error ? error.message : "Invalid research configuration";

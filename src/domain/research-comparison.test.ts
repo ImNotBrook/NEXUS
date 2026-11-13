@@ -50,4 +50,15 @@ describe("compareResearchRuns", () => {
     second.candidateResults = [];
     expect(compareResearchRuns(first, second).candidateDeltas).toEqual([]);
   });
+
+  it("rejects comparisons when protective stop or target assumptions differ", () => {
+    const baseline = report("same", 4);
+    const changed = report("same", 4);
+    baseline.config.backtest.protectiveOrders = { stopLossPct: 4, takeProfitPct: 8 };
+    changed.config.backtest.protectiveOrders = { stopLossPct: 5, takeProfitPct: 8 };
+    const result = compareResearchRuns(baseline, changed);
+    expect(result.comparable).toBe(false);
+    expect(result.reasons).toContain("Walk-forward or execution assumptions differ");
+  });
+
 });

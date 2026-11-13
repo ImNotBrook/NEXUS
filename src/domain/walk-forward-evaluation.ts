@@ -60,15 +60,13 @@ export function evaluateWalkForward(
       throw new TypeError("Strategy factory must return a strategy evaluator");
     }
     const testSeries = [...fold.train, ...fold.embargo, ...fold.test];
-    if (config.executionModel && config.backtest.protectiveOrders) {
-      throw new RangeError("Execution-aware backtesting does not yet support protective stop/target orders");
-    }
     const result = config.executionModel
       ? runExecutionAwareBacktest(testSeries, evaluator, {
         initialCapital: config.backtest.initialCapital,
         allocationFraction: config.backtest.allocationFraction,
         warmupBars: fold.train.length + fold.embargo.length,
         executionModel: config.executionModel,
+        protectiveOrders: config.backtest.protectiveOrders,
       })
       : runBacktest(testSeries, evaluator, {
         ...config.backtest,
