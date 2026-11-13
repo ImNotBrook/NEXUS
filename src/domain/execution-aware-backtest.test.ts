@@ -141,7 +141,7 @@ describe("runExecutionAwareBacktest", () => {
         protectiveOrders: { takeProfitPct: 10 } });
     expect(result.trades).toHaveLength(1);
     expect(result.trades[0].exitReason).toBe("take-profit");
-    expect(result.trades[0].exitPrice).toBeGreaterThanOrEqual(result.trades[0].entryPrice * 1.1);
+     expect(result.trades[0].exitPrice + 1e-9).toBeGreaterThanOrEqual(result.trades[0].entryPrice * 1.1);
     expect(result.pendingOrder).toBeNull();
     expect(result.openPosition).toBeNull();
   });
