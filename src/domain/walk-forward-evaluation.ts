@@ -1,5 +1,5 @@
 import { runBacktest, type BacktestConfig, type BacktestResult, type StrategyEvaluator } from "./backtest";
-import { runExecutionAwareBacktest } from "./execution-aware-backtest";
+import { runExecutionAwareBacktest, type ExecutionAwareBacktestResult } from "./execution-aware-backtest";
 import type { MarketExecutionConfig } from "./execution-model";
 import type { Candle } from "./candles";
 import { buildWalkForwardFolds, type WalkForwardConfig } from "./walk-forward";
@@ -21,7 +21,7 @@ export interface WalkForwardFoldResult {
   trainEndTimestamp: number;
   testStartTimestamp: number;
   testEndTimestamp: number;
-  result: BacktestResult;
+  result: BacktestResult | ExecutionAwareBacktestResult;
 }
 
 export interface WalkForwardEvaluationResult {
@@ -33,6 +33,11 @@ export interface WalkForwardEvaluationResult {
   compoundedReturnPct: number;
   worstFoldDrawdownPct: number;
   aggregateWinRatePct: number;
+  totalFillEvents: number;
+  totalPartialFillEvents: number;
+  foldsWithOpenPositions: number;
+  foldsWithPendingOrders: number;
+  totalPendingQuantity: number;
 }
 
 /**
@@ -100,5 +105,10 @@ export function evaluateWalkForward(
     compoundedReturnPct: (compoundedGrowth - 1) * 100,
     worstFoldDrawdownPct: Math.max(...results.map((fold) => fold.result.maxDrawdownPct)),
     aggregateWinRatePct: totalCompletedTrades ? (winners / totalCompletedTrades) * 100 : 0,
+    totalFillEvents: results.reduce((sum, fold) => sum + ("fillEvents" in fold.result ? fold.result.fillEvents : 0), 0),
+    totalPartialFillEvents: results.reduce((sum, fold) => sum + ("partialFillEvents" in fold.result ? fold.result.partialFillEvents : 0), 0),
+    foldsWithOpenPositions: results.filter((fold) => fold.result.openPosition !== null).length,
+    foldsWithPendingOrders: results.filter((fold) => "pendingOrder" in fold.result && fold.result.pendingOrder !== null).length,
+    totalPendingQuantity: results.reduce((sum, fold) => sum + ("pendingOrder" in fold.result ? fold.result.pendingOrder?.remainingQuantity ?? 0 : 0), 0),
   };
 }
