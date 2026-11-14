@@ -164,6 +164,34 @@ describe("DecisionJournalStore", () => {
     await expect(store.appendEvent(event)).rejects.toThrow();
   });
 
+  it("exports every decision and linked event and restores a missing journal atomically", async () => {
+    const source = new DecisionJournalStore(memoryIndexedDb());
+    await source.append(record);
+    await source.appendEvent(event);
+    const backup = await source.exportAll();
+    expect(backup).toEqual({ records: [record], events: [event] });
+
+    const target = new DecisionJournalStore(memoryIndexedDb());
+    await expect(target.restoreAll(backup)).resolves.toEqual({
+      addedRecords: 1, addedEvents: 1, unchangedRecords: 0, unchangedEvents: 0,
+    });
+    expect(await target.exportAll()).toEqual(backup);
+    await expect(target.restoreAll(backup)).resolves.toEqual({
+      addedRecords: 0, addedEvents: 0, unchangedRecords: 1, unchangedEvents: 1,
+    });
+  });
+
+  it("rejects conflicting IDs and missing event parents before writing anything", async () => {
+    const target = new DecisionJournalStore(memoryIndexedDb());
+    await target.append(record);
+    const before = await target.exportAll();
+    await expect(target.restoreAll({
+      records: [{ ...record, reasonCodes: ["DIFFERENT"] }], events: [event],
+    })).rejects.toThrow(/conflict/i);
+    await expect(target.restoreAll({ records: [], events: [event] })).rejects.toThrow(/missing decision/i);
+    expect(await target.exportAll()).toEqual(before);
+  });
+
   it("rejects malformed records and malformed events", async () => {
     const store = new DecisionJournalStore(memoryIndexedDb());
     await expect(store.append({ ...record, symbol: "" })).rejects.toThrow();
