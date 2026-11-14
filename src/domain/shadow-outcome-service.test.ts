@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { evaluateShadowOutcomes, auditShadowHistory, type ShadowOutcomeServiceJournal } from "./shadow-outcome-service";
 import type { DecisionJournalRecord, DecisionJournalEvent } from "./decision-journal";
-import type { ShadowTradePlan, ShadowOutcome } from "./shadow-outcome-engine";
+import type { ShadowTradePlan } from "./shadow-outcome-engine";
 import type { Candle } from "./candles";
 
 const decisionAt = 1_800_000_000_000;
