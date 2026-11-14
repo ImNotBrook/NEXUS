@@ -76,7 +76,7 @@ export function validatePaperAccountSnapshot(value: unknown): asserts value is P
   for (const key of ["initialCash", "feeRate", "slippageRate", "maxPositionValueFraction", "maxDailyLossFraction"] as const) {
     if (!finite(config[key])) throw new TypeError("Paper account configuration is invalid: " + key);
   }
-  if (typeof account.tradingDay !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(account.tradingDay)) {
+  if (typeof account.tradingDay !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(account.tradingDay)) {
     throw new TypeError("Paper account trading day is invalid");
   }
   if (!account.positions || typeof account.positions !== "object" || Array.isArray(account.positions) ||
