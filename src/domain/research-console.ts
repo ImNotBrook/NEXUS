@@ -6,6 +6,8 @@ import { ResearchRunStore, type StoredResearchRun } from "../adapters/research-r
 import { compareResearchRuns } from "./research-comparison";
 import { runProtectiveExitSensitivity } from "./protective-exit-sensitivity";
 import { runExecutionStressTest } from "./execution-stress-test";
+import { rankResearchCandidates } from "./research-result-ranking";
+import { rankExecutionStressCandidates } from "./execution-stress-ranking";
 import { runNestedWalkForwardSelection, type NestedWalkForwardResult, type NestedWalkForwardConfig } from "./nested-walk-forward-selection";
 import { NestedResearchRunStore } from "../adapters/nested-research-run-store";
 import { prepareSealedHoldout, evaluateSealedHoldout } from "./sealed-holdout";
@@ -163,10 +165,25 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
   );
   target.append(summary);
 
-  for (const candidate of report.candidateResults) {
+  const rankedCandidates = rankResearchCandidates(report.candidateResults.map((candidate) => ({
+    candidate,
+    robustness: buildStatisticalRobustnessReport(candidate.evaluation, report.candidateResults.length),
+    id: candidate.id,
+    name: candidate.name,
+    completedTrades: candidate.scorecard.completedTrades,
+    foldCount: candidate.evaluation.foldCount,
+    reviewStatus: buildStatisticalRobustnessReport(candidate.evaluation, report.candidateResults.length).status,
+    positiveFoldPct: candidate.scorecard.positiveFoldPct,
+    worstFoldReturnPct: buildStatisticalRobustnessReport(candidate.evaluation, report.candidateResults.length).worstFoldReturnPct,
+    expectancy: candidate.scorecard.expectancyPerTrade,
+    worstDrawdownPct: candidate.scorecard.worstFoldDrawdownPct,
+    compoundedReturnPct: candidate.evaluation.compoundedReturnPct,
+  })));
+  for (const ranked of rankedCandidates) {
+    const candidate = ranked.candidate;
     const card = el("article", "research-result");
     const heading = el("div", "research-result-heading");
-    heading.append(el("h3", "", candidate.name), el("span", "tag safe", candidate.id));
+    heading.append(el("h3", "", "#" + rankedCandidates.indexOf(ranked) + 1 + " · " + candidate.name), el("span", "tag safe", candidate.id));
     card.append(heading);
     const stats = el("div", "research-summary");
     stats.append(
@@ -188,7 +205,7 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
     );
     card.append(stats);
 
-    const robustness = buildStatisticalRobustnessReport(candidate.evaluation, report.candidateResults.length);
+    const robustness = ranked.robustness;
     const robustnessPanel = el("section", "research-result");
     robustnessPanel.append(el("h4", "", "Statistical robustness · " + robustness.status.replaceAll("_", " ")));
     robustnessPanel.append(el("p", "small", robustness.interpretation));
