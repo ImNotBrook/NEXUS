@@ -14,8 +14,18 @@ The calculation engine currently implements:
 | Momentum | MACD | Trend-momentum confirmation |
 | Volatility | ATR | Realized range and volatility normalization |
 | Volatility | Bollinger Bands | Rolling dispersion and price location |
+| Trend | WMA | Recent-price-weighted trend smoothing |
+| Trend | ADX | Trend strength and directional movement |
+| Momentum | Stochastic | Close location within trailing high-low range |
+| Momentum | CCI | Deviation from typical-price mean |
+| Momentum | ROC | Percentage price momentum |
+| Volume | OBV | Signed-volume accumulation |
+| Volume | VWAP | Volume-weighted average price over supplied anchor window |
+| Volume | MFI | Volume-weighted directional money flow |
+| Market structure | Donchian Channels | Prior-window breakout boundaries |
+| Volatility | Keltner Channels | EMA-centred ATR-scaled channel |
 
-The catalogue also documents ADX, Stochastic, CCI, ROC, OBV, VWAP, MFI, Donchian Channels, Keltner Channels, funding rate, open interest, long/short ratio, market breadth and Fear & Greed. These entries are marked `planned`; they are not available for computation and must not be represented as calculated features until implementation and tests are merged.
+The catalogue also documents funding rate, open interest, long/short ratio, market breadth and Fear & Greed as `planned` data features. They are not technical-indicator calculations and must not be represented as computed features until their data sources, persistence and quality controls are implemented.
 
 ## Market-context selection
 
