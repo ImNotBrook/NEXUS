@@ -222,7 +222,19 @@ export function simulateShadowOutcome(
   inputCandles: readonly Candle[],
 ): ShadowOutcome {
   validateShadowTradePlan(plan);
-  const candles = validateCandles(inputCandles);
+  if (!Array.isArray(inputCandles)) throw new TypeError("Shadow outcome candles must be an array");
+  let previousTimestamp = -1;
+  for (const candle of inputCandles) {
+    if (!candle || !validTime(candle.timestamp) || candle.timestamp <= previousTimestamp) {
+      throw new RangeError("All candle timestamps must be strictly increasing non-negative safe integers");
+    }
+    previousTimestamp = candle.timestamp;
+  }
+  const horizonReached = inputCandles.some((candle) => candle.timestamp >= plan.horizonEnd);
+  const causalCandles = inputCandles.filter((candle) =>
+    candle.timestamp > plan.decisionAt && candle.timestamp <= plan.horizonEnd
+  );
+  const candles = validateCandles(causalCandles);
   if (candles.some((candle) =>
     candle.open <= 0 || candle.high <= 0 || candle.low <= 0 || candle.close <= 0
   )) {
@@ -234,7 +246,7 @@ export function simulateShadowOutcome(
     decisionId: plan.decisionId,
     candidateId: plan.candidateId,
     status: "pending",
-    horizonReached: candles.some((candle) => candle.timestamp >= plan.horizonEnd),
+    horizonReached,
     invalidationReason: null,
     pendingExitReason: null,
     entryOrderStatus: "pending",
