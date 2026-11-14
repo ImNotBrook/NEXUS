@@ -250,19 +250,17 @@ export function buildStrategyParameterTrials(
 
   for (let index = 0; index < trialCount; index += 1) {
     const parameters = { ...base.parameters, ...valuesFor(index) } as StrategyParameters;
+    const parameterHash = hash(canonical(parameters));
+    const trialSlug = String(index + 1).padStart(2, "0") + "-" + parameterHash;
     const definition = createStrategyDefinition({
       ...base,
+      id: base.id + "-trial-" + trialSlug,
       version: base.version,
+      name: base.name + " · trial " + (index + 1),
       parameters,
     });
-    const parameterHash = hash(canonical(parameters));
-    const trialId = base.id + "@" + base.version + "#trial-" + String(index + 1).padStart(2, "0") + "-" + parameterHash;
     definitions.push(definition);
-    candidates.push({
-      id: trialId,
-      name: base.name + " · trial " + (index + 1),
-      fit: createResearchCandidateFromDefinition(definition).fit,
-    });
+    candidates.push(createResearchCandidateFromDefinition(definition));
   }
 
   const trialIds = candidates.map((candidate) => candidate.id);
