@@ -11,6 +11,7 @@ export interface SealedHoldoutIdentity {
 
 export interface SealedHoldoutPlan {
   identity: SealedHoldoutIdentity;
+  provider: string;
   fullDatasetFingerprint: string;
   developmentFingerprint: string;
   holdoutFingerprint: string;
@@ -22,6 +23,7 @@ export interface SealedHoldoutPlan {
 export interface SealedHoldoutSeal {
   protocol: "NEXUS_FINAL_HOLDOUT_V1";
   identity: SealedHoldoutIdentity;
+  provider: string;
   datasetFingerprint: string;
   developmentFingerprint: string;
   holdoutFingerprint: string;
@@ -83,6 +85,7 @@ export function prepareSealedHoldout(
   };
   return {
     identity,
+    provider: metadata.provider,
     fullDatasetFingerprint: fingerprint(candles),
     developmentFingerprint: fingerprint(developmentCandles),
     holdoutFingerprint: fingerprint(holdoutCandles),
@@ -132,7 +135,7 @@ export function evaluateSealedHoldout(
   }, {
     symbol: plan.identity.symbol,
     interval: plan.identity.interval,
-    provider: "Sealed final holdout · " + plan.identity.symbol,
+    provider: plan.provider,
   });
   if (report.candidateResults.some((candidate) => candidate.evaluation.foldCount !== 1)) {
     throw new Error("Final holdout must produce exactly one test fold per candidate");
@@ -141,6 +144,7 @@ export function evaluateSealedHoldout(
     seal: {
       protocol: "NEXUS_FINAL_HOLDOUT_V1",
       identity: { ...plan.identity },
+      provider: plan.provider,
       datasetFingerprint: plan.fullDatasetFingerprint,
       developmentFingerprint: plan.developmentFingerprint,
       holdoutFingerprint: plan.holdoutFingerprint,
