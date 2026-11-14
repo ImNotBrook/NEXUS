@@ -78,7 +78,7 @@
 .workspace-content{min-width:0}.workspace-page[hidden]{display:none}.workspace-page>.hero{padding:18px 0 24px}.workspace-page>.hero h1{font-size:clamp(36px,6vw,58px)}
 .page-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin:2px 0 17px;padding-bottom:13px;border-bottom:1px solid #1d3043}
 .page-heading h1{margin:0;font-size:clamp(22px,4vw,30px);letter-spacing:-.03em}.page-heading p{margin:6px 0 0;color:#8ba1b8;font-size:11px;line-height:1.5}
-.help-button,.panel-help{display:inline-grid;place-items:center;flex:0 0 auto;width:24px;height:24px;border:1px solid #42627b;border-radius:50%;background:#102b40;color:#8edfc9;font:700 12px/1 inherit;cursor:help}
+.help-button,.panel-help{display:inline-grid;place-items:center;flex:0 0 auto;width:24px;height:24px;border:1px solid #42627b;border-radius:50%;background:#102b40;color:#8edfc9;font-family:inherit;font-size:12px;font-weight:700;line-height:1;cursor:help}
 .panel-help{width:17px;height:17px;margin-left:8px;font-size:10px;vertical-align:middle;cursor:help}
 .workspace-help{margin:0 0 14px;color:#71869c;font-size:10px;line-height:1.5}
 .workspace-page>.grid{display:grid;grid-template-columns:1fr;gap:13px}
@@ -96,3 +96,7 @@
  .workspace-page>.hero{padding:22px 0}
 }
 @media(min-width:721px){.sidebar-toggle{display:none}.workspace-layout{grid-template-columns:200px minmax(0,1fr)}}
+
+.help-popover{position:absolute;z-index:12;right:14px;top:48px;max-width:min(290px,calc(100% - 28px));padding:11px 12px;border:1px solid #42627b;border-radius:8px;background:#102235;color:#d0dce8;font-size:11px;line-height:1.6;box-shadow:0 12px 30px #0008}
+.help-popover[hidden]{display:none}
+.help-button[aria-expanded="true"],.panel-help[aria-expanded="true"]{background:#1b4650;color:#fff}
