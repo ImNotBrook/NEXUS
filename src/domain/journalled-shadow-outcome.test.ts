@@ -75,7 +75,17 @@ class MemoryJournal implements ShadowOutcomeJournal {
   constructor(
     private readonly decisionIds = new Set([plan.decisionId]),
     private readonly parent: DecisionJournalRecord | null = parentRecord,
-  ) {}
+    preRegistered = true,
+  ) {
+    if (preRegistered) this.events.push({
+      schemaVersion: 1,
+      eventId: "shadow-plan:registered",
+      decisionId: plan.decisionId,
+      eventType: "shadow_plan_registered",
+      occurredAt: plan.decisionAt,
+      payload: { candidateId: plan.candidateId, simulationVersion: plan.simulationVersion, plan },
+    });
+  }
   async get(decisionId: string): Promise<DecisionJournalRecord | null> {
     return this.decisionIds.has(decisionId) && this.parent?.decisionId === decisionId
       ? structuredClone(this.parent)
@@ -102,7 +112,7 @@ const testHasher = async (value: unknown): Promise<string> => {
 
 describe("registerShadowPlan", () => {
   it("registers the fixed plan at decision time before any outcome candle is observed", async () => {
-    const journal = new MemoryJournal();
+    const journal = new MemoryJournal(new Set([plan.decisionId]), parentRecord, false);
     const result = await registerShadowPlan(plan, journal, testHasher);
     expect(result.event.eventType).toBe("shadow_plan_registered");
     expect(result.event.occurredAt).toBe(plan.decisionAt);
@@ -111,7 +121,7 @@ describe("registerShadowPlan", () => {
   });
 
   it("is idempotent for the same immutable plan and rejects altered plans", async () => {
-    const journal = new MemoryJournal();
+    const journal = new MemoryJournal(new Set([plan.decisionId]), parentRecord, false);
     const first = await registerShadowPlan(plan, journal, testHasher);
     const second = await registerShadowPlan(plan, journal, testHasher);
     expect(second.event.eventId).toBe(first.event.eventId);
@@ -129,6 +139,17 @@ describe("registerShadowPlan", () => {
 });
 
 describe("journalShadowOutcome", () => {
+  it("refuses outcome simulation unless the exact plan was registered at decision time", async () => {
+    const journal = new MemoryJournal(new Set([plan.decisionId]), parentRecord, false);
+    await expect(journalShadowOutcome(
+      plan,
+      [candle(2_000, 100, 101, 99, 100)],
+      4_000,
+      journal,
+      testHasher,
+    )).rejects.toThrow(/registered at decision time/i);
+    expect(journal.events).toHaveLength(0);
+  });
   it("simulates and appends an immutable outcome event linked to its decision", async () => {
     const journal = new MemoryJournal();
     const result = await journalShadowOutcome(
