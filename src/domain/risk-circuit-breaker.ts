@@ -1,6 +1,8 @@
 export interface RiskCircuitBreakerConfig {
   maxWeeklyLossFraction: number;
+  maxWeeklyDrawdownFraction: number;
   maxMonthlyLossFraction: number;
+  maxMonthlyDrawdownFraction: number;
   maxConsecutiveLosses: number;
   cooldownDurationMs: number;
 }
@@ -11,7 +13,9 @@ export interface RiskCircuitBreakerState {
   weekKey: string;
   monthKey: string;
   weekStartEquity: number;
+  weekPeakEquity: number;
   monthStartEquity: number;
+  monthPeakEquity: number;
   consecutiveLosses: number;
   cooldownUntilTimestamp: number | null;
 }
@@ -27,7 +31,9 @@ export interface RiskCircuitBreakerDecision {
   entryBlocked: boolean;
   reasons: Array<
     | "weekly-loss-limit"
+    | "weekly-drawdown-limit"
     | "monthly-loss-limit"
+    | "monthly-drawdown-limit"
     | "consecutive-loss-cooldown"
     | "data-quality-halt"
   >;
@@ -55,7 +61,9 @@ function utcMonthKey(timestamp: number): string {
 function validateConfig(config: RiskCircuitBreakerConfig): void {
   for (const [name, value] of Object.entries({
     maxWeeklyLossFraction: config.maxWeeklyLossFraction,
+    maxWeeklyDrawdownFraction: config.maxWeeklyDrawdownFraction,
     maxMonthlyLossFraction: config.maxMonthlyLossFraction,
+    maxMonthlyDrawdownFraction: config.maxMonthlyDrawdownFraction,
   })) {
     if (!Number.isFinite(value) || value <= 0 || value >= 1) {
       throw new RangeError(`${name} must be in (0, 1)`);
@@ -75,7 +83,9 @@ function validateState(state: RiskCircuitBreakerState): void {
       state.weekKey !== utcWeekKey(state.lastTimestamp) ||
       state.monthKey !== utcMonthKey(state.lastTimestamp) ||
       !Number.isFinite(state.weekStartEquity) || state.weekStartEquity <= 0 ||
+      !Number.isFinite(state.weekPeakEquity) || state.weekPeakEquity < state.weekStartEquity ||
       !Number.isFinite(state.monthStartEquity) || state.monthStartEquity <= 0 ||
+      !Number.isFinite(state.monthPeakEquity) || state.monthPeakEquity < state.monthStartEquity ||
       !Number.isSafeInteger(state.consecutiveLosses) || state.consecutiveLosses < 0 ||
       (state.cooldownUntilTimestamp !== null &&
         (!Number.isSafeInteger(state.cooldownUntilTimestamp) ||
@@ -98,7 +108,9 @@ export function createRiskCircuitBreakerState(
     weekKey: utcWeekKey(timestamp),
     monthKey: utcMonthKey(timestamp),
     weekStartEquity: equity,
+    weekPeakEquity: equity,
     monthStartEquity: equity,
+    monthPeakEquity: equity,
     consecutiveLosses: 0,
     cooldownUntilTimestamp: null,
   };
@@ -140,7 +152,9 @@ export function advanceRiskCircuitBreaker(
     weekKey,
     monthKey,
     weekStartEquity: weekKey === previousState.weekKey ? previousState.weekStartEquity : equity,
+    weekPeakEquity: weekKey === previousState.weekKey ? Math.max(previousState.weekPeakEquity, equity) : equity,
     monthStartEquity: monthKey === previousState.monthKey ? previousState.monthStartEquity : equity,
+    monthPeakEquity: monthKey === previousState.monthKey ? Math.max(previousState.monthPeakEquity, equity) : equity,
     cooldownUntilTimestamp:
       previousState.cooldownUntilTimestamp !== null && timestamp < previousState.cooldownUntilTimestamp
         ? previousState.cooldownUntilTimestamp
@@ -161,10 +175,14 @@ export function advanceRiskCircuitBreaker(
   }
 
   const weeklyLoss = Math.max(0, (state.weekStartEquity - equity) / state.weekStartEquity);
+  const weeklyDrawdown = Math.max(0, (state.weekPeakEquity - equity) / state.weekPeakEquity);
   const monthlyLoss = Math.max(0, (state.monthStartEquity - equity) / state.monthStartEquity);
+  const monthlyDrawdown = Math.max(0, (state.monthPeakEquity - equity) / state.monthPeakEquity);
   const reasons: RiskCircuitBreakerDecision["reasons"] = [];
   if (weeklyLoss >= config.maxWeeklyLossFraction) reasons.push("weekly-loss-limit");
+  if (weeklyDrawdown >= config.maxWeeklyDrawdownFraction) reasons.push("weekly-drawdown-limit");
   if (monthlyLoss >= config.maxMonthlyLossFraction) reasons.push("monthly-loss-limit");
+  if (monthlyDrawdown >= config.maxMonthlyDrawdownFraction) reasons.push("monthly-drawdown-limit");
   if (state.cooldownUntilTimestamp !== null && timestamp < state.cooldownUntilTimestamp) {
     reasons.push("consecutive-loss-cooldown");
   }
