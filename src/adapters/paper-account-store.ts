@@ -1,4 +1,4 @@
-import type { PaperAccount } from "../domain/paper-broker";
+import { validatePaperAccountSnapshot, type PaperAccount } from "../domain/paper-broker";
 import { openNexusDatabase, PAPER_ACCOUNT_STORE } from "./nexus-database";
 
 const ACCOUNT_STORE = PAPER_ACCOUNT_STORE;
@@ -60,6 +60,20 @@ export class PaperAccountStore {
     transaction.objectStore(ACCOUNT_STORE).put({
       id: this.accountId,
       account,
+      updatedAt: Date.now(),
+    } satisfies StoredPaperAccount);
+    await done;
+  }
+
+  /** Restore is add-only: an existing paper account is never overwritten. */
+  async restore(account: PaperAccount): Promise<void> {
+    validatePaperAccountSnapshot(account);
+    const database = await this.openDatabase();
+    const transaction = database.transaction(ACCOUNT_STORE, "readwrite");
+    const done = transactionComplete(transaction);
+    transaction.objectStore(ACCOUNT_STORE).add({
+      id: this.accountId,
+      account: structuredClone(account),
       updatedAt: Date.now(),
     } satisfies StoredPaperAccount);
     await done;
