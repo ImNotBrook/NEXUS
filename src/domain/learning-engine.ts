@@ -42,6 +42,7 @@ export interface LearningExclusion {
 }
 
 export interface LearningCohort {
+  simulationVersion: string;
   symbol: string;
   timeframe: string;
   decisionStatus: DecisionStatus;
@@ -150,6 +151,7 @@ function cohortKey(sample: LearningObservation): string {
   return JSON.stringify([
     sample.plan.symbol,
     sample.plan.timeframe,
+    sample.plan.simulationVersion,
     sample.decision.status,
     candidate.setupFamily,
   ]);
@@ -300,6 +302,7 @@ export function evaluateLearningCohorts(
       const netRs = completed.map((sample) => sample.netR as number);
       const outcomes = completed.map((sample) => sample.observation.outcome);
       return {
+        simulationVersion: samples[0].observation.plan.simulationVersion,
         symbol: samples[0].observation.plan.symbol,
         timeframe: samples[0].observation.plan.timeframe,
         decisionStatus: samples[0].observation.decision.status,
