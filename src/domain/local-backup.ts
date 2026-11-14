@@ -51,7 +51,7 @@ function validatePayload(payload: unknown): asserts payload is Record<string, un
   canonicalJson(payload);
 }
 
-export async function createLocalBackup<T extends Record<string, unknown>>(
+export async function createLocalBackup<T>(
   kind: LocalBackupKind,
   payload: T,
   createdAt = Date.now(),
