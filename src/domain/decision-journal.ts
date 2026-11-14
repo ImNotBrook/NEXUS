@@ -131,12 +131,14 @@ export function validateDecisionJournalRecord(record: DecisionJournalRecord): vo
   }
   if (record.status === "ENTER" && !record.candidate) throw new TypeError("ENTER requires a candidate");
   if (record.status === "NO_SETUP" && record.candidate) throw new TypeError("NO_SETUP cannot contain a candidate");
-  if (record.candidate && (
+  const candidateRejectedAsMalformed =
+    record.status === "REJECT" && record.result.reasonCodes.includes("INVALID_CANDIDATE");
+  if (record.candidate && !candidateRejectedAsMalformed && (
     !requiredString(record.candidate.id) ||
     record.candidate.symbol !== record.symbol ||
     record.candidate.timeframe !== record.timeframe
   )) {
-    throw new TypeError("Candidate identity and scope must match the journal record");
+    throw new TypeError("Candidate identity and scope must match the journal record unless the kernel rejected it as malformed");
   }
   if (!record.thesis || !["bullCase", "bearCase", "alternatives", "invalidation"].every((key) =>
     Array.isArray(record.thesis[key as keyof DecisionJournalThesis]) &&
