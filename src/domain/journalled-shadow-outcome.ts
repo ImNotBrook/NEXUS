@@ -114,7 +114,6 @@ export async function journalShadowOutcome(
     plan: planSnapshot,
     candles: relevantCandles,
     horizonReached: outcome.horizonReached,
-    recordedAt,
   };
   const inputHash = await hasher(hashInput);
   if (typeof inputHash !== "string" || !/^[A-Za-z0-9_-]{1,256}$/.test(inputHash)) {
@@ -144,6 +143,19 @@ export async function journalShadowOutcome(
   };
   validateDecisionJournalEvent(event);
 
+  const existingEvents = await journal.listEvents(plan.decisionId);
+  const existing = existingEvents.find((item) => item.eventId === event.eventId);
+  if (existing) {
+    if (
+      existing.decisionId === event.decisionId &&
+      existing.eventType === event.eventType &&
+      JSON.stringify(existing.payload) === JSON.stringify(event.payload)
+    ) {
+      return { outcome, event: existing, alreadyRecorded: true };
+    }
+    throw new Error("Content-addressed shadow event ID conflicts with different immutable content");
+  }
+
   try {
     const persisted = await journal.appendEvent(event);
     return { outcome, event: persisted, alreadyRecorded: false };
@@ -153,7 +165,12 @@ export async function journalShadowOutcome(
     try {
       const existing = await journal.listEvents(plan.decisionId);
       const match = existing.find((item) => item.eventId === event.eventId);
-      if (match && JSON.stringify(match) === JSON.stringify(event)) {
+      if (
+        match &&
+        match.decisionId === event.decisionId &&
+        match.eventType === event.eventType &&
+        JSON.stringify(match.payload) === JSON.stringify(event.payload)
+      ) {
         return { outcome, event: match, alreadyRecorded: true };
       }
     } catch {
