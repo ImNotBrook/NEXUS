@@ -96,6 +96,20 @@ describe("PaperAccountStore", () => {
     await expect(store.restore({ ...original, cash: Number.NaN })).rejects.toThrow(/cash/i);
   });
 
+
+  it("normalizes legacy accounts missing the later-added openOrders collection", async () => {
+    const store = new PaperAccountStore(createMemoryIndexedDb());
+    const current = createPaperAccount({}, Date.UTC(2026, 0, 1));
+    const legacy = { ...current } as Record<string, unknown>;
+    delete legacy.openOrders;
+    await store.save(legacy as unknown as ReturnType<typeof createPaperAccount>);
+
+    const loaded = await store.load();
+    expect(loaded?.openOrders).toEqual([]);
+    expect(loaded?.positions).toEqual({});
+    expect(loaded?.fills).toEqual([]);
+  });
+
   it("keeps separately named local paper accounts isolated", async () => {
     const factory = createMemoryIndexedDb();
     const primary = new PaperAccountStore(factory, "primary");
