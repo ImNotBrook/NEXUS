@@ -125,6 +125,24 @@ export function validatePaperAccountSnapshot(value: unknown): asserts value is P
   }
 }
 
+
+/**
+ * Adds the empty residual-order collection to snapshots written before the
+ * partial-fill lifecycle was introduced. All other fields remain subject to
+ * the normal strict validator; malformed data is never silently repaired.
+ */
+export function normalizePaperAccountSnapshot(value: unknown): PaperAccount {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("Paper account backup must be an object");
+  }
+  const source = value as Record<string, unknown>;
+  const normalized = source.openOrders === undefined
+    ? { ...source, openOrders: [] }
+    : source;
+  validatePaperAccountSnapshot(normalized);
+  return structuredClone(normalized) as unknown as PaperAccount;
+}
+
 export function isPristinePaperAccount(account: PaperAccount): boolean {
   return account.fills.length === 0 &&
     account.openOrders.length === 0 &&
