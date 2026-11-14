@@ -377,4 +377,29 @@ describe("buildMarketIntelligenceSnapshot", () => {
     expect(reordered.contentHash).toBe(first.contentHash);
   });
 
+  it("marks range-versus-trend higher-timeframe disagreement as partial", async () => {
+    const snapshot = await buildMarketIntelligenceSnapshot(input({
+      "1d": makeFrame("1d", "flat"),
+      "4h": makeFrame("4h", "up"),
+      "1h": makeFrame("1h", "up"),
+      "15m": makeFrame("15m", "up"),
+    }), testHasher);
+    expect(snapshot.alignment).toBe("partial");
+    expect(snapshot.phase).toBe("transition");
+    expect(snapshot.uncertainty).toBe("high");
+  });
+
+  it("keeps degraded upstream frames unknown even when their candles look directional", async () => {
+    const snapshot = await buildMarketIntelligenceSnapshot(input({
+      "1d": makeFrame("1d", "up", { qualityStatus: "degraded" }),
+      "4h": makeFrame("4h", "up"),
+      "1h": makeFrame("1h", "up"),
+      "15m": makeFrame("15m", "up"),
+    }), testHasher);
+    expect(snapshot.frames["1d"].status).toBe("degraded");
+    expect(snapshot.macroTrend).toBe("unknown");
+    expect(snapshot.phase).toBe("unknown");
+    expect(snapshot.dataQuality).toBe("degraded");
+  });
+
 });
