@@ -16,14 +16,18 @@ function createMemoryIndexedDb(): IDBFactory {
       const store = records.get(name);
       if (!store) throw new Error("Missing object store");
       const transaction: Record<string, unknown> = {};
-      transaction.abort = () => queueMicrotask(() => (transaction.onabort as (() => void) | undefined)?.());
+      let aborted = false;
+      transaction.abort = () => {
+        aborted = true;
+        queueMicrotask(() => (transaction.onabort as (() => void) | undefined)?.());
+      };
       transaction.objectStore = () => ({
         get: (key: string) => {
           const request: Record<string, unknown> = {};
           queueMicrotask(() => {
             request.result = store.get(key);
             (request.onsuccess as (() => void) | undefined)?.();
-            (transaction.oncomplete as (() => void) | undefined)?.();
+            if (!aborted) (transaction.oncomplete as (() => void) | undefined)?.();
           });
           return request;
         },
