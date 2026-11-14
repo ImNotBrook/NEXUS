@@ -359,4 +359,4 @@ Updated: 2026-11-14
 - Added a mobile console action with an eight-outer-fold cap, existing 25-scenario grid cap and configurable minimum inner trade count.
 - Added regression specifications for training/test separation, invariance of a fold's selection to changes in that fold's outer test data, baseline fallback, invalid fold geometry and separation of inner/outer metrics.
 - See `docs/NESTED_WALK_FORWARD_SELECTION.md` for the protocol and limits.
-- The feature is under PR review; full GitHub Actions verification is pending. No live trading, exchange credentials, paid services or billing changes introduced.
+- GitHub Actions run #104 passed on commit `d6c1ca6563545997571d9ceb3864d35cf558e55b`: 198 tests across 37 files, dependency audit with 0 vulnerabilities, strict TypeScript compilation and Vite production build. PR #16 is ready for merge. No live trading, exchange credentials, paid services or billing changes introduced.
