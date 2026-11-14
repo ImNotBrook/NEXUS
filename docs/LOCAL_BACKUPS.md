@@ -2,10 +2,11 @@
 
 ## Scope
 
-NEXUS stores its decision journal and paper account in browser IndexedDB on the current device. This feature creates two independent, downloadable JSON backups:
+NEXUS stores its decision journal and paper account in browser IndexedDB on the current device. This feature creates three independent, downloadable JSON backups:
 
 1. **Decision journal backup** — every immutable decision record and every linked event, including shadow plans, replay registrations, replay completions, detected breakouts and appended outcomes.
 2. **Paper account backup** — the simulated account snapshot, including balances, positions, fills, configuration and open paper orders.
+3. **Strategy library backup** — every saved immutable strategy definition/version. Research reports and their trial manifests are not yet included.
 
 The files are generated in the browser and downloaded by the user. No cloud service, paid API, account connection or remote backup is used.
 
@@ -16,7 +17,8 @@ On the **Decision journal** workspace page:
 1. Select **Download full decision journal backup**.
 2. Save the downloaded JSON file somewhere outside the browser's site storage (for example, the phone's Downloads folder, then copy it to a separate safe location).
 3. Select **Download separate paper account backup** and save that file separately.
-4. Repeat after meaningful research or paper-account changes.
+4. On the Strategy Creation Studio page, select **Download strategy library backup** to export all saved strategy versions.
+5. Repeat after meaningful changes. Strategy library backups do not include research-run reports or trial manifests.
 
 The decision journal export is not capped at the 100 records displayed in the UI. It exports all decision records and all linked events in one IndexedDB read transaction.
 
@@ -51,7 +53,7 @@ The decision journal export is not capped at the 100 records displayed in the UI
 - The checksum detects accidental or deliberate content changes; it is not a digital signature and does not prove who created a file.
 - Backup files are unencrypted JSON. They contain research and paper-account data, not exchange credentials. Store them somewhere private.
 - The current importer has a 25 MB file-size safety limit.
-- Backups are device-local downloads. NEXUS does not automatically sync them, upload them or schedule them.
+- Backups are device-local downloads. NEXUS does not automatically sync them, upload them or schedule them. Research-run history, parameter-trial manifests, nested research and sealed holdout records are not yet included in these backup formats.
 - Clearing browser data can still erase the local working copy. Keep downloaded backups outside the browser.
 - A backup should be treated as untrusted input until checksum and structural validation complete. Do not edit the JSON by hand.
 
