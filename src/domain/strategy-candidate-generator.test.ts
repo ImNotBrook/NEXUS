@@ -58,7 +58,7 @@ describe("generateDonchianStrategyCandidate", () => {
   });
 
   it("returns NO_SETUP when the latest close does not break the previous channel", () => {
-    const noBreak = candles([100, 101, 102, 102.5], [101, 102, 103, 103], [99, 100, 101, 102]);
+    const noBreak = candles([100, 101, 102, 102.5], [101, 102, 103, 103], [99, 100, 101, 101]);
     const result = generateDonchianStrategyCandidate({
       snapshot: snapshot(), candles: noBreak, crossFeedStatus: "within_tolerance",
       strategy, evaluationTime: now,
