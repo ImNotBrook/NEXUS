@@ -67,6 +67,12 @@ export class ResearchRunStore {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 200) {
       throw new RangeError("limit must be an integer between 1 and 200");
     }
+    const records = await this.listAll();
+    return records.slice(0, limit);
+  }
+
+  /** Returns every locally saved research run, newest first, for complete leaderboard aggregation. */
+  async listAll(): Promise<StoredResearchRun[]> {
     const database = await this.openDatabase();
     const transaction = database.transaction(RESEARCH_RUN_STORE, "readonly");
     const done = transactionComplete(transaction);
@@ -74,7 +80,7 @@ export class ResearchRunStore {
       transaction.objectStore(RESEARCH_RUN_STORE).getAll() as IDBRequest<StoredResearchRun[]>,
     );
     const [records] = await Promise.all([request, done]);
-    return records.sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id)).slice(0, limit);
+    return records.sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id));
   }
 
   async delete(id: string): Promise<void> {
