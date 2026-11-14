@@ -7,6 +7,8 @@ import { compareResearchRuns } from "./research-comparison";
 import { runProtectiveExitSensitivity } from "./protective-exit-sensitivity";
 import { runNestedWalkForwardSelection, type NestedWalkForwardResult, type NestedWalkForwardConfig } from "./nested-walk-forward-selection";
 import { NestedResearchRunStore } from "../adapters/nested-research-run-store";
+import { prepareSealedHoldout, evaluateSealedHoldout } from "./sealed-holdout";
+import { SealedHoldoutStore } from "../adapters/sealed-holdout-store";
 
 const INTERVAL_MS: Partial<Record<BinanceInterval, number>> = {
   "1m": 60_000, "3m": 180_000, "5m": 300_000, "15m": 900_000,
@@ -298,6 +300,14 @@ export function mountResearchConsole(container: HTMLElement): void {
         <div id="nested-selection-results" aria-live="polite"></div>
         <div class="saved-research"><h4>Saved nested experiments</h4><p class="small">Full nested reports, selected parameters and fold metrics are stored locally on this device.</p><div id="nested-research-history" aria-live="polite">Loading nested experiments…</div></div>
       </section>
+      <section class="research-result sensitivity-controls">
+        <h3>Sealed final holdout</h3>
+        <p class="small">One final chronological 20% holdout, separated from development data by a two-candle embargo. The candidate factories and execution assumptions from the current research run are frozen into a manifest. Results are evaluated once and stored locally. Any overlapping BTC/market interval window is then blocked from reuse, even with changed strategy settings.</p>
+        <p class="small">This is a device-local guard, not tamper-proof security: clearing browser data or switching devices can bypass it. Do not tune against the final results.</p>
+        <button id="run-sealed-holdout" type="button" disabled>Run sealed final holdout once</button>
+        <div id="sealed-holdout-results" aria-live="polite"></div>
+        <div class="saved-research"><h4>Sealed holdout ledger</h4><div id="sealed-holdout-history" aria-live="polite">Loading holdout ledger…</div></div>
+      </section>
       <p id="research-status" class="paper-status" role="status">Ready · public Binance spot data · no API key required</p>
       <div id="research-results" aria-live="polite"></div>
       <section class="saved-research"><h3>Saved experiment history</h3><p class="small">Stored only on this device. Clearing browser site data can erase these records.</p><div id="research-history" aria-live="polite">Loading saved experiments…</div><button id="compare-research" type="button" disabled>Compare selected experiments</button><div id="research-comparison" aria-live="polite"></div></section>
@@ -320,14 +330,75 @@ export function mountResearchConsole(container: HTMLElement): void {
   const nestedMinTrades = container.querySelector<HTMLInputElement>("#nested-min-trades");
   const nestedResults = container.querySelector<HTMLElement>("#nested-selection-results");
   const nestedHistory = container.querySelector<HTMLElement>("#nested-research-history");
+  const holdoutButton = container.querySelector<HTMLButtonElement>("#run-sealed-holdout");
+  const holdoutResults = container.querySelector<HTMLElement>("#sealed-holdout-results");
+  const holdoutHistory = container.querySelector<HTMLElement>("#sealed-holdout-history");
   if (!form || !button || !status || !results || !history || !compareButton || !comparisonTarget ||
       !sensitivityButton || !sensitivityStops || !sensitivityTargets || !sensitivityResults ||
-      !nestedButton || !nestedMinTrades || !nestedResults || !nestedHistory) return;
+      !nestedButton || !nestedMinTrades || !nestedResults || !nestedHistory ||
+      !holdoutButton || !holdoutResults || !holdoutHistory) return;
   const runStore = new ResearchRunStore();
   const nestedRunStore = new NestedResearchRunStore();
+  const sealedHoldoutStore = new SealedHoldoutStore();
   let sensitivityContext: { candles: Candle[]; candidates: ReturnType<typeof createBaselineResearchCandidates>; pipeline: ResearchPipelineConfig; metadata: { symbol: string; interval: string; provider: string } } | null = null;
   const selectedRunIds = new Set<string>();
   let cachedRuns: StoredResearchRun[] = [];
+
+  const refreshHoldoutHistory = async (): Promise<void> => {
+    try {
+      const records = await sealedHoldoutStore.list(50);
+      holdoutHistory.replaceChildren();
+      if (records.length === 0) {
+        holdoutHistory.append(el("p", "small", "No final holdout has been sealed on this device."));
+        return;
+      }
+      for (const record of records) {
+        const item = el("div", "saved-run");
+        const details = el("div", "saved-run-info");
+        details.append(
+          el("strong", "", record.seal.identity.symbol + " · " + record.seal.identity.interval +
+            " · " + new Date(record.seal.identity.startTimestamp).toLocaleString() +
+            " – " + new Date(record.seal.identity.endTimestamp).toLocaleString()),
+          el("span", "small", record.status.toUpperCase() + " · " + record.seal.holdoutBars +
+            " holdout candles · " + record.seal.candidateIds.join(", ") + " · " + record.id),
+        );
+        item.append(details);
+        holdoutHistory.append(item);
+      }
+    } catch (error) {
+      holdoutHistory.textContent = error instanceof Error ? error.message : "Sealed holdout ledger unavailable";
+    }
+  };
+  void refreshHoldoutHistory();
+
+  holdoutButton.addEventListener("click", async () => {
+    if (!sensitivityContext || holdoutButton.disabled) return;
+    if (!window.confirm("This permanently seals the current BTC market/interval holdout period on this device. The final results must not be used to tune the strategy. Continue?")) return;
+    holdoutButton.disabled = true;
+    holdoutButton.textContent = "Evaluating final holdout…";
+    holdoutResults.replaceChildren();
+    status.textContent = "Preparing the final 20% holdout and freezing candidate/configuration fingerprints…";
+    try {
+      const { candles, candidates, pipeline, metadata } = sensitivityContext;
+      const plan = prepareSealedHoldout(candles, metadata, 0.2, 2);
+      const evaluation = evaluateSealedHoldout(plan, candidates, pipeline, 0.2);
+      const reserved = await sealedHoldoutStore.reserve(evaluation.seal);
+      const completed = await sealedHoldoutStore.complete(reserved.id, evaluation.report);
+      holdoutResults.append(el("p", "small", "SEALED FINAL HOLDOUT · one test fold per strategy · development " +
+        evaluation.seal.developmentBars + " bars · embargo " + evaluation.seal.embargoBars +
+        " bars · holdout " + evaluation.seal.holdoutBars + " bars · " +
+        evaluation.seal.holdoutFingerprint));
+      renderReport(holdoutResults, completed.report!);
+      await refreshHoldoutHistory();
+      status.textContent = "Final holdout completed and sealed · " + completed.id +
+        " · do not use these results for further strategy tuning.";
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Final holdout evaluation failed";
+    } finally {
+      holdoutButton.disabled = sensitivityContext === null;
+      holdoutButton.textContent = "Run sealed final holdout once";
+    }
+  });
 
   const updateCompareButton = (): void => {
     compareButton.disabled = selectedRunIds.size !== 2;
@@ -594,6 +665,7 @@ export function mountResearchConsole(container: HTMLElement): void {
     button.disabled = true;
     sensitivityButton.disabled = true;
     nestedButton.disabled = true;
+    holdoutButton.disabled = true;
     sensitivityContext = null;
     sensitivityResults.replaceChildren();
     nestedResults.replaceChildren();
@@ -635,6 +707,8 @@ export function mountResearchConsole(container: HTMLElement): void {
         const executionReport = runResearchBatch(candles, candidates, settings.pipeline, metadata);
         sensitivityContext = { candles, candidates, pipeline: settings.pipeline, metadata };
         sensitivityButton.disabled = false;
+        holdoutButton.disabled = false;
+        holdoutResults.replaceChildren();
         nestedButton.disabled = false;
         results.replaceChildren();
         const comparisonGrid = el("div", "execution-comparison-grid");
