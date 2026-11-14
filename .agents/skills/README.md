@@ -10,6 +10,7 @@ These are original, project-authored skill instructions for an AI agent working 
 | nexus-risk-governance | 1.0.0 | Independent risk checks and human-controlled boundaries |
 | nexus-skill-evolution | 1.0.0 | Evidence-led skill proposals, evaluation and rollback |
 | nexus-market-data | 1.0.0 | Multi-provider OHLCV validation and data provenance |
+| nexus-indicator-selection | 1.0.0 | Regime-aware indicator selection, interpretation and redundancy control |
 
 ## Universal AI governance
 
