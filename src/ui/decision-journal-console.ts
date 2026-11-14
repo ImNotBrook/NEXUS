@@ -200,7 +200,7 @@ export function mountDecisionJournalConsole(root: HTMLElement): void {
       if (!Array.isArray(envelope.payload.records) || !Array.isArray(envelope.payload.events)) {
         throw new Error("Journal backup must contain both records and linked events");
       }
-      pendingJournal = envelope as LocalBackupEnvelope<JournalBackupPayload>;
+      pendingJournal = envelope as unknown as LocalBackupEnvelope<JournalBackupPayload>;
       const preview = await store.previewRestore(pendingJournal.payload);
       journalPreview.textContent = "Verified " + file.name + " · " + envelope.payload.records.length
         + " decisions · " + envelope.payload.events.length + " events · checksum valid. Preview: "
@@ -244,7 +244,7 @@ export function mountDecisionJournalConsole(root: HTMLElement): void {
     try {
       const envelope = await parseLocalBackup(await file.text(), "paper-account");
       validatePaperAccountSnapshot(envelope.payload.account);
-      pendingPaper = envelope as LocalBackupEnvelope<PaperBackupPayload>;
+      pendingPaper = envelope as unknown as LocalBackupEnvelope<PaperBackupPayload>;
       const current = await paperStore.load();
       if (current && !isPristinePaperAccount(current)) {
         paperPreview.textContent = "Verified backup, but this device already has paper trading activity. Restore is blocked to protect existing state. Export the current account first; active accounts are never overwritten.";
