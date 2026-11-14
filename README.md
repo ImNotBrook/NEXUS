@@ -21,5 +21,6 @@ See [AGENTS.md](AGENTS.md) for engineering rules, [docs/ARCHITECTURE.md](docs/AR
 - [Market Intelligence](docs/MARKET_INTELLIGENCE_SPEC.md) — causal market regime, structure, liquidity, derivatives and Elliott Wave contracts.
 - [Evidence & Decision Engine](docs/DECISION_ENGINE_SPEC.md) — evidence normalization, contradiction handling, decision states and deterministic risk gates.
 - [Decision & Learning Loop](docs/DECISION_LEARNING_LOOP_SPEC.md) — immutable journal, shadow outcomes, maturity and controlled learning.
+- [Decision Workbench](docs/DECISION_WORKBENCH.md) — approved deterministic candidate generation, hard risk/economics gates and journalled decisions.
 
 The initial frontend is a static TypeScript application. It must remain usable from a modern Android browser and must not depend on a permanently running backend.
