@@ -1,8 +1,8 @@
 import {
   validateDecisionJournalRecord,
   type DecisionJournalRecord,
-  type DecisionStatus,
 } from "./decision-journal";
+import type { DecisionStatus } from "./decision-engine";
 import { validateShadowTradePlan, type ShadowOutcome, type ShadowTradePlan } from "./shadow-outcome-engine";
 
 export type LearningDataQuality = "pass" | "degraded" | "fail";
