@@ -1,6 +1,6 @@
 # NEXUS Master Roadmap
 
-Updated: 2026-11-14
+Updated: 2026-11-15
 
 This is the canonical delivery tracker for NEXUS. Update this file whenever a stage changes state. A feature is **not complete** merely because its domain module exists: it must be wired into the mobile workspace, covered by tests, documented, and verified through CI/deployment where applicable.
 
@@ -68,9 +68,17 @@ NEXUS must generate strategies itself. The Strategy Studio is primarily a review
 - Strategy Studio can refresh the latest public proposal feed directly from that branch. File import remains available as a fallback. The first feed is created after the next successful scheduled or manually dispatched Automated Research workflow.
 - Strategy Studio now imports that artifact, validates its schema/provider/proposals and presents each proposal with rationale. Only an explicit **Approve and save strategy** action converts a proposal into an immutable `origin: human` library version. The AI cannot save itself, approve itself, promote a candidate or authorize paper execution.
 - Approved strategies become eligible for ordinary historical research. Paper qualification and the separate human paper-configuration approval remain unchanged.
-- Current AI generation is bounded parameter-level strategy discovery, not unrestricted invention of arbitrary strategy code or entirely new families. The latest feed is a public proposal-only branch and must contain no private or sensitive data. Richer multi-timeframe hypotheses, explainability and autonomous iteration remain future work.
+- AI generation now includes bounded complete rule compositions from the versioned whitelist in [AI Strategy Composition](AI_STRATEGY_COMPOSITION.md), in addition to parameter-level discovery. The latest feed is a public proposal-only branch and must contain no private or sensitive data. Richer multi-timeframe hypotheses, volume/order-book/derivatives atoms, explainability and autonomous iteration remain future work.
 
 
+
+### Current increment — AI-composed strategy rules
+- Extend the governed provider response with 1–2 complete structured strategy specifications in addition to existing parameter proposals.
+- Use a strict versioned DSL, not generated code: long-only 1h entry trigger, up to two confirmations, explicit exit, falsifiable hypothesis, regime-scope label and invalidation.
+- Compile only whitelisted indicator/rule atoms into deterministic `ResearchCandidate` factories. Signals use completed candles and next-open backtester execution; the existing risk/execution layers remain authoritative.
+- Evaluate AI-composed candidates alongside deterministic candidates on the same dataset, walk-forward folds and cost assumptions.
+- Expose each complete strategy in Strategy Studio for explicit human approval, immutable library storage and provenance retention. Approved strategies enter normal historical research only.
+- Unit, provider-adapter and library-to-research integration tests are required. Full contract and limitations: [AI Strategy Composition](AI_STRATEGY_COMPOSITION.md).
 
 ### First increment
 - Define a strict, machine-readable strategy contract with schema version, semantic strategy version, stable ID, family, parameters, origin and creation timestamp.
