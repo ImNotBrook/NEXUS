@@ -81,33 +81,38 @@ export function mountStrategyStudioConsole(root: HTMLElement): void {
   const aiInbox = el("section", "research-result ai-strategy-inbox");
   aiInbox.append(
     el("h3", "", "AI Strategy Proposal Inbox"),
-    el("p", "small", "NEXUS generates strategy proposals in its scheduled AI research workflow. Download and extract the automated-research artifact from GitHub Actions, then import its JSON here. AI proposals are never saved or researched as approved strategies until you explicitly approve each one."),
+    el("p", "small", "NEXUS generates strategies in its scheduled AI research workflow. Refresh to load the latest proposal feed automatically, or import a downloaded automated-research.json artifact. Every proposal requires your explicit approval before it enters the strategy library."),
   );
-  const aiArtifactLabel = el("label", "strategy-field", "Import automated-research.json");
+  const refreshAiFeed = el("button", "primary-button", "Refresh latest AI proposals");
+  refreshAiFeed.type = "button";
+  const aiArtifactLabel = el("label", "strategy-field", "Or import automated-research.json");
   const aiArtifactFile = el("input");
   aiArtifactFile.type = "file";
   aiArtifactFile.accept = "application/json,.json";
   aiArtifactLabel.append(aiArtifactFile);
-  const aiInboxStatus = el("p", "small", "No AI research artifact imported.");
+  const aiInboxStatus = el("p", "small", "No AI research artifact loaded.");
   aiInboxStatus.setAttribute("role", "status");
   const aiProposalList = el("div", "strategy-library");
-  aiInbox.append(aiArtifactLabel, aiInboxStatus, aiProposalList);
+  aiInbox.append(refreshAiFeed, aiArtifactLabel, aiInboxStatus, aiProposalList);
   section.append(aiInbox);
 
-  aiArtifactFile.addEventListener("change", async () => {
+  const renderAiArtifact = (input: unknown, source: string): void => {
     aiProposalList.replaceChildren();
-    const file = (aiArtifactFile as HTMLInputElement).files?.[0];
-    if (!file) {
-      aiInboxStatus.textContent = "No AI research artifact imported.";
-      return;
+    if (input && typeof input === "object" && !Array.isArray(input)) {
+      const generation = (input as { aiGeneration?: { status?: unknown } }).aiGeneration;
+      if (generation?.status !== "generated") {
+        aiInboxStatus.textContent = "Latest research feed (" + source + ") reports AI status: " +
+          String(generation?.status ?? "unknown") +
+          ". No AI proposals are available from this run; deterministic research remains available.";
+        return;
+      }
     }
-    aiInboxStatus.textContent = "Validating AI research artifact and proposal schemas…";
     try {
-      const parsed = parseAutomatedResearchAiArtifact(JSON.parse(await file.text()) as unknown);
+      const parsed = parseAutomatedResearchAiArtifact(input);
       aiInboxStatus.textContent = "Validated " + parsed.proposals.length + " AI proposal(s) · " +
         parsed.provider + " / " + parsed.model + " · " + parsed.symbol + " " + parsed.interval +
         " · generated " + new Date(parsed.createdAt).toLocaleString() +
-        ". Review each proposal before approving it into the strategy library.";
+        " · source: " + source + ". Review each proposal before approving it into the strategy library.";
       parsed.proposals.forEach((proposal, index) => {
         const card = el("article", "research-result");
         const parameters = Object.entries(proposal.parameters).map(([key, value]) => key + "=" + value).join(" · ");
@@ -135,6 +140,39 @@ export function mountStrategyStudioConsole(root: HTMLElement): void {
         card.append(heading, detail, rationale, approval, result);
         aiProposalList.append(card);
       });
+    } catch (error) {
+      aiInboxStatus.textContent = error instanceof Error ? "AI artifact rejected: " + error.message : "AI artifact rejected";
+    }
+  };
+
+  refreshAiFeed.addEventListener("click", async () => {
+    refreshAiFeed.disabled = true;
+    aiInboxStatus.textContent = "Fetching latest scheduled AI proposal feed…";
+    try {
+      const response = await fetch(
+        "https://raw.githubusercontent.com/ImNotBrook/NEXUS/ai-proposals/ai-strategy-proposals.json",
+        { cache: "no-store" },
+      );
+      if (!response.ok) throw new Error("Latest AI feed is not available yet (HTTP " + response.status + ")");
+      renderAiArtifact(await response.json() as unknown, "latest scheduled feed");
+    } catch (error) {
+      aiInboxStatus.textContent = error instanceof Error
+        ? error.message + ". Run NEXUS Automated Research successfully, or import its downloaded JSON artifact."
+        : "Could not load the latest AI proposal feed.";
+    } finally {
+      refreshAiFeed.disabled = false;
+    }
+  });
+
+  aiArtifactFile.addEventListener("change", async () => {
+    const file = (aiArtifactFile as HTMLInputElement).files?.[0];
+    if (!file) {
+      aiInboxStatus.textContent = "No AI research artifact loaded.";
+      return;
+    }
+    aiInboxStatus.textContent = "Validating AI research artifact and proposal schemas…";
+    try {
+      renderAiArtifact(JSON.parse(await file.text()) as unknown, file.name);
     } catch (error) {
       aiInboxStatus.textContent = error instanceof Error ? "AI artifact rejected: " + error.message : "AI artifact rejected";
     }
