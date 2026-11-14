@@ -132,9 +132,8 @@ export async function journalShadowOutcome(
       inputHash,
       horizonReached: outcome.horizonReached,
       // Timestamp-only maturity proof; post-horizon OHLC remains excluded.
-      observedThrough: inputCandles.length
-        ? inputCandles[inputCandles.length - 1].timestamp
-        : null,
+      observedThrough: inputCandles.find((candle) => candle.timestamp >= plan.horizonEnd)?.timestamp ??
+        (inputCandles.length ? inputCandles[inputCandles.length - 1].timestamp : null),
       candleCount: relevantCandles.length,
       plan: planSnapshot,
       candles: relevantCandles,
