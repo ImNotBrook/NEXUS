@@ -22,6 +22,7 @@ import {
 import type { Candle } from "./candles";
 import { buildShadowTradePlan, type ShadowPlanBuildResult } from "./shadow-plan-builder";
 import { registerShadowPlan, type ShadowOutcomeJournal } from "./journalled-shadow-outcome";
+import { buildNoSetupReplaySpec, registerNoSetupReplay } from "./no-setup-replay";
 
 export interface DecisionWorkbenchJournal extends MarketDecisionJournal, DecisionJournalWriter, ShadowOutcomeJournal {}
 
@@ -122,7 +123,7 @@ export async function runDecisionWorkbench(
       await registerShadowPlan(shadowPlan.plan, input.journal);
       shadowPlanRegistered = true;
     }
-    return { generation, assessment, gateAssessment: gates, shadowPlan, shadowPlanRegistered };
+    return { generation, assessment, gateAssessment: gates, shadowPlan, shadowPlanRegistered, noSetupReplayRegistered: false };
   }
 
   const disposition: "WAIT" | "REJECT" | "NO_SETUP" =
