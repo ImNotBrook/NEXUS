@@ -167,6 +167,38 @@ describe("ResearchRunStore", () => {
     });
   });
 
+  it("persists and reloads the exact strategy trial manifest with its research report", async () => {
+    const database = memoryIndexedDb();
+    const writer = new ResearchRunStore(database);
+    const reader = new ResearchRunStore(database);
+    const manifest = {
+      generatorVersion: "1.0.0",
+      baseStrategyId: "my-sma-system",
+      baseVersion: "1.0.0",
+      trialCount: 2,
+      trialIds: ["my-sma-system-trial-01-a1@1.0.0", "my-sma-system-trial-02-b2@1.0.0"],
+      parameterGrid: { fastPeriod: [6, 8], slowPeriod: [24] },
+      selectionBiasWarning: "Same-sample parameter selection is biased.",
+    };
+    const saved = await writer.save(report, 1000, undefined, manifest);
+    const reloaded = await reader.listAll();
+    expect(reloaded[0].id).toBe(saved.id);
+    expect(reloaded[0].strategyTrials).toEqual(manifest);
+  });
+
+  it("rejects a strategy trial manifest whose count and IDs disagree", async () => {
+    const store = new ResearchRunStore(memoryIndexedDb());
+    await expect(store.save(report, 1000, undefined, {
+      generatorVersion: "1.0.0",
+      baseStrategyId: "my-sma-system",
+      baseVersion: "1.0.0",
+      trialCount: 2,
+      trialIds: ["only-one@1.0.0"],
+      parameterGrid: { fastPeriod: [8] },
+      selectionBiasWarning: "Selection bias warning.",
+    })).rejects.toThrow(/trial manifest/i);
+  });
+
   it("deletes a stored run without affecting other records", async () => {
     const store = new ResearchRunStore(memoryIndexedDb());
     const first = await store.save(report, 1000);
