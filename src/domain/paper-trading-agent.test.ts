@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import type { Candle } from "./candles";
 import { createPaperTradingAgentState, runPaperTradingAgentCycle, type PaperTradingAgentConfig } from "./paper-trading-agent";
 
-const DAY = 86_400_000;
 const HOUR = 3_600_000;
 const config: PaperTradingAgentConfig = {
   allocationFraction: 0.25,
@@ -43,7 +42,7 @@ describe("persistent paper trading agent", () => {
   });
 
   it("keeps partial market fills pending and completes them on later candles", () => {
-    const data = candles([100, 100, 100, 100, 100], [100, 100, 1, 1, 100]);
+    const data = candles([100, 100, 100, 100, 100], [100, 100, 1, 1, 10_000]);
     const start = data[0].timestamp;
     const state = createPaperTradingAgentState("test-partial", 10_000, start);
     const next = runPaperTradingAgentCycle(state, data, (history) =>
@@ -88,10 +87,14 @@ describe("persistent paper trading agent", () => {
   });
 
   it("blocks new entries after the configured daily loss limit", () => {
-    const data = candles([100, 100, 80, 80, 80]);
+    const data = candles([100, 100, 100, 80, 80]);
     const state = createPaperTradingAgentState("test-daily-stop", 10_000, data[0].timestamp);
-    const next = runPaperTradingAgentCycle(state, data, (history) =>
-      history.length >= 3 ? "buy" : "hold", config);
+    const next = runPaperTradingAgentCycle(state, data, (history) => {
+      if (history.length === 2) return "buy";
+      if (history.length === 4) return "sell";
+      if (history.length === 5) return "buy";
+      return "hold";
+    }, config);
     expect(next.pendingOrder).toBeNull();
     expect(next.position).toBeNull();
   });
