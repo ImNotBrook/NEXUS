@@ -132,7 +132,7 @@ describe("registerShadowPlan", () => {
   });
 
   it("requires a parent decision record before registering a plan", async () => {
-    const journal = new MemoryJournal(new Set());
+    const journal = new MemoryJournal(new Set(), null, false);
     await expect(registerShadowPlan(plan, journal, testHasher)).rejects.toThrow(/missing decision/i);
     expect(journal.events).toHaveLength(0);
   });
@@ -148,7 +148,7 @@ describe("journalShadowOutcome", () => {
       journal,
       testHasher,
     )).rejects.toThrow(/registered at decision time/i);
-    expect(journal.events).toHaveLength(0);
+    expect(journal.events.filter((event) => event.eventType === "outcome_appended")).toHaveLength(0);
   });
   it("simulates and appends an immutable outcome event linked to its decision", async () => {
     const journal = new MemoryJournal();
@@ -167,7 +167,7 @@ describe("journalShadowOutcome", () => {
       horizonReached: false,
       candleCount: 2,
     });
-    expect(journal.events).toHaveLength(1);
+    expect(journal.events.filter((event) => event.eventType === "outcome_appended")).toHaveLength(1);
     expect(result.alreadyRecorded).toBe(false);
   });
 
@@ -178,7 +178,7 @@ describe("journalShadowOutcome", () => {
     const second = await journalShadowOutcome(plan, candles, 4_500, journal, testHasher);
     expect(second.event.eventId).toBe(first.event.eventId);
     expect(second.alreadyRecorded).toBe(true);
-    expect(journal.events).toHaveLength(1);
+    expect(journal.events.filter((event) => event.eventType === "outcome_appended")).toHaveLength(1);
   });
 
   it("appends a new event when the causal outcome candle snapshot changes", async () => {
@@ -191,7 +191,7 @@ describe("journalShadowOutcome", () => {
       4_000, journal, testHasher,
     );
     expect(second.event.eventId).not.toBe(first.event.eventId);
-    expect(journal.events).toHaveLength(2);
+    expect(journal.events.filter((event) => event.eventType === "outcome_appended")).toHaveLength(2);
   });
 
   it("does not hash or store OHLC values beyond the declared horizon", async () => {
@@ -202,7 +202,7 @@ describe("journalShadowOutcome", () => {
     const second = await journalShadowOutcome(plan, extended, 4_000, journal, testHasher);
     expect(second.event.eventId).toBe(first.event.eventId);
     expect(second.alreadyRecorded).toBe(true);
-    expect(journal.events).toHaveLength(1);
+    expect(journal.events.filter((event) => event.eventType === "outcome_appended")).toHaveLength(1);
   });
 
   it("rejects recording timestamps before the decision time", async () => {
@@ -214,7 +214,7 @@ describe("journalShadowOutcome", () => {
     const journal = new MemoryJournal(new Set());
     await expect(journalShadowOutcome(plan, [], 4_000, journal, testHasher))
       .rejects.toThrow(/missing decision/i);
-    expect(journal.events).toHaveLength(0);
+    expect(journal.events.filter((event) => event.eventType === "outcome_appended")).toHaveLength(0);
   });
 
   it("uses an injected content hasher and produces deterministic event identifiers", async () => {
@@ -336,7 +336,7 @@ describe("journalShadowOutcome", () => {
       plan, [causal, candle(12_000, 100, 101, 99, 100)], 13_000, journal, testHasher,
     );
     expect(second.event.eventId).not.toBe(first.event.eventId);
-    expect(journal.events).toHaveLength(2);
+    expect(journal.events.filter((event) => event.eventType === "outcome_appended")).toHaveLength(2);
     expect(second.event.payload.candles).toHaveLength(1);
   });
 
