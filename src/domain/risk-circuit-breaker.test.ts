@@ -8,7 +8,9 @@ import {
 const HOUR = 3_600_000;
 const config: RiskCircuitBreakerConfig = {
   maxWeeklyLossFraction: 0.05,
+  maxWeeklyDrawdownFraction: 0.04,
   maxMonthlyLossFraction: 0.10,
+  maxMonthlyDrawdownFraction: 0.08,
   maxConsecutiveLosses: 3,
   cooldownDurationMs: 6 * HOUR,
 };
@@ -21,7 +23,9 @@ describe("multi-period risk circuit breaker", () => {
     expect(state.weekKey).toBe("2026-01-05");
     expect(state.monthKey).toBe("2026-01");
     expect(state.weekStartEquity).toBe(10_000);
+    expect(state.weekPeakEquity).toBe(10_000);
     expect(state.monthStartEquity).toBe(10_000);
+    expect(state.monthPeakEquity).toBe(10_000);
   });
 
   it("blocks new entries when the weekly loss threshold is reached", () => {
@@ -42,6 +46,24 @@ describe("multi-period risk circuit breaker", () => {
     expect(result.reasons).toContain("monthly-loss-limit");
   });
 
+  it("blocks new entries on a weekly peak-to-trough drawdown even when weekly P&L is positive", () => {
+    let state = createRiskCircuitBreakerState(monday, 10_000);
+    state = advanceRiskCircuitBreaker(state, monday + HOUR, 11_000, config, { dataQualityHealthy: true }).state;
+    const result = advanceRiskCircuitBreaker(state, monday + 2 * HOUR, 10_500, config, { dataQualityHealthy: true });
+    expect(result.entryBlocked).toBe(true);
+    expect(result.reasons).toContain("weekly-drawdown-limit");
+    expect(result.state.weekStartEquity).toBe(10_000);
+  });
+
+  it("blocks new entries on a monthly peak-to-trough drawdown even when monthly P&L is positive", () => {
+    let state = createRiskCircuitBreakerState(monday, 10_000);
+    state = advanceRiskCircuitBreaker(state, monday + HOUR, 11_000, config, { dataQualityHealthy: true }).state;
+    const result = advanceRiskCircuitBreaker(state, monday + 2 * HOUR, 10_100, config, { dataQualityHealthy: true });
+    expect(result.entryBlocked).toBe(true);
+    expect(result.reasons).toContain("monthly-drawdown-limit");
+    expect(result.state.monthStartEquity).toBe(10_000);
+  });
+
   it("rolls weekly baselines at the UTC Monday boundary without resetting the monthly baseline", () => {
     const state = createRiskCircuitBreakerState(monday + 6 * 24 * HOUR, 10_000);
     const nextMonday = monday + 7 * 24 * HOUR;
@@ -50,7 +72,9 @@ describe("multi-period risk circuit breaker", () => {
     });
     expect(result.state.weekKey).toBe("2026-01-12");
     expect(result.state.weekStartEquity).toBe(9_700);
+    expect(result.state.weekPeakEquity).toBe(9_700);
     expect(result.state.monthStartEquity).toBe(10_000);
+    expect(result.state.monthPeakEquity).toBe(10_000);
     expect(result.entryBlocked).toBe(false);
   });
 
@@ -62,6 +86,7 @@ describe("multi-period risk circuit breaker", () => {
     });
     expect(result.state.monthKey).toBe("2026-02");
     expect(result.state.monthStartEquity).toBe(9_800);
+    expect(result.state.monthPeakEquity).toBe(9_800);
   });
 
   it("starts a cooldown after the configured consecutive losing trades", () => {
