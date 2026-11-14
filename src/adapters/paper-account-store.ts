@@ -1,4 +1,4 @@
-import { validatePaperAccountSnapshot, type PaperAccount } from "../domain/paper-broker";
+import { isPristinePaperAccount, validatePaperAccountSnapshot, type PaperAccount } from "../domain/paper-broker";
 import { openNexusDatabase, PAPER_ACCOUNT_STORE } from "./nexus-database";
 
 const ACCOUNT_STORE = PAPER_ACCOUNT_STORE;
@@ -65,18 +65,40 @@ export class PaperAccountStore {
     await done;
   }
 
-  /** Restore is add-only: an existing paper account is never overwritten. */
+  /**
+   * Restore into an empty store, or replace only the untouched starter account
+   * created automatically on first launch. Any account with trading activity
+   * is protected from replacement.
+   */
   async restore(account: PaperAccount): Promise<void> {
     validatePaperAccountSnapshot(account);
     const database = await this.openDatabase();
     const transaction = database.transaction(ACCOUNT_STORE, "readwrite");
     const done = transactionComplete(transaction);
-    transaction.objectStore(ACCOUNT_STORE).add({
-      id: this.accountId,
-      account: structuredClone(account),
-      updatedAt: Date.now(),
-    } satisfies StoredPaperAccount);
-    await done;
+    const store = transaction.objectStore(ACCOUNT_STORE);
+    let protectedAccount = false;
+    const request = store.get(this.accountId) as IDBRequest<StoredPaperAccount | undefined>;
+    request.onsuccess = () => {
+      const current = request.result;
+      if (current && !isPristinePaperAccount(current.account)) {
+        protectedAccount = true;
+        transaction.abort();
+        return;
+      }
+      const snapshot: StoredPaperAccount = {
+        id: this.accountId,
+        account: structuredClone(account),
+        updatedAt: Date.now(),
+      };
+      if (current) store.put(snapshot);
+      else store.add(snapshot);
+    };
+    try {
+      await done;
+    } catch (error) {
+      if (protectedAccount) throw new Error("Restore refused: existing paper account contains state and cannot be overwritten");
+      throw error;
+    }
   }
 
   async close(): Promise<void> {
