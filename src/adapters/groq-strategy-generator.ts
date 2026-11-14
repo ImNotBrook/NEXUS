@@ -1,4 +1,5 @@
 import { parseAiStrategyProposals, type AiStrategyProposal } from "../domain/ai-strategy-proposals";
+import { NEXUS_AI_GOVERNANCE_POLICY } from "../domain/ai-governance-policy";
 
 export const GROQ_CHAT_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions";
 export const DEFAULT_GROQ_RESEARCH_MODEL = "openai/gpt-oss-120b";
@@ -119,7 +120,7 @@ export async function generateAiStrategyProposals(
       messages: [
         {
           role: "system",
-          content: "You are a quantitative research hypothesis generator. Return only JSON with a candidates array containing 1 to 4 objects. Each object must have family (sma-crossover, rsi-mean-reversion, or donchian-breakout), parameters, and a falsifiable rationale of at least 12 characters. SMA parameters: integer fastPeriod 2..30 and slowPeriod 5..100 with fastPeriod < slowPeriod. RSI parameters: integer period 5..50, oversold 10..40, overbought 60..90 and oversold < overbought. Donchian parameters: integer period 5..100. Do not return code, formulas, tools, orders, credentials, execution instructions or claims of profitability. Propose diverse but plausible test candidates. Historical results are unknown; do not pretend you have backtested them.",
+          content: NEXUS_AI_GOVERNANCE_POLICY + "\nTASK-SPECIFIC CONTRACT: You are a quantitative research hypothesis generator. Return only JSON with a candidates array containing 1 to 4 objects. Each object must have family (sma-crossover, rsi-mean-reversion, or donchian-breakout), parameters, and a falsifiable rationale of at least 12 characters. SMA parameters: integer fastPeriod 2..30 and slowPeriod 5..100 with fastPeriod < slowPeriod. RSI parameters: integer period 5..50, oversold 10..40, overbought 60..90 and oversold < overbought. Donchian parameters: integer period 5..100. Do not return code, formulas, tools, orders, credentials, execution instructions or claims of profitability. Propose diverse but plausible test candidates. Historical results are unknown; do not pretend you have backtested them.",
         },
         { role: "user", content: JSON.stringify(context) },
       ],

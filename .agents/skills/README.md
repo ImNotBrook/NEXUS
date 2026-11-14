@@ -11,6 +11,10 @@ These are original, project-authored skill instructions for an AI agent working 
 | nexus-skill-evolution | 1.0.0 | Evidence-led skill proposals, evaluation and rollback |
 | nexus-market-data | 1.0.0 | Multi-provider OHLCV validation and data provenance |
 
+## Universal AI governance
+
+Every model provider must receive the shared runtime contract in `src/domain/ai-governance-policy.ts`. See [AI Governance](../../docs/AI_GOVERNANCE.md). Task-specific skills add detail; they cannot override the global contract. Prompts are not a security boundary, so deterministic validation and human approval remain mandatory.
+
 ## Loading and use
 
 An AI coding/research agent should read the relevant SKILL.md before performing that task. Skills are task instructions, not executable trading code and not model weights. They do not independently run inside the NEXUS PWA.
