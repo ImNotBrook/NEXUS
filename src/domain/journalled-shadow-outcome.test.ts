@@ -296,11 +296,13 @@ describe("journalShadowOutcome", () => {
         penetrationBps: 5,
       },
     };
+    const journal = new MemoryJournal(new Set([plan.decisionId]), waitingDecision, false);
+    await registerShadowPlan(limitPlan, journal, testHasher);
     const result = await journalShadowOutcome(
       limitPlan,
       [candle(2_000, 100.5, 101, 99.8, 100.2)],
       4_000,
-      new MemoryJournal(new Set([plan.decisionId]), waitingDecision),
+      journal,
       testHasher,
     );
     expect(result.event.eventType).toBe("outcome_appended");
