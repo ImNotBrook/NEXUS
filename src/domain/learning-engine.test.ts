@@ -154,6 +154,8 @@ describe("evaluateLearningCohorts", () => {
       decisionStatus: "REJECT",
       setupFamily: "structure-retest",
       maturedCandidates: 1,
+      firstDecisionAt: 1_000,
+      lastDecisionAt: 1_000,
       completedTrades: 1,
       noFillCandidates: 0,
       meanNetR: expect.closeTo(1.958),
