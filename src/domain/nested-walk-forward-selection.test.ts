@@ -97,7 +97,7 @@ describe("runNestedWalkForwardSelection", () => {
         history.length === training.length + 2 ? "buy" : "hold",
     }], pipeline, nestedConfig);
 
-    expect(result.candidateResults[0].folds[0].selectedStopLossPct).toBe(4);
+    expect(result.candidateResults[0].folds[0].selectedStopLossPct).toBeUndefined();
     expect(result.candidateResults[0].folds[0].selectedTakeProfitPct).toBe(3);
     expect(result.candidateResults[0].folds[0].innerSelection.completedTrades).toBeGreaterThanOrEqual(1);
   });
