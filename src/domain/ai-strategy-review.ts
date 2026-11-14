@@ -6,7 +6,7 @@ export interface ParsedAutomatedResearchAiArtifact {
   createdAt: string;
   symbol: string;
   interval: "1h";
-  provider: string;
+  provider: "groq" | "gemini" | "zai" | "cloudflare" | "nvidia";
   model: string;
   proposals: AiStrategyProposal[];
 }
@@ -64,6 +64,7 @@ export function parseAutomatedResearchAiArtifact(input: unknown): ParsedAutomate
 export function createHumanReviewedStrategyDefinition(
   proposal: AiStrategyProposal,
   approvedAt: number,
+  source: Pick<ParsedAutomatedResearchAiArtifact, "createdAt" | "symbol" | "interval" | "provider" | "model">,
 ): Readonly<StrategyDefinition> {
   if (!Number.isSafeInteger(approvedAt) || approvedAt < 0) {
     throw new RangeError("A valid human approval timestamp is required");
@@ -89,5 +90,12 @@ export function createHumanReviewedStrategyDefinition(
     createdAt: approvedAt,
     origin: "human",
     description: proposal.rationale.trim(),
+    aiProvenance: {
+      provider: source.provider,
+      model: source.model,
+      generatedAt: source.createdAt,
+      symbol: source.symbol,
+      interval: source.interval,
+    },
   });
 }
