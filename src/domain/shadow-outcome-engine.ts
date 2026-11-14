@@ -119,13 +119,16 @@ export function validateShadowTradePlan(plan: ShadowTradePlan): void {
       !Number.isFinite(plan.targetPrice) || plan.targetPrice <= 0) {
     throw new RangeError("Stop and target prices must be positive");
   }
+  const plannedEntryPrice = plan.entry.orderType === "limit"
+    ? plan.entry.limitPrice!
+    : plan.entry.referencePrice;
   if (plan.side === "long" &&
-      !(plan.stopPrice < plan.entry.referencePrice && plan.targetPrice > plan.entry.referencePrice)) {
-    throw new RangeError("Long plans require stop < reference entry < target");
+      !(plan.stopPrice < plannedEntryPrice && plan.targetPrice > plannedEntryPrice)) {
+    throw new RangeError("Long plans require stop < planned entry < target");
   }
   if (plan.side === "short" &&
-      !(plan.targetPrice < plan.entry.referencePrice && plan.stopPrice > plan.entry.referencePrice)) {
-    throw new RangeError("Short plans require target < reference entry < stop");
+      !(plan.targetPrice < plannedEntryPrice && plan.stopPrice > plannedEntryPrice)) {
+    throw new RangeError("Short plans require target < planned entry < stop");
   }
   if (plan.sameBarPolicy !== "adverse_stop_first" && plan.sameBarPolicy !== "ambiguous") {
     throw new TypeError("sameBarPolicy is invalid");
@@ -292,7 +295,7 @@ export function simulateShadowOutcome(
       }
     }
 
-    if (outcome.entryOrderStatus === "pending" && candle.timestamp > plan.entry.expiresAt) {
+    if (outcome.entryOrderStatus === "pending" && candle.timestamp >= plan.entry.expiresAt) {
       outcome.entryOrderStatus = "expired";
     }
 
@@ -316,9 +319,22 @@ export function simulateShadowOutcome(
 
     const stop = stopReference(plan, candle);
     const target = targetReference(plan, candle);
-    if (stop !== null && target !== null && !pendingExitReason) {
+    const stopGappedAtOpen = plan.side === "long"
+      ? candle.open <= plan.stopPrice
+      : candle.open >= plan.stopPrice;
+    const targetGappedAtOpen = plan.side === "long"
+      ? candle.open >= plan.targetPrice
+      : candle.open <= plan.targetPrice;
+
+    if (stopGappedAtOpen) {
+      pendingExitReason = "stop-loss";
+    } else if (targetGappedAtOpen && !pendingExitReason) {
+      pendingExitReason = "take-profit";
+    } else if (stop !== null && target !== null && !pendingExitReason) {
       if (plan.sameBarPolicy === "ambiguous") {
+        outcome.entryOrderStatus = outcome.entryOrderStatus === "pending" ? "cancelled" : outcome.entryOrderStatus;
         outcome.status = "ambiguous";
+        outcome.totalFees = outcome.entryFees + outcome.exitFees;
         return outcome;
       }
       pendingExitReason = "stop-loss";
@@ -329,6 +345,7 @@ export function simulateShadowOutcome(
     }
 
     if (!pendingExitReason) continue;
+    if (outcome.entryOrderStatus === "pending") outcome.entryOrderStatus = "cancelled";
 
     const requested = outcome.positionRemainingQuantity;
     const availableVolume = Math.max(0, candle.volume - volumeUsed);
@@ -388,7 +405,7 @@ export function simulateShadowOutcome(
   }
 
   if (outcome.entryOrderStatus === "pending" &&
-      candles.some((candle) => candle.timestamp > plan.entry.expiresAt && candle.timestamp <= plan.horizonEnd)) {
+      candles.some((candle) => candle.timestamp >= plan.entry.expiresAt && candle.timestamp <= plan.horizonEnd)) {
     outcome.entryOrderStatus = "expired";
   }
   if (outcome.entryFilledQuantity <= EPSILON) {
