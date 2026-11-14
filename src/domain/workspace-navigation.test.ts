@@ -22,6 +22,7 @@ describe("workspace navigation", () => {
       ["paper", "Workspace"],
       ["research", "Research"],
       ["skills", "Research"],
+      ["automation", "Automation"],
       ["system", "Controls"],
     ]);
   });
