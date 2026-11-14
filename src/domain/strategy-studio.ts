@@ -17,6 +17,14 @@ export type StrategyParameters =
   | { period: number; oversold: number; overbought: number }
   | { period: number };
 
+export interface AiStrategyProvenance {
+  provider: "groq" | "gemini" | "zai" | "cloudflare" | "nvidia";
+  model: string;
+  generatedAt: string;
+  symbol: string;
+  interval: "1h";
+}
+
 export interface StrategyDefinition {
   schemaVersion: typeof STRATEGY_DEFINITION_SCHEMA_VERSION;
   id: string;
@@ -27,6 +35,8 @@ export interface StrategyDefinition {
   createdAt: number;
   origin: StrategyOrigin;
   description: string;
+  /** Original AI source retained after an explicit human approval. */
+  aiProvenance?: AiStrategyProvenance;
 }
 
 export interface StrategyTemplate {
@@ -74,6 +84,17 @@ function validCommon(definition: StrategyDefinition): string[] {
   if (!Number.isSafeInteger(definition.createdAt) || definition.createdAt < 0) reasons.push("Creation timestamp must be a non-negative safe integer");
   if (!["human", "template", "ai-proposal"].includes(definition.origin)) reasons.push("Unknown strategy origin");
   if (typeof definition.description !== "string" || definition.description.length > 500) reasons.push("Description is required and limited to 500 characters");
+  if (definition.aiProvenance !== undefined) {
+    const source = definition.aiProvenance;
+    if (!source || typeof source !== "object" ||
+        !["groq", "gemini", "zai", "cloudflare", "nvidia"].includes(source.provider) ||
+        typeof source.model !== "string" || !/^[a-zA-Z0-9._/@:-]{1,160}$/.test(source.model) ||
+        typeof source.generatedAt !== "string" || !Number.isFinite(Date.parse(source.generatedAt)) ||
+        typeof source.symbol !== "string" || !/^[A-Z0-9]{5,20}$/.test(source.symbol) ||
+        source.interval !== "1h") {
+      reasons.push("AI proposal provenance is invalid");
+    }
+  }
   return reasons;
 }
 
