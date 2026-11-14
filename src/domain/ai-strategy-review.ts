@@ -1,6 +1,8 @@
 import { parseAiStrategyProposals, type AiStrategyProposal } from "./ai-strategy-proposals";
 import { createStrategyDefinition, type StrategyDefinition } from "./strategy-studio";
 
+const AI_PROVIDER_IDS = ["groq", "gemini", "zai", "cloudflare", "nvidia"] as const;
+
 export interface ParsedAutomatedResearchAiArtifact {
   schemaVersion: 1;
   createdAt: string;
@@ -40,7 +42,7 @@ export function parseAutomatedResearchAiArtifact(input: unknown): ParsedAutomate
   }
   const generation = input.aiGeneration;
   if (generation.status !== "generated" || typeof generation.provider !== "string" ||
-      !["groq", "gemini", "zai", "cloudflare", "nvidia"].includes(generation.provider) ||
+      !AI_PROVIDER_IDS.includes(generation.provider as typeof AI_PROVIDER_IDS[number]) ||
       typeof generation.model !== "string" || !generation.model.trim() ||
       !Array.isArray(generation.proposals)) {
     throw new TypeError("Artifact does not contain successful AI-generated proposals");
@@ -51,7 +53,7 @@ export function parseAutomatedResearchAiArtifact(input: unknown): ParsedAutomate
     createdAt: input.createdAt,
     symbol: input.symbol,
     interval: "1h",
-    provider: generation.provider,
+    provider: generation.provider as typeof AI_PROVIDER_IDS[number],
     model: generation.model,
     proposals,
   };
