@@ -92,3 +92,20 @@ Official references:
 - [Bybit funding history](https://bybit-exchange.github.io/docs/v5/market/history-fund-rate)
 - [Bybit open interest](https://bybit-exchange.github.io/docs/v5/market/open-interest)
 - [Bybit long/short account ratio](https://bybit-exchange.github.io/docs/v5/market/long-short-ratio)
+
+
+## Scheduled derivatives collection
+
+The scheduled workflow `.github/workflows/derivatives-data.yml` uses public Bybit V5 endpoints without an API key. After this workflow is merged, it runs daily at 02:17 UTC and can also be started manually from GitHub Actions.
+
+Initial coverage:
+- BTCUSDT, ETHUSDT and SOLUSDT linear perpetuals.
+- Funding history: latest bounded page (up to 200 observations).
+- Open interest: 1-hour observations (up to 200 per request).
+- Long/short account ratio: 1-hour account-share observations (up to 200 per request).
+
+The collector stores JSON histories in the separate `nexus-market-ledger` branch, preserving the observation timestamp and ingestion timestamp. Current files are trimmed to a rolling 365-day window and duplicate timestamps are upserted within the same provider/symbol/category/metric series. A collection report records per-series success or failure. A partial outage does not overwrite the failed series with empty data; a run with zero successful series fails visibly.
+
+Collection is deliberately bounded to one page per metric and symbol. A 200-row hourly page covers about eight days; if collection is unavailable longer than that, missing history is not fabricated and must be detected by the downstream quality checks. Funding rates are stored per settlement and are not annualized because settlement intervals can differ by instrument. The public ledger branch contains market observations only, not user or exchange-account data.
+
+The ledger branch is separate from the PWA's device-local IndexedDB. The current scheduled collector does not yet feed the paper-trading worker or create trading signals. The rolling JSON retention does not rewrite Git history, so historical commits remain in the repository's Git object history.
