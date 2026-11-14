@@ -53,7 +53,7 @@ NEXUS is intended to become a mobile-first AI trading intelligence and automated
 
 ## Active stage: 9 — Global Research Leaderboard
 
-Implementation note: v1 reads ordinary `ResearchRunStore` records only. Nested research and sealed holdout remain in their own ledgers. Execution-stress scenarios are not yet aggregated as a dedicated stress-survivor family because the current persistence contract stores scenario reports individually without a scenario-family manifest. See [RESEARCH_LEADERBOARD.md](RESEARCH_LEADERBOARD.md).
+Implementation note: v1 reads all `ResearchRunStore` walk-forward report records; individual stress scenario reports may appear in isolated configuration groups, but are not aggregated as stress families. Nested research and sealed holdout remain in their own ledgers. Execution-stress scenarios are not yet aggregated as a dedicated stress-survivor family because the current persistence contract stores scenario reports individually without a scenario-family manifest. See [RESEARCH_LEADERBOARD.md](RESEARCH_LEADERBOARD.md).
 
 ### Scope
 - Read existing locally persisted research runs; do not create a second source of truth.
