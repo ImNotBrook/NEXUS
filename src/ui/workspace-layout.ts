@@ -11,12 +11,24 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+function attachHelp(button: HTMLButtonElement, explanation: string, host: HTMLElement): void {
+  const bubble = element("div", "help-popover", explanation);
+  bubble.hidden = true;
+  bubble.id = `help-${Math.random().toString(36).slice(2)}`;
+  button.setAttribute("aria-expanded", "false");
+  button.setAttribute("aria-controls", bubble.id);
+  button.addEventListener("click", () => {
+    bubble.hidden = !bubble.hidden;
+    button.setAttribute("aria-expanded", String(!bubble.hidden));
+  });
+  host.append(bubble);
+}
+
 function helpButton(label: string, explanation: string): HTMLButtonElement {
   const button = element("button", "help-button", "?");
   button.type = "button";
   button.setAttribute("aria-label", `Help: ${label}`);
   button.title = explanation;
-  button.setAttribute("aria-describedby", "");
   return button;
 }
 
@@ -79,7 +91,9 @@ export function mountWorkspaceLayout(root: HTMLElement): void {
       const heading = element("div", "page-heading");
       const headingText = element("div", "page-heading-copy");
       headingText.append(element("h1", "", page.label), element("p", "", page.description));
-      heading.append(headingText, helpButton(page.label, page.help));
+      const pageHelp = helpButton(page.label, page.help);
+      heading.append(headingText, pageHelp);
+      attachHelp(pageHelp, page.help, heading);
       section.append(heading);
       for (const node of pageContent[page.id] ?? []) section.append(node);
       pages.set(page.id, section);
@@ -137,15 +151,19 @@ export function mountWorkspaceLayout(root: HTMLElement): void {
 
   shell.querySelectorAll<HTMLElement>(".panel").forEach((panel) => {
     const title = panel.querySelector("h2")?.textContent?.trim() ?? "Panel";
-    const hint = element("span", "panel-help", "?");
-    hint.setAttribute("role", "img");
+    const hint = element("button", "panel-help", "?");
+    hint.type = "button";
     hint.setAttribute("aria-label", `Help: ${title}`);
-    hint.title = `This panel: ${title}. ${title === "Simulated order desk"
-      ? "Place simulated BTC spot orders; no exchange order is sent."
+    hint.title = `This panel: ${title}`;
+    const explanation = title === "Simulated order desk"
+      ? "Place simulated BTC spot orders. Fees and slippage are modelled; no exchange order is sent."
       : title === "BTC / USDT"
-        ? "Displays completed hourly candles, RSI and source-quality checks."
-        : "Shows a system status or safety control. Read the panel text before taking action."}`;
-    const label = panel.querySelector(".panel-label");
-    if (label) label.append(hint);
+        ? "Displays completed hourly candles, RSI and checks data freshness and agreement between providers."
+        : "Shows a system status or safety control. Read the panel text before taking action.";
+    const label = panel.querySelector<HTMLElement>(".panel-label");
+    if (label) {
+      label.append(hint);
+      attachHelp(hint, explanation, panel);
+    }
   });
 }
