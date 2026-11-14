@@ -1,0 +1,53 @@
+name: NEXUS Automated Paper Trading
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "5 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nexus-paper-trading
+  cancel-in-progress: false
+
+jobs:
+  paper-trading:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout NEXUS engine
+        uses: actions/checkout@v4
+      - name: Checkout persistent paper ledger
+        uses: actions/checkout@v4
+        with:
+          ref: nexus-paper-ledger
+          path: ledger
+          persist-credentials: true
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install project dependencies
+        run: npm install
+      - name: Enforce dependency security audit
+        run: npm audit --audit-level=moderate
+      - name: Run approved paper strategy
+        run: npx --yes tsx@4.20.6 scripts/paper-trading-agent.ts
+      - name: Persist paper ledger checkpoint
+        run: |
+          git -C ledger config user.name "github-actions[bot]"
+          git -C ledger config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C ledger add data/paper-trading-state.json
+          if ! git -C ledger diff --cached --quiet; then
+            git -C ledger commit -m "paper: update simulated trading checkpoint"
+            git -C ledger push origin HEAD:nexus-paper-ledger
+          fi
+      - name: Upload paper trading report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-paper-trading-${{ github.run_number }}
+          path: artifacts/paper-trading-report.json
+          if-no-files-found: error
+          retention-days: 30

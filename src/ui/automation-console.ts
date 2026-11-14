@@ -40,8 +40,29 @@ export function mountAutomationConsole(container: HTMLElement): void {
   actions.append(open);
   panel.append(actions);
   const details = el("details", "automation-details");
-  details.append(el("summary", "", "How to run it manually"));
+  details.append(el("summary", "", "How to run research manually"));
   details.append(el("p", "small", "Open the workflow link, choose Run workflow, then open the completed run and download its nexus-automated-research artifact. Scheduled runs occur daily; GitHub may delay scheduled jobs."));
   panel.append(details);
-  container.replaceChildren(panel);
+
+  const paper = el("section", "panel automation-panel paper-agent-panel");
+  paper.append(el("span", "panel-label", "PAPER EXECUTION AGENT"));
+  paper.append(el("h2", "", "Persistent automated paper trading"));
+  paper.append(el("p", "small", "A separate hourly worker processes newly closed hourly candles, simulates next-open orders, carries partial fills forward and stores its checkpoint on a dedicated repository branch."));
+  paper.append(el("p", "automation-notice", "DISABLED BY DEFAULT · The worker cannot start until a human approves one exact strategy configuration. It is paper-only, long-only, unleveraged and has a daily loss lockout. Live trading is not available."));
+  const paperActions = el("div", "automation-actions");
+  const paperWorkflow = el("a", "automation-link", "Open paper trading workflow");
+  paperWorkflow.href = "https://github.com/ImNotBrook/NEXUS/actions/workflows/paper-trading.yml";
+  paperWorkflow.target = "_blank";
+  paperWorkflow.rel = "noopener noreferrer";
+  const paperConfig = el("a", "automation-link", "View approval configuration");
+  paperConfig.href = "https://github.com/ImNotBrook/NEXUS/blob/nexus-paper-ledger/data/paper-trading-config.json";
+  paperConfig.target = "_blank";
+  paperConfig.rel = "noopener noreferrer";
+  paperActions.append(paperWorkflow, paperConfig);
+  paper.append(paperActions);
+  const paperDetails = el("details", "automation-details");
+  paperDetails.append(el("summary", "", "What approval means"));
+  paperDetails.append(el("p", "small", "A strategy must first pass nested walk-forward review and an untouched holdout. The ledger config records the exact strategy ID, parameters, approver, rationale and approval timestamp. No strategy is selected automatically."));
+  paper.append(paperDetails);
+  container.replaceChildren(panel, paper);
 }
