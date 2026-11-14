@@ -6,6 +6,7 @@ import {
   type DecisionJournalSnapshotRef,
   type DecisionJournalThesis,
   type DecisionJournalVersions,
+  validateDecisionJournalRecord,
 } from "./decision-journal";
 
 export interface DecisionJournalWriter {
@@ -56,6 +57,7 @@ export async function evaluateAndJournalDecision(
     versions: structuredClone(context.versions),
   };
 
+  validateDecisionJournalRecord(record);
   const persisted = await journal.append(record);
   return { result: structuredClone(result), record: structuredClone(persisted) };
 }
