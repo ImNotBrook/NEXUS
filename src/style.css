@@ -144,3 +144,22 @@
 .journal-details summary{cursor:pointer;color:#79c9de;font-size:11px;padding:8px 0}
 .journal-snapshot{max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#081522;border-radius:6px;padding:10px;color:#a9bdcf;font-size:10px}
 @media(max-width:420px){.journal-record-header{flex-direction:column}.journal-status{align-self:flex-start}}
+
+
+/* Deterministic decision workbench */
+.workbench-panel{margin:0}.workbench-approval{display:grid;gap:12px;margin:14px 0}
+.workbench-label{display:grid;gap:6px;color:#a8bacb;font-size:11px}
+.workbench-input{width:100%;box-sizing:border-box;border:1px solid #34516a;border-radius:7px;background:#091827;color:#e4edf5;padding:11px;font:inherit;font-size:12px}
+.workbench-input:focus{outline:2px solid #4c9eae;outline-offset:1px}
+.workbench-actions{display:flex;gap:8px;flex-wrap:wrap}
+.workbench-actions button{min-height:42px}
+.workbench-actions button:disabled{opacity:.45;cursor:not-allowed}
+.workbench-output{display:grid;gap:10px;margin-top:14px}
+.workbench-result{border:1px solid #29445b;border-radius:8px;padding:12px;background:#0d1d2d;min-width:0}
+.workbench-result-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.workbench-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.workbench-metric{display:grid;gap:5px;padding:10px;border:1px solid #29445b;border-radius:7px;background:#102235;min-width:0}
+.workbench-metric span{color:#8194a8;font-size:9px;text-transform:uppercase;letter-spacing:.06em}
+.workbench-metric strong{color:#d0dce8;font-size:12px;overflow-wrap:anywhere}
+.workbench-safety{padding:10px;border-left:2px solid #55b99c;background:#102b2b;color:#9ce2c8;font-size:10px;line-height:1.5}
+@media(max-width:420px){.workbench-actions{display:grid}.workbench-actions button{width:100%}}
