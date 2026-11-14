@@ -6,7 +6,7 @@ import { ResearchRunStore, type StoredResearchRun } from "../adapters/research-r
 import { compareResearchRuns } from "./research-comparison";
 import { runProtectiveExitSensitivity } from "./protective-exit-sensitivity";
 import { runNestedWalkForwardSelection, type NestedWalkForwardResult, type NestedWalkForwardConfig } from "./nested-walk-forward-selection";
-import { NestedResearchRunStore, type StoredNestedResearchRun } from "../adapters/nested-research-run-store";
+import { NestedResearchRunStore } from "../adapters/nested-research-run-store";
 
 const INTERVAL_MS: Partial<Record<BinanceInterval, number>> = {
   "1m": 60_000, "3m": 180_000, "5m": 300_000, "15m": 900_000,
@@ -414,7 +414,51 @@ export function mountResearchConsole(container: HTMLElement): void {
   void refreshHistory();
 
 
-  nestedButton.addEventListener("click", () => {
+  const refreshNestedHistory = async (): Promise<void> => {
+    try {
+      const records = await nestedRunStore.list(50);
+      nestedHistory.replaceChildren();
+      if (records.length === 0) {
+        nestedHistory.append(el("p", "small", "No saved nested experiments yet."));
+        return;
+      }
+      for (const record of records) {
+        const item = el("div", "saved-run");
+        const info = el("div", "saved-run-info");
+        info.append(
+          el("strong", "", record.metadata.symbol + " · " + record.metadata.interval +
+            " · " + record.report.outerFoldCount + " outer folds · " +
+            record.report.candidateResults.length + " strategies"),
+          el("span", "small", new Date(record.createdAt).toLocaleString() +
+            " · " + record.report.datasetFingerprint),
+        );
+        const actions = el("div", "saved-run-actions");
+        const open = el("button", "saved-run-open", "Open");
+        open.type = "button";
+        open.addEventListener("click", () => {
+          renderNestedReport(nestedResults, record.report);
+          status.textContent = "Loaded saved nested experiment · " + record.id;
+        });
+        const remove = el("button", "saved-run-delete", "Delete");
+        remove.type = "button";
+        remove.addEventListener("click", () => {
+          remove.disabled = true;
+          void nestedRunStore.delete(record.id).then(refreshNestedHistory).catch((error: unknown) => {
+            status.textContent = error instanceof Error ? error.message : "Could not delete nested experiment";
+            remove.disabled = false;
+          });
+        });
+        actions.append(open, remove);
+        item.append(info, actions);
+        nestedHistory.append(item);
+      }
+    } catch (error) {
+      nestedHistory.textContent = error instanceof Error ? error.message : "Nested experiment history unavailable";
+    }
+  };
+  void refreshNestedHistory();
+
+  nestedButton.addEventListener("click", async () => {
     if (!sensitivityContext || nestedButton.disabled) return;
     try {
       const grid = {
