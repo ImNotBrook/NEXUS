@@ -158,7 +158,7 @@ export function validateDecisionJournalEvent(event: DecisionJournalEvent): void 
   if (!event || typeof event !== "object") throw new TypeError("A decision journal event is required");
   if (event.schemaVersion !== DECISION_JOURNAL_SCHEMA_VERSION) throw new TypeError("Unsupported decision event schema version");
   if (!requiredString(event.eventId) || !requiredString(event.decisionId)) throw new TypeError("Event and decision IDs are required");
-  if (!["paper_execution_linked", "outcome_appended", "correction_appended"].includes(event.eventType)) {
+  if (!["shadow_plan_registered", "paper_execution_linked", "outcome_appended", "correction_appended"].includes(event.eventType)) {
     throw new TypeError("Decision event type is invalid");
   }
   if (!validTimestamp(event.occurredAt)) throw new RangeError("occurredAt must be a non-negative safe integer");
