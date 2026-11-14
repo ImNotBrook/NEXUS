@@ -102,13 +102,16 @@ export function findFirstCausalDonchianTrigger(
     throw new RangeError("Replay as-of timestamp must be at or after the original decision");
   }
   if (spec.symbol !== "BTCUSDT" || spec.timeframe !== "1h" ||
-      !Number.isSafeInteger(spec.lookback) || spec.lookback < 2 ||
+      !Number.isSafeInteger(spec.lookback) || spec.lookback < 2 || spec.lookback > 500 ||
+      !Number.isSafeInteger(spec.expiryBars) || spec.expiryBars < 1 || spec.expiryBars > 100 ||
       spec.initialWindow.length !== spec.lookback) {
     throw new TypeError("Frozen replay scope or initial channel window is invalid");
   }
   const initial = validateCandles(spec.initialWindow);
   if (initial.some((candle) => candle.timestamp % NO_SETUP_REPLAY_INTERVAL_MS !== 0 ||
-      candle.timestamp + NO_SETUP_REPLAY_INTERVAL_MS > spec.decisionAt)) {
+      candle.timestamp + NO_SETUP_REPLAY_INTERVAL_MS > spec.decisionAt) ||
+      initial.some((candle, index) => index > 0 &&
+        candle.timestamp - initial[index - 1].timestamp !== NO_SETUP_REPLAY_INTERVAL_MS)) {
     throw new RangeError("Frozen initial channel contains data unavailable at decision time");
   }
   const future = validateCandles(inputCandles);
@@ -124,6 +127,7 @@ export function findFirstCausalDonchianTrigger(
   let evaluated = 0;
   let expectedTimestamp = (Math.floor(spec.decisionAt / NO_SETUP_REPLAY_INTERVAL_MS) + 1) * NO_SETUP_REPLAY_INTERVAL_MS;
   for (const candle of closed) {
+    if (evaluated >= spec.expiryBars) break;
     if (candle.timestamp !== expectedTimestamp) {
       throw new RangeError("Replay history must be continuous hourly candles after the decision");
     }
