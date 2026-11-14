@@ -10,6 +10,12 @@ Updated: 2026-11-14
 - The horizon-proof candle for Stage 3 contributes only its timestamp to maturity; its OHLCV is excluded from the simulated path. Incomplete, ambiguous, unresolved or data-degraded observations are excluded from Stage 3 learning cohorts.
 - The mobile workspace includes **Decision workbench**, **Decision journal** and **Shadow outcomes**, with a separate manual NO_SETUP replay control.
 - Stage 5 local backup/restore is implemented: full decision journal plus linked events, separate paper-account backup, SHA-256 integrity checks, validated previews, additive conflict-safe journal restore and protected paper-account restore.
+- Stage 5 Android backup/restore workflow was manually exercised by the user and confirmed working, including the legacy paper-account backup compatibility fix.
+- Stage 6 Sealed Final Holdout is implemented in Strategy Research: newest 20% chronological holdout, two-candle embargo, development-only candidate fitting, exactly one final test fold, FNV-1a dataset/candidate/effective-config fingerprints, and a device-local append-only overlap lock per symbol/interval. Interrupted seals remain consumed (fail-closed).
+- Stage 6 limitations are explicit: the ledger is browser-local and can be bypassed by clearing storage or switching devices; it is not part of the local backup export yet, and its 32-bit fingerprints are reproducibility identifiers, not cryptographic security. The current console seals the fixed baseline candidate factories and current research-form execution assumptions; nested fold-specific parameter choices are not auto-promoted into a global candidate.
+- Latest verified CI at commit `f6f2afa3a46f5bb5a2b26deffccc8a4acb853b00`: 75 test files and 493 tests passed; TypeScript checks, dependency audit and production build passed.
+- CI run: https://github.com/ImNotBrook/NEXUS/actions/runs/43572307821
+- Latest deployment workflow: https://github.com/ImNotBrook/NEXUS/actions/runs/43572307847 (verification pending at the time of this status update).
 - Latest verified CI at commit `21413f400622599ad3083e399855022eaac70901`: 73 test files and 483 tests passed; TypeScript checks, dependency audit (0 vulnerabilities) and production build passed.
 - Latest verified GitHub Pages deployment succeeded at commit `21413f400622599ad3083e399855022eaac70901`: https://imnotbrook.github.io/NEXUS/
 - CI run: https://github.com/ImNotBrook/NEXUS/actions/runs/43570096470
