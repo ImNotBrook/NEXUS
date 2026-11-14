@@ -104,17 +104,10 @@ describe("simulateShadowOutcome", () => {
     expect(result.netPnl).toBeGreaterThan(0);
   });
 
-  it("handles short stop gaps at the worse opening price", () => {
-    const result = simulateShadowOutcome(plan({
+  it("rejects spot shorts until borrow costs and availability are modelled", () => {
+    expect(() => simulateShadowOutcome(plan({
       side: "short", stopPrice: 105, targetPrice: 90,
-    }), [
-      candle(2_000, 100, 101, 99, 100),
-      candle(3_000, 110, 112, 108, 109),
-    ]);
-    expect(result.status).toBe("completed");
-    expect(result.exitReason).toBe("stop-loss");
-    expect(result.exitAveragePrice).toBeGreaterThan(110);
-    expect(result.netPnl).toBeLessThan(0);
+    }), [candle(2_000, 100, 101, 99, 100)])).toThrow(/borrow/i);
   });
 
   it("carries partial market entry fills across eligible candles", () => {
@@ -253,6 +246,12 @@ describe("simulateShadowOutcome", () => {
     expect(() => simulateShadowOutcome(plan({
       volumeUnit: "quote",
     }), [])).toThrow(/base/i);
+  });
+
+  it("rejects non-positive spot OHLC prices", () => {
+    expect(() => simulateShadowOutcome(plan(), [
+      candle(2_000, 100, 101, 0, 100),
+    ])).toThrow(/positive/i);
   });
 
 });
