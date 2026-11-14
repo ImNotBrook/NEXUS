@@ -22,6 +22,7 @@ describe("workspace navigation", () => {
       ["paper", "Workspace"],
       ["workbench", "Research"],
       ["decisions", "Research"],
+      ["outcomes", "Research"],
       ["research", "Research"],
       ["skills", "Research"],
       ["automation", "Automation"],
@@ -39,6 +40,12 @@ describe("workspace navigation", () => {
     const workbench = WORKSPACE_PAGES.find((page) => page.id === "workbench");
     expect(workbench?.help).toContain("human must approve");
     expect(workbench?.help).toContain("never sends an exchange order");
+  });
+
+  it("explains that outcomes require pre-registered plans and exclude immature paths", () => {
+    const outcomes = WORKSPACE_PAGES.find((page) => page.id === "outcomes");
+    expect(outcomes?.help).toContain("pre-registered");
+    expect(outcomes?.help).toContain("ambiguous");
   });
 
   it("returns only known pages", () => {
