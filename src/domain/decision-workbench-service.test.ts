@@ -52,7 +52,7 @@ function base(overrides: Record<string, unknown> = {}) {
     strategy, evaluationTime: now,
     gatePolicy: {
       instrumentCategory: "spot" as const,
-      equity: 10_000, existingExposure: 0, maxRiskPerTrade: 20,
+      equity: 10_000, availableCapital: 10_000, existingExposure: 0, maxRiskPerTrade: 20,
       maxRiskFraction: 0.002, maxNotional: 2_000, maxExposure: 2_000,
       minimumNetRewardRisk: 1.4,
       execution: {
@@ -89,7 +89,7 @@ describe("runDecisionWorkbench integration", () => {
     const result = await runDecisionWorkbench(base({
       gatePolicy: {
         instrumentCategory: "spot" as const,
-        equity: 10_000, existingExposure: 0, maxRiskPerTrade: 10,
+        equity: 10_000, availableCapital: 10_000, existingExposure: 0, maxRiskPerTrade: 10,
         maxRiskFraction: 0.002, maxNotional: 2_000, maxExposure: 2_000,
         minimumNetRewardRisk: 1.4,
         execution: {
