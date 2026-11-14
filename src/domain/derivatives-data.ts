@@ -41,8 +41,8 @@ export function validateDerivativesObservations(
     if (!observation || typeof observation !== "object") {
       throw new TypeError("Derivatives observation must be an object");
     }
-    if (typeof observation.provider !== "string" || !observation.provider.trim()) {
-      throw new TypeError("provider is required");
+    if (typeof observation.provider !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(observation.provider.trim())) {
+      throw new TypeError("provider must be a stable alphanumeric identifier");
     }
     if (typeof observation.symbol !== "string" || !/^[A-Z0-9]{3,30}$/.test(observation.symbol)) {
       throw new TypeError("symbol must be a normalized uppercase market symbol");
