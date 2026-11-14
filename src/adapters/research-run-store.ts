@@ -80,7 +80,7 @@ export class ResearchRunStore {
     if (strategyTrials && (
         strategyTrials.generatorVersion !== "1.0.0" ||
         typeof strategyTrials.baseStrategyId !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(strategyTrials.baseStrategyId) ||
-        typeof strategyTrials.baseVersion !== "string" || !/^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$/.test(strategyTrials.baseVersion) ||
+        typeof strategyTrials.baseVersion !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(strategyTrials.baseVersion) ||
         !Number.isSafeInteger(strategyTrials.trialCount) || strategyTrials.trialCount < 1 || strategyTrials.trialCount > 25 ||
         !Array.isArray(strategyTrials.trialIds) || strategyTrials.trialIds.length !== strategyTrials.trialCount ||
         strategyTrials.trialIds.some((id) => typeof id !== "string" || !id.trim()) ||
