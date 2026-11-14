@@ -39,6 +39,15 @@
 - Mature no-fill expiry and pre-fill gap invalidation count as no-fill candidates, not zero-R trades.
 - NO_SETUP is intentionally excluded. A separate causal, versioned discovery detector is required before missed-opportunity analytics can be valid.
 
+## Causal NO_SETUP diagnostics (Stage 4 v1)
+
+- A new workbench scan registers a replay specification only when the immutable decision is `NO_SETUP` for `DONCHIAN_TRIGGER_ABSENT`, on BTCUSDT 1H, with a valid frozen lookback window.
+- The event is timestamped at the original decision time and stores the exact initial Donchian window, strategy ID/version, lookback, expiry bars and sizing/risk parameters. Older decisions without this event are never reconstructed retrospectively.
+- Manual evaluation fetches public Binance 1H history and considers only candles whose full close time is at or before the evaluation timestamp. Gaps in the replay window fail closed.
+- The detector tests the first `expiryBars` closed candles only and records the first close above the then-known rolling Donchian high. It never searches later candles for a better entry.
+- A `missed_opportunity_detected` event is a **Donchian-only diagnostic**. It does not prove that higher-timeframe filters, risk/economics gates or execution conditions would have passed. It is not a simulated fill, does not create a shadow trade plan and is excluded from shadow P&L/learning cohorts.
+- The diagnostic currently covers BTCUSDT spot-long only. Other NO_SETUP reasons, symbols, timeframes and strategies are explicitly out of scope.
+
 ## Metrics
 
 The current learning report exposes matured candidate count, completed trade count, no-fill count, mean and median net R, win rate, mean MFE and mean MAE. Net R uses realised net P&L divided by gross entry-to-stop price risk on the filled quantity. It is not an account-level return.
