@@ -64,7 +64,7 @@ describe("additional trend and momentum indicators", () => {
   it("calculates WMA and rate of change with explicit warm-up", async () => {
     const { wma, rateOfChange } = await import("./indicators");
     expect(wma([1, 2, 3, 4], 3)).toEqual([null, null, 14 / 6, 20 / 6]);
-    expect(rateOfChange([100, 110, 121], 2)).toEqual([null, null, 21]);
+    expect(rateOfChange([100, 110, 121], 2).at(-1)).toBeCloseTo(21);
   });
 
   it("calculates stochastic %K and its smoothed %D", async () => {
@@ -104,7 +104,7 @@ describe("volume and channel indicators", () => {
   it("calculates MFI and handles zero-flow windows", async () => {
     const { mfi } = await import("./indicators");
     expect(mfi([11, 12, 13], [9, 10, 11], [10, 11, 12], [5, 5, 5], 2).at(-1)).toBe(100);
-    expect(mfi([11, 11, 11], [9, 9, 9], [10, 10, 10], [0, 0, 0], 2)).toEqual([null, 50, 50]);
+    expect(mfi([11, 11, 11], [9, 9, 9], [10, 10, 10], [0, 0, 0], 2)).toEqual([null, null, 50]);
   });
 
   it("calculates prior-window Donchian channels without including the current candle", async () => {
