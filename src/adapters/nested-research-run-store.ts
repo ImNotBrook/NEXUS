@@ -40,7 +40,7 @@ function isValidConfig(config: NestedWalkForwardConfig): boolean {
   const validFolds = (folds: NestedWalkForwardConfig["outerFolds"]): boolean =>
     !!folds && Number.isSafeInteger(folds.trainBars) && folds.trainBars > 0 &&
     Number.isSafeInteger(folds.testBars) && folds.testBars > 0 &&
-    Number.isSafeInteger(folds.stepBars) && folds.stepBars > 0 &&
+    (folds.stepBars === undefined || (Number.isSafeInteger(folds.stepBars) && folds.stepBars > 0)) &&
     Number.isSafeInteger(folds.embargoBars ?? 0) && (folds.embargoBars ?? 0) >= 0;
   return !!config && validFolds(config.outerFolds) && validFolds(config.innerFolds) &&
     !!config.grid && Array.isArray(config.grid.stopLossValuesPct) &&
