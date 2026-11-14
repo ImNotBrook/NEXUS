@@ -66,8 +66,7 @@ class MemoryJournal implements ShadowOutcomeServiceJournal {
 const matureCandles = (): Candle[] => {
   const rows: Candle[] = [];
   for (let i = 1; i <= 24; i++) rows.push(candle(decisionAt + i * hour, 100, i === 2 ? 111 : 101, 99, 100));
-  // First completed candle at/after the horizon proves maturity, but is not part of the path.
-  rows.push(candle(decisionAt + 25 * hour));
+  // The 24th candle proves maturity and is excluded from the 23-candle outcome path.
   return rows;
 };
 const hasher = async () => "fixed-shadow-hash";
@@ -100,8 +99,9 @@ describe("evaluateShadowOutcomes integration", () => {
     expect(report.learning.eligibleObservations).toBe(1);
     expect(report.learning.cohorts[0].completedTrades).toBe(1);
     const outcomeEvent = journal.events.find((item) => item.eventType === "outcome_appended")!;
+    expect((outcomeEvent.payload.candles as Candle[])).toHaveLength(23);
     expect((outcomeEvent.payload.candles as Candle[]).every((item) => item.timestamp <= plan.horizonEnd)).toBe(true);
-    expect(outcomeEvent.payload.observedThrough).toBe(decisionAt + 25 * hour);
+    expect(outcomeEvent.payload.observedThrough).toBe(decisionAt + 24 * hour);
   });
 
   it("does not create a plan retrospectively for a legacy decision without a registration event", async () => {
