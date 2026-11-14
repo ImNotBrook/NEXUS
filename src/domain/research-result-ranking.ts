@@ -25,10 +25,16 @@ export function rankResearchCandidates<T extends ResearchRankingInput>(items: re
   }
   const statusRank = (status: ResearchRankingInput["reviewStatus"]): number =>
     status === "REVIEW_FOR_PAPER" ? 2 : status === "FRAGILE" ? 1 : 0;
-  const descendingNullable = (a: number | null, b: number | null): number =>
-    (b ?? Number.NEGATIVE_INFINITY) - (a ?? Number.NEGATIVE_INFINITY);
-  const ascendingNullable = (a: number | null, b: number | null): number =>
-    (a ?? Number.POSITIVE_INFINITY) - (b ?? Number.POSITIVE_INFINITY);
+  const descendingNullable = (a: number | null, b: number | null): number => {
+    if (a === null) return b === null ? 0 : 1;
+    if (b === null) return -1;
+    return b - a;
+  };
+  const ascendingNullable = (a: number | null, b: number | null): number => {
+    if (a === null) return b === null ? 0 : 1;
+    if (b === null) return -1;
+    return a - b;
+  };
   return [...items].sort((a, b) =>
     statusRank(b.reviewStatus) - statusRank(a.reviewStatus) ||
     Math.min(b.completedTrades, 30) - Math.min(a.completedTrades, 30) ||
