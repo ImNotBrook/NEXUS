@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { validateDecisionJournalRecord, type DecisionJournalRecord } from "./decision-journal";
+import {
+  createDecisionJournalEventId,
+  createDecisionJournalId,
+  validateDecisionJournalRecord,
+  type DecisionJournalRecord,
+} from "./decision-journal";
 import type { DecisionResult, EvidenceItem } from "./decision-engine";
 
 const result: DecisionResult = {
@@ -116,4 +121,10 @@ describe("Decision Journal record contract", () => {
     };
     expect(() => validateDecisionJournalRecord(noSetup)).not.toThrow();
   });
+  it("generates decision and event IDs from secure UUIDs, not wall-clock timestamps", () => {
+    expect(createDecisionJournalId(() => "uuid-1")).toBe("decision:uuid-1");
+    expect(createDecisionJournalEventId(() => "uuid-2")).toBe("event:uuid-2");
+    expect(() => createDecisionJournalId(() => "")).toThrow();
+  });
+
 });
