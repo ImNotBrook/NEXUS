@@ -6,19 +6,25 @@ A static, installable PWA is the first delivery target. It can be hosted on a fr
 ## Initial modules
 1. **Command Centre** — mobile dashboard and navigation.
 2. **Market Data Adapters** — public market data only; provider adapters isolated from domain logic.
-3. **Research Workbench** — indicator definitions, market hypotheses and evidence records.
-4. **Strategy Lab** — versioned strategy specifications and deterministic simulation.
-5. **Backtest Engine** — chronological event processing, fees, slippage, position sizing and out-of-sample splits.
-6. **Risk Engine** — exposure, drawdown, loss limits and trade validation.
-7. **Paper Broker** — simulated fills and a 10,000 USDT starting ledger; no exchange order endpoint.
-8. **Learning & Skills** — AI research, proposed skill updates, evidence and version history.
-9. **Qualification Guard** — independently computed evidence gate; review eligibility is not execution permission.
-10. **Persistence** — browser-local storage initially; export/import for user-controlled backups.
+3. **Market Intelligence** — canonical causal snapshots for regime, structure, liquidity, technical and derivatives observations, plus optional Elliott Wave scenarios.
+4. **Evidence & Decision Engine (EDE)** — evidence validation, independent evidence-family diagnostics, thesis challenge, trade economics and deterministic ENTER/WAIT/REJECT/NO_SETUP output.
+5. **Decision Journal** — immutable decision-time snapshots, evidence, plans and version references.
+6. **Shadow Outcome Engine** — conservative counterfactual execution simulation for entered, waiting, rejected and missed opportunities.
+7. **Learning & Validation** — mature-outcome analytics, calibration research and versioned improvement proposals.
+8. **Strategy Lab** — versioned strategy specifications and deterministic simulation.
+9. **Backtest Engine** — chronological event processing, fees, slippage, position sizing and out-of-sample splits.
+10. **Risk Engine** — exposure, drawdown, loss limits and trade validation; independent of AI.
+11. **Paper Broker** — simulated fills and a 10,000 USDT starting ledger; no exchange order endpoint.
+12. **Learning & Skills Governance** — AI research, proposed skill updates, evidence and version history.
+13. **Qualification Guard** — independently computed evidence gate; review eligibility is not execution permission.
+14. **Persistence** — browser-local IndexedDB initially; export/import for user-controlled backups.
 
 ## Trust boundaries and data flow
-Public market data -> schema validation -> normalized candles -> indicators -> strategy signals -> risk checks -> paper broker -> immutable trade/equity records -> evaluation.
+Public market data -> schema validation -> normalized candles -> causal market intelligence snapshot -> evidence normalization/challenge -> deterministic EDE and risk gates -> paper broker (ENTER only) -> immutable paper ledger and decision journal -> shadow outcome evaluation -> maturity-aware learning reports.
 
-AI research is advisory. AI output is untrusted input and cannot write directly to risk policy, qualification evidence, account ledger or execution permissions. Proposed changes require tests, versioning and human approval.
+AI research and analyst agents are advisory. AI output is untrusted input and cannot write directly to risk policy, qualification evidence, account ledger or execution permissions. Agents return structured evidence and arguments; they do not vote or execute. Proposed changes require tests, versioning and human approval.
+
+Decision-time snapshots and journal entries are immutable. Later price data is used only by the outcome evaluator; it must never be merged into the original decision feature set. Actual paper fills and hypothetical shadow fills are stored separately.
 
 ## Qualification policy
 A strategy version must demonstrate both:
@@ -35,6 +41,7 @@ The evidence must be tied to an immutable strategy version and auditable trade l
 - Include delisted/survivorship limitations where relevant.
 - Parameter search must report trial counts and overfitting risk.
 - Compare against buy-and-hold and cash baselines.
+- Ambiguous intrabar stop/target ordering must be resolved with finer data, treated conservatively, or marked ambiguous.
 
 ## Deployment and cost
 The first version should be deployable as static files using a genuinely free tier, without requiring a credit card or billing activation. Hosting provider selection is deferred until current limits and account requirements are verified. No paid backend or always-on compute in phase one.
@@ -45,5 +52,6 @@ The first version should be deployable as static files using a genuinely free ti
 - Local IndexedDB stores for paper accounts, latest snapshots and provider-specific historical candles: implemented with one versioned schema.
 - Deterministic long-only backtest, bounded Binance historical pagination, walk-forward folds and an out-of-sample fold runner: implemented; strategy optimisation and untouched final holdout remain pending.
 - BTC/USDT paper broker with fee/slippage and risk controls: implemented; no live execution adapter or credentials.
-- GitHub Pages workflow committed; deployment remains unverified while GitHub Actions runner allocation fails and the Pages source setting remains to be selected.
-- AI research/skill learning must remain proposal-based: generated research is untrusted, changes to risk policy or permissions require explicit approval and auditable versioning.
+- GitHub Pages deployment and CI workflows: implemented and latest main-branch runs verified successful at commit 15c1ef4.
+- Market Intelligence, EDE, Decision Journal, Shadow Outcome Engine and Learning & Validation: specifications committed on feature branch; runtime implementation and tests pending.
+- AI research/skill learning remains proposal-based: generated research is untrusted, changes to risk policy or permissions require explicit approval and auditable versioning.

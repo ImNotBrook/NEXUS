@@ -11,6 +11,7 @@ These are original, project-authored skill instructions for an AI agent working 
 | nexus-skill-evolution | 1.0.0 | Evidence-led skill proposals, evaluation and rollback |
 | nexus-market-data | 1.1.0 | Multi-provider OHLCV validation and data provenance |
 | nexus-indicator-selection | 1.1.0 | Regime-aware indicator selection, interpretation and redundancy control |
+| nexus-decision-analysis | 1.0.0 | Evidence-backed thesis construction, challenge and decision status |
 
 ## Universal AI governance
 
