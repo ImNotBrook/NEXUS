@@ -41,7 +41,7 @@ NEXUS is intended to become a mobile-first AI trading intelligence and automated
 | 7 | Statistical robustness | DONE | Confidence intervals, bootstrap, fold consistency and conservative statuses |
 | 8 | Execution stress testing and best-first ranking | DONE | Adverse execution scenarios and deterministic candidate ordering |
 | 9 | Global research leaderboard | DONE | Ordinary, complete execution-stress family, nested and sealed-holdout views remain distinct; phone workflow accepted |
-| 10 | Strategy creation studio | NEXT | Immutable versioned definitions, validated templates, local library, research integration and bounded parameter-trial generation |
+| 10 | AI-led strategy factory and creation studio | ACTIVE | Scheduled AI proposal generation, deterministic candidate compilation, human-reviewed strategy inbox, reproducible research, parameter trials and versioned library |
 | 11 | AI analyst and research agents | PARTIAL | Governed provider adapters and proposal foundations exist; complete multi-agent workflow, evidence citations, structured outputs and evaluations |
 | 12 | Market intelligence expansion | PARTIAL | Core multi-timeframe technical evidence exists; complete resilient market coverage, liquidity/order-book and derivatives dimensions with source-quality controls |
 | 13 | Unified risk and portfolio engine | PARTIAL | Existing paper-broker and decision gates; unify portfolio exposure, correlated risk, limits and pre-trade/post-trade checks |
@@ -55,7 +55,20 @@ NEXUS is intended to become a mobile-first AI trading intelligence and automated
 
 The ordinary and execution-stress family leaderboards are connected to persisted local research records. Nested walk-forward and sealed holdout remain separate research views/ledgers and are not mixed into unlike metric groups. The user confirmed the Strategy Research → Execution-stress survivors workflow on the Galaxy A55 after running a fresh stress experiment. Details and CI/deployment records are in [RESEARCH_LEADERBOARD.md](RESEARCH_LEADERBOARD.md) and [STATUS.md](STATUS.md).
 
-## Active stage: 10 — Strategy Creation Studio
+## Active stage: 10 — AI-led Strategy Factory and Creation Studio
+
+### Product direction correction
+NEXUS must generate strategies itself. The Strategy Studio is primarily a review, governance and research surface—not a form that requires the user to invent strategies. The AI research workflow proposes candidates automatically from market context; deterministic compilers restrict proposals to reviewed strategy families; the research pipeline evaluates them; the user reviews and explicitly approves promising definitions. Manual authoring remains an optional fallback, not the main strategy-generation path.
+
+### AI proposal review bridge (current increment)
+- The existing scheduled `NEXUS Automated Research` workflow calls the provider-neutral, governed AI generator when owner-configured free-tier provider credentials are present; it otherwise uses deterministic automated candidates.
+- AI output remains a bounded proposal set for the existing SMA crossover, RSI mean-reversion and Donchian breakout families. It is compiled to reviewed deterministic factories and evaluated alongside deterministic candidates on the same historical dataset, walk-forward folds and execution-cost assumptions.
+- The workflow emits `artifacts/automated-research.json` containing provider/model provenance, proposal rationale, parameters, research report, assumptions and safety flags. GitHub Actions uploads it as a 30-day artifact.
+- Strategy Studio now imports that artifact, validates its schema/provider/proposals and presents each proposal with rationale. Only an explicit **Approve and save strategy** action converts a proposal into an immutable `origin: human` library version. The AI cannot save itself, approve itself, promote a candidate or authorize paper execution.
+- Approved strategies become eligible for ordinary historical research. Paper qualification and the separate human paper-configuration approval remain unchanged.
+- Current AI generation is bounded parameter-level strategy discovery, not unrestricted invention of arbitrary strategy code or entirely new families. Richer multi-timeframe hypotheses, explainability, autonomous iteration and durable proposal inbox persistence remain future work.
+
+
 
 ### First increment
 - Define a strict, machine-readable strategy contract with schema version, semantic strategy version, stable ID, family, parameters, origin and creation timestamp.
@@ -64,7 +77,7 @@ The ordinary and execution-stress family leaderboards are connected to persisted
 - Convert saved human-authored definitions into existing ResearchCandidate factories without execution side effects.
 - Generate deterministic Cartesian parameter trials with a 25-combination mobile cap, unique trial identities, a full trial manifest and explicit multiple-testing warning.
 - Persist strategy versions append-only in a new local IndexedDB store; duplicate ID/version writes must fail rather than overwrite.
-- Add a mobile-first Strategy Studio page. Saved human-authored definitions become eligible for historical walk-forward research; AI-origin proposals are excluded until human review.
+- Add a mobile-first Strategy Studio page. Saved human-authored definitions and explicitly human-approved AI proposals become eligible for historical walk-forward research; unreviewed AI proposals remain excluded.
 - No automatic selection, approval, paper execution, qualification changes or live routing.
 
 ### Current increment — parameter-trial workflow
@@ -78,7 +91,7 @@ The ordinary and execution-stress family leaderboards are connected to persisted
 - Unit tests cover schema/version/parameter validation, immutability, stable candidate identity, deterministic grid order, trial caps and invalid combinations.
 - Adapter tests cover append-only persistence, reload, duplicate-version rejection and migration from existing IndexedDB state.
 - Integration test proves a saved strategy can be reloaded, converted to a candidate and evaluated by the existing walk-forward research pipeline.
-- Mobile UI supports template selection, parameter entry, immutable save and library reload.
+- Mobile UI supports AI artifact import, rationale review, explicit proposal approval, immutable save and library reload; manual template authoring remains available as a fallback.
 - Trial count and selection-bias manifest are retained with parameter-search research reports; no unrecorded tuning.
 - Existing strategy, research, holdout, stress, decision and paper workflows remain unchanged.
 - CI, dependency audit, TypeScript and production build pass before deployment.
