@@ -118,7 +118,7 @@ export function createHumanReviewedComposedStrategyDefinition(
   const validated = parseComposedStrategy(specification);
   return createStrategyDefinition({
     schemaVersion: 1,
-    id: "ai-composed-" + validated.id,
+    id: "ai-composed-" + validated.id + "-" + hash(JSON.stringify(validated)),
     version: "1.0.0",
     name: validated.name,
     family: "composed-rule",
