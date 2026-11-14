@@ -162,6 +162,15 @@ export function mountDecisionWorkbenchConsole(
     status.textContent = "Session approval recorded · " + actor + " · parameters are fixed for this scan";
   });
 
+  const invalidateApproval = (): void => {
+    if (!approvedStrategy) return;
+    approvedStrategy = null;
+    scan.disabled = true;
+    status.textContent = "Approval invalidated · re-approve after changing the approver or rationale";
+  };
+  approver.addEventListener("input", invalidateApproval);
+  rationale.addEventListener("input", invalidateApproval);
+
   scan.addEventListener("click", () => {
     if (!approvedStrategy) return;
     scan.disabled = true;
