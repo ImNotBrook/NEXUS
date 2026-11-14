@@ -1,0 +1,38 @@
+name: NEXUS Automated Research
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 0 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexus-automated-research
+  cancel-in-progress: false
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout NEXUS
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install project dependencies
+        run: npm install
+      - name: Enforce dependency security audit
+        run: npm audit --audit-level=moderate
+      - name: Run automated candidate research
+        run: npx --yes tsx@4.20.6 scripts/automated-research.ts
+      - name: Upload research report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-automated-research-${{ github.run_number }}
+          path: artifacts/automated-research.json
+          if-no-files-found: error
+          retention-days: 30
