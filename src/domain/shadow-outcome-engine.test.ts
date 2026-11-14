@@ -201,4 +201,23 @@ describe("simulateShadowOutcome", () => {
     expect(result.maeBps).toBeGreaterThan(0);
   });
 
+  it("invalidates a market entry that gaps outside the original stop/target corridor", () => {
+    const result = simulateShadowOutcome(plan(), [
+      candle(2_000, 112, 114, 111, 113),
+    ]);
+    expect(result.status).toBe("invalidated");
+    expect(result.entryFilledQuantity).toBe(0);
+    expect(result.invalidationReason).toBe("ENTRY_GAPPED_OUT_OF_PLAN");
+  });
+
+  it("retains a triggered stop when volume is insufficient to execute it", () => {
+    const result = simulateShadowOutcome(plan(), [
+      candle(2_000, 100, 101, 99, 100, 1_000),
+      candle(3_000, 100, 101, 94, 96, 0),
+    ]);
+    expect(result.status).toBe("open");
+    expect(result.exitFilledQuantity).toBe(0);
+    expect(result.pendingExitReason).toBe("stop-loss");
+  });
+
 });
