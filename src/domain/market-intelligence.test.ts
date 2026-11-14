@@ -238,4 +238,73 @@ describe("buildMarketIntelligenceSnapshot", () => {
     await expect(buildMarketIntelligenceSnapshot(input(), async () => "not a hash"))
       .rejects.toThrow(/hash/i);
   });
+  it("distinguishes trend, range and compression without treating them as forecasts", async () => {
+    const trend = await buildMarketIntelligenceSnapshot(input({
+      "1d": makeFrame("1d", "up", { volatilityRange: 5 }),
+      "4h": makeFrame("4h", "up", { volatilityRange: 5 }),
+      "1h": makeFrame("1h", "up", { volatilityRange: 5 }),
+      "15m": makeFrame("15m", "up", { volatilityRange: 5 }),
+    }), testHasher);
+    const range = await buildMarketIntelligenceSnapshot(input({
+      "1d": makeFrame("1d", "flat", { volatilityRange: 1 }),
+      "4h": makeFrame("4h", "flat", { volatilityRange: 1 }),
+      "1h": makeFrame("1h", "flat", { volatilityRange: 1 }),
+      "15m": makeFrame("15m", "flat", { volatilityRange: 1 }),
+    }), testHasher);
+    const compression = await buildMarketIntelligenceSnapshot(input({
+      "1d": makeFrame("1d", "up", { volatilityRange: 0.1 }),
+      "4h": makeFrame("4h", "up", { volatilityRange: 0.1 }),
+      "1h": makeFrame("1h", "up", { volatilityRange: 0.1 }),
+      "15m": makeFrame("15m", "up", { volatilityRange: 0.1 }),
+    }), testHasher);
+    expect(trend.phase).toBe("trend");
+    expect(range.phase).toBe("range");
+    expect(compression.phase).toBe("compression");
+    expect(trend.uncertainty).toBe("moderate");
+  });
+
+  it("marks an insufficient history frame unknown rather than extrapolating", async () => {
+    const short = makeFrame("1d", "up");
+    const snapshot = await buildMarketIntelligenceSnapshot(input({
+      "1d": { ...short, candles: short.candles.slice(-5) },
+      "4h": makeFrame("4h", "up"),
+      "1h": makeFrame("1h", "up"),
+      "15m": makeFrame("15m", "up"),
+    }), testHasher);
+    expect(snapshot.frames["1d"].status).toBe("insufficient_history");
+    expect(snapshot.macroTrend).toBe("unknown");
+    expect(snapshot.phase).toBe("unknown");
+  });
+
+  it("does not use a frame whose fetch timestamp is in the future", async () => {
+    const future = makeFrame("1d", "up", { fetchedAt: NOW + 1 });
+    const snapshot = await buildMarketIntelligenceSnapshot(input({
+      "1d": future,
+      "4h": makeFrame("4h", "up"),
+      "1h": makeFrame("1h", "up"),
+      "15m": makeFrame("15m", "up"),
+    }), testHasher);
+    expect(snapshot.frames["1d"].status).toBe("future");
+    expect(snapshot.macroTrend).toBe("unknown");
+    expect(snapshot.dataQuality).toBe("degraded");
+  });
+
+  it("marks malformed eligible candles failed but ignores malformed future bars", async () => {
+    const frame = makeFrame("1d", "up");
+    const malformedEligible = {
+      ...frame,
+      candles: frame.candles.map((candle, index) =>
+        index === frame.candles.length - 1 ? { ...candle, low: candle.high + 1 } : candle
+      ),
+    };
+    const snapshot = await buildMarketIntelligenceSnapshot(input({
+      "1d": malformedEligible,
+      "4h": makeFrame("4h", "up"),
+      "1h": makeFrame("1h", "up"),
+      "15m": makeFrame("15m", "up"),
+    }), testHasher);
+    expect(snapshot.frames["1d"].status).toBe("failed");
+    expect(snapshot.macroTrend).toBe("unknown");
+  });
+
 });
