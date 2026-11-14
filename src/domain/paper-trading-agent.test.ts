@@ -88,7 +88,7 @@ describe("persistent paper trading agent", () => {
   });
 
   it("blocks new entries after the configured daily loss limit", () => {
-    const data = candles([100, 100, 100, 80, 80], [100, 100, 100, 100, 10_000]);
+    const data = candles([100, 100, 100, 80, 80], [100, 100, 10_000, 10_000, 10_000]);
     const state = createPaperTradingAgentState("test-daily-stop", 10_000, data[0].timestamp);
     const next = runPaperTradingAgentCycle(state, data, (history) => {
       if (history.length === 2) return "buy";
