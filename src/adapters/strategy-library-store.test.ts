@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { StrategyLibraryStore } from "./strategy-library-store";
 import { createResearchCandidateFromDefinition, type StrategyDefinition } from "../domain/strategy-studio";
 import { runResearchBatch } from "../domain/research-pipeline";
+import { createHumanReviewedStrategyDefinition, parseAutomatedResearchAiArtifact } from "../domain/ai-strategy-review";
 
 function memoryIndexedDb(): IDBFactory {
   const stores = new Map<string, Map<string, unknown>>();
@@ -102,6 +103,47 @@ describe("StrategyLibraryStore", () => {
     expect(report.candidateResults).toHaveLength(1);
     expect(report.candidateResults[0].id).toBe("btc-sma@1.0.0");
     expect(report.dataset.metadata?.symbol).toBe("BTCUSDT");
+  });
+
+  it("connects an AI proposal through explicit approval, immutable storage and walk-forward research", async () => {
+    const artifact = parseAutomatedResearchAiArtifact({
+      schemaVersion: 1,
+      createdAt: "2026-11-14T00:00:00.000Z",
+      symbol: "BTCUSDT",
+      interval: "1h",
+      aiGeneration: {
+        status: "generated",
+        provider: "groq",
+        model: "openai/gpt-oss-120b",
+        proposals: [{
+          family: "sma-crossover",
+          parameters: { fastPeriod: 8, slowPeriod: 24 },
+          rationale: "Tests a faster trend trigger against a slower baseline.",
+        }],
+      },
+    });
+    const reviewed = createHumanReviewedStrategyDefinition(artifact.proposals[0], 1_800_000_000_000);
+    expect(reviewed.origin).toBe("human");
+
+    const database = memoryIndexedDb();
+    const saved = await new StrategyLibraryStore(database).save(reviewed as StrategyDefinition);
+    const reloaded = await new StrategyLibraryStore(database).list();
+    expect(reloaded[0].id).toBe(saved.id);
+    const candidate = createResearchCandidateFromDefinition(reloaded[0].definition);
+    const candles = Array.from({ length: 300 }, (_, index) => {
+      const close = 100 + index * 0.08 + Math.sin(index / 5) * 2;
+      return {
+        timestamp: index * 3_600_000,
+        open: close - 0.1, high: close + 0.5, low: close - 0.5, close, volume: 100,
+      };
+    });
+    const report = runResearchBatch(candles, [candidate], {
+      folds: { trainBars: 100, testBars: 40, stepBars: 40, embargoBars: 2, expanding: true },
+      backtest: { initialCapital: 10_000, feeRate: 0.001, slippageBps: 5, allocationFraction: 0.25 },
+      regime: { fastEmaPeriod: 5, slowEmaPeriod: 13, atrPeriod: 14, trendThresholdPct: 0.1, lowVolatilityAtrPct: 0.3, highVolatilityAtrPct: 1.5 },
+    }, { symbol: "BTCUSDT", interval: "1h", provider: "synthetic-test" });
+    expect(report.candidateResults).toHaveLength(1);
+    expect(report.candidateResults[0].id).toBe(saved.id);
   });
 
   it("exports the complete strategy library and restores it idempotently after reload", async () => {
