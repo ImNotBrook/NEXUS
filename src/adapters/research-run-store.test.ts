@@ -135,6 +135,38 @@ describe("ResearchRunStore", () => {
     expect((await store.listAll()).map((record) => record.id)).toEqual([second.id, first.id]);
   });
 
+  it("reconstructs a complete stress leaderboard from reports persisted then reopened from IndexedDB", async () => {
+    const database = memoryIndexedDb();
+    const writer = new ResearchRunStore(database);
+    const reader = new ResearchRunStore(database);
+    const candidate = {
+      id: "strategy-v1", name: "Strategy V1",
+      evaluation: { compoundedReturnPct: 10, folds: Array.from({ length: 5 }, () => ({})) },
+      scorecard: { completedTrades: 40, worstFoldDrawdownPct: 8, expectancyPerTrade: 0.5 },
+    };
+    const stressReport = (fingerprint: string, returnPct: number) => ({
+      ...report,
+      dataset: { ...report.dataset, fingerprint, metadata: { symbol: "BTCUSDT", interval: "1h", provider: "binance" } },
+      candidateResults: [{ ...candidate, evaluation: { ...candidate.evaluation, compoundedReturnPct: returnPct } }],
+    }) as unknown as ResearchBatchResult;
+    const expectedScenarioIds = ["baseline", "friction-2x"];
+    const familyId = "persisted-family";
+    await writer.save(stressReport("same-data", 20), 1000, {
+      version: 1, familyId, scenarioId: "baseline", scenarioIndex: 0, scenarioCount: 2,
+      expectedScenarioIds, label: "BTCUSDT stress", costMultiplier: 1, participationMultiplier: 1,
+    });
+    await writer.save(stressReport("same-data", 7), 1001, {
+      version: 1, familyId, scenarioId: "friction-2x", scenarioIndex: 1, scenarioCount: 2,
+      expectedScenarioIds, label: "BTCUSDT stress", costMultiplier: 2, participationMultiplier: 1,
+    });
+    const reloaded = await reader.listAll();
+    const leaderboard = buildExecutionStressLeaderboard(reloaded);
+    expect(leaderboard.families).toHaveLength(1);
+    expect(leaderboard.families[0].rankedCandidates[0]).toMatchObject({
+      candidateId: "strategy-v1", worstCaseReturnPct: 7, scenarioCount: 2,
+    });
+  });
+
   it("deletes a stored run without affecting other records", async () => {
     const store = new ResearchRunStore(memoryIndexedDb());
     const first = await store.save(report, 1000);
