@@ -163,3 +163,16 @@
 .workbench-metric strong{color:#d0dce8;font-size:12px;overflow-wrap:anywhere}
 .workbench-safety{padding:10px;border-left:2px solid #55b99c;background:#102b2b;color:#9ce2c8;font-size:10px;line-height:1.5}
 @media(max-width:420px){.workbench-actions{display:grid}.workbench-actions button{width:100%}}
+
+
+/* Strategy creation studio */
+.strategy-studio{margin:0}
+.strategy-studio-form{display:grid;gap:12px;margin:14px 0}
+.strategy-field{display:grid;gap:6px;color:#a8bacb;font-size:11px;min-width:0}
+.strategy-field input,.strategy-field select,.strategy-studio-form select{width:100%;box-sizing:border-box;min-height:42px;border:1px solid #34516a;border-radius:7px;background:#091827;color:#e4edf5;padding:10px;font:inherit;font-size:13px}
+.strategy-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.strategy-studio-form button{min-height:44px;border:1px solid #31536a;border-radius:7px;background:#12354a;color:#d8e9f5;padding:10px 14px;font:inherit;font-weight:700}
+.strategy-studio-form button:disabled{opacity:.5}
+.strategy-library{display:grid;gap:10px}
+.strategy-library .research-result{margin:0}
+@media(max-width:480px){.strategy-form-grid{grid-template-columns:1fr}}
