@@ -51,6 +51,7 @@ export interface DecisionWorkbenchResult {
   gateAssessment: CandidateGateAssessment | null;
   shadowPlan: ShadowPlanBuildResult;
   shadowPlanRegistered: boolean;
+  noSetupReplayRegistered: boolean;
 }
 
 function marketDataStatus(
@@ -176,11 +177,27 @@ export async function runDecisionWorkbench(
   );
   const assessment = { ...journalled, marketDataStatus: dataStatus };
   const shadowPlan = buildShadowTradePlan(assessment.record);
+  const replaySpec = buildNoSetupReplaySpec({
+    decisionId: assessment.record.decisionId,
+    decisionAt: assessment.record.decisionAt,
+    symbol: assessment.record.symbol,
+    timeframe: assessment.record.timeframe,
+    status: assessment.record.status,
+    reasonCodes: assessment.record.reasonCodes,
+    candles: input.candles,
+    strategy: input.strategy,
+  });
+  let noSetupReplayRegistered = false;
+  if (replaySpec) {
+    await registerNoSetupReplay(replaySpec, input.journal);
+    noSetupReplayRegistered = true;
+  }
   return {
     generation,
     assessment,
     gateAssessment: null,
     shadowPlan,
     shadowPlanRegistered: false,
+    noSetupReplayRegistered,
   };
 }
