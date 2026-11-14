@@ -496,9 +496,22 @@ export function mountResearchConsole(container: HTMLElement): void {
       strategyTrialBase.add(new Option(definition.name + " · " + definition.id + "@" + definition.version, definition.id + "@" + definition.version));
     }
     if (savedHumanStrategies.length === 0) strategyTrialBase.replaceChildren(new Option("Save a human strategy in Strategy Studio first", ""));
+    else strategyTrialBase.dispatchEvent(new Event("change"));
   }).catch((error: unknown) => {
     strategyTrialBase.replaceChildren(new Option("Strategy library unavailable", ""));
     strategyTrialPreview.textContent = error instanceof Error ? error.message : "Could not load saved strategies";
+  });
+  strategyTrialBase.addEventListener("change", () => {
+    const definition = savedHumanStrategies.find((item) => item.id + "@" + item.version === strategyTrialBase.value);
+    preparedStrategyTrials = null;
+    strategyTrialPreview.textContent = "No trial set prepared.";
+    if (!definition) return;
+    const example = definition.family === "sma-crossover"
+      ? { fastPeriod: [6, 8, 10], slowPeriod: [20, 24] }
+      : definition.family === "rsi-mean-reversion"
+        ? { period: [10, 14, 20], oversold: [25, 30], overbought: [70, 75] }
+        : { period: [15, 20, 25, 30] };
+    strategyTrialGrid.value = JSON.stringify(example, null, 2);
   });
   previewStrategyTrialsButton.addEventListener("click", () => {
     try {
