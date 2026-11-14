@@ -1,6 +1,6 @@
 # Development status
 
-Updated: 2026-11-14
+Updated: 2026-11-15
 
 ## Current verified release state (overrides older historical notes below)
 
@@ -558,3 +558,14 @@ Updated: 2026-11-14
 - The published feed contains only schema version, generation timestamp, symbol/interval, AI status, provider/model and bounded proposals. It excludes raw provider responses, full research report, API credentials and account data. The static PWA uses a public feed; do not add private data to it.
 - The first live feed has not yet been seeded by a run of the updated scheduled workflow. It will be created by the next successful scheduled run or a manual workflow dispatch. Until then, Refresh reports that the feed is unavailable; this is an expected first-run state.
 - Automated research workflow and PWA changes are committed at `13dc2faa310438cc2b07b9c4a40b1b74730908d1`; CI [43583316323](https://github.com/ImNotBrook/NEXUS/actions/runs/43583316323) and deployment [43583316322](https://github.com/ImNotBrook/NEXUS/actions/runs/43583316322) succeeded. A further integration test connects artifact parsing → explicit approval → immutable strategy storage → walk-forward research. Approved definitions retain original AI provider, model, generation timestamp, symbol and timeframe as validated provenance. Latest CI [43583889184](https://github.com/ImNotBrook/NEXUS/actions/runs/43583889184) passed 84 test files / 541 tests, dependency audit, scheduled-runner checks, derivatives checks and production build; deployment [43583889172](https://github.com/ImNotBrook/NEXUS/actions/runs/43583889172) succeeded for commit `b43f5da69ef6eeeac35b381f0b7bd5ef37363be4`. Branch publication itself has not yet been runtime-verified; the first feed will be created after the next successful scheduled or manually dispatched Automated Research run.
+
+
+## Stage 10 — AI-composed strategy rule engine (implementation increment)
+
+- Added a versioned structured rule DSL and deterministic compiler. AI can now propose complete long-only 1h strategies using a whitelisted entry trigger, up to two EMA confirmations, an explicit exit, falsifiable market hypothesis, regime label and invalidation statement.
+- Supported entry triggers: SMA bullish cross, RSI recovery above oversold and prior-channel Donchian breakout. Supported confirmations: EMA bullish alignment. Supported exits: opposite SMA cross, RSI overbought and close below SMA. All numeric bounds and exact field sets are enforced by the parser; unknown rules, code, extra fields and unsupported timeframes fail closed.
+- The provider-neutral governed AI adapter now requests both parameter proposals and 1–2 composed specifications. The automated research runner compiles valid specs to ordinary ResearchCandidate factories and evaluates them on the same data, walk-forward folds and execution assumptions as the deterministic candidates. Invalid/missing AI output falls back to deterministic research.
+- Strategy Studio displays the complete rule set and provides explicit approval to save a content-addressed immutable `composed-rule` definition with AI provenance. Approved definitions reload from the existing local strategy library and enter the normal research candidate batch; paper execution approval is not granted.
+- Tests cover parser boundaries, entry/exit causality, no look-ahead, provider rejection/fallback, immutable storage and the complete approval → library reload → research pipeline.
+- Regime scope is a descriptive hypothesis label, not an entry filter. Current compiler is long-only 1h spot; no short-side, multi-timeframe, volume, order-book or derivatives atoms yet. Full details: [AI Strategy Composition](AI_STRATEGY_COMPOSITION.md).
+- Verification on commit `f2197cb823c835ccf5dc7760b82fc978b511be4a`: CI [43641397348](https://github.com/ImNotBrook/NEXUS/actions/runs/43641397348) passed 85 test files / 549 tests, dependency audit, scheduled-runner checks, derivatives checks and production build; deployment [43641397351](https://github.com/ImNotBrook/NEXUS/actions/runs/43641397351) succeeded. A further causal entry/exit test and compiler identity hardening are included in subsequent commits; final verification is pending.
