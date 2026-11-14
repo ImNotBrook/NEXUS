@@ -26,4 +26,8 @@ Once deployed, open the Pages URL in Chrome on the Galaxy A55, use the browser m
 
 ## Current deployment status
 
-The workflow is committed but deployment is not yet verified. GitHub Actions runs in this repository are currently failing before a hosted runner is allocated (runner ID 0, no steps executed). The Pages source setting also still requires the one-time selection above. No hosted resources or billing have been created.
+The latest verified GitHub Actions CI run passed the full test suite and production build. The Pages deployment run reported success for commit `36d35b47844111f2c9a78a4a78bf4f5562a5282d`.
+
+**Live site:** https://imnotbrook.github.io/NEXUS/
+
+No paid services, hosted database, exchange credentials or billing activation were introduced. The static app remains hosted on GitHub Pages; journal and paper-account data remain local to the browser/device.
