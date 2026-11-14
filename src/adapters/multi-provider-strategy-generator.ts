@@ -91,6 +91,14 @@ const PROVIDERS: readonly ProviderDefinition[] = [
   },
 ];
 
+const SUPPORTED_PROVIDER_IDS: readonly AiProviderId[] = [
+  "groq",
+  "gemini",
+  "zai",
+  "cloudflare",
+  "nvidia",
+];
+
 const DEFAULT_PROVIDER_ORDER: readonly AiProviderId[] = [
   "groq",
   "gemini",
@@ -117,7 +125,7 @@ export function resolveAiProviderConfigs(env: AiProviderEnvironment): AiProvider
     ? env.NEXUS_AI_PROVIDER_ORDER.split(",").map((item) => item.trim().toLowerCase())
     : [...DEFAULT_PROVIDER_ORDER];
   const order = [...new Set(requested)].filter(
-    (id): id is AiProviderId => DEFAULT_PROVIDER_ORDER.includes(id as AiProviderId),
+    (id): id is AiProviderId => SUPPORTED_PROVIDER_IDS.includes(id as AiProviderId),
   );
 
   return order.flatMap((id) => {
