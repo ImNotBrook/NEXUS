@@ -307,4 +307,18 @@ describe("buildMarketIntelligenceSnapshot", () => {
     expect(snapshot.macroTrend).toBe("unknown");
   });
 
+  it("bounds per-timeframe history to protect phone memory and hashing cost", async () => {
+    const frame = makeFrame("1d", "up");
+    const oversized = {
+      ...frame,
+      candles: Array.from({ length: 5_001 }, (_, index) => ({
+        ...frame.candles[index % frame.candles.length],
+        timestamp: frame.candles[0].timestamp + index * frame.intervalMs,
+      })),
+    };
+    await expect(buildMarketIntelligenceSnapshot(input({
+      "1d": oversized,
+    }), testHasher)).rejects.toThrow(/5000 candles/i);
+  });
+
 });
