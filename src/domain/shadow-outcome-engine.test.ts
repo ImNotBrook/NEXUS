@@ -15,6 +15,7 @@ const plan = (overrides: Partial<ShadowTradePlan> = {}): ShadowTradePlan => ({
   decisionId: "decision-1",
   candidateId: "candidate-1",
   symbol: "BTCUSDT",
+  timeframe: "4h",
   instrumentCategory: "spot",
   volumeUnit: "base",
   side: "long",
