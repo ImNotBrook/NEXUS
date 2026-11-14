@@ -139,10 +139,6 @@ export function validateShadowTradePlan(plan: ShadowTradePlan): void {
       !(plan.stopPrice < plannedEntryPrice && plan.targetPrice > plannedEntryPrice)) {
     throw new RangeError("Long plans require stop < planned entry < target");
   }
-  if (plan.side === "short" &&
-      !(plan.targetPrice < plannedEntryPrice && plan.stopPrice > plannedEntryPrice)) {
-    throw new RangeError("Short plans require target < planned entry < stop");
-  }
   if (plan.sameBarPolicy !== "adverse_stop_first" && plan.sameBarPolicy !== "ambiguous") {
     throw new TypeError("sameBarPolicy is invalid");
   }
