@@ -373,7 +373,13 @@ export function runPaperTradingAgentCycle(
       const dailyLoss = (state.dailyStartEquity - state.lastEquity) / state.dailyStartEquity;
       if (dailyLoss < config.maxDailyLossFraction) {
         const budget = Math.min(state.cash, state.lastEquity * config.allocationFraction);
-        const quantity = budget / (candle.close * (1 + config.executionModel.feeRate));
+        const worstCaseAdverse = config.executionModel.baseSlippageBps +
+          config.executionModel.halfSpreadBps +
+          config.executionModel.marketImpactBpsAtMaxParticipation;
+        const quantity = budget / (
+          candle.close * (1 + worstCaseAdverse / 10_000) *
+          (1 + config.executionModel.feeRate)
+        );
         if (quantity > 1e-12 && Number.isFinite(quantity)) {
           state.pendingOrder = {
             side: "buy",
