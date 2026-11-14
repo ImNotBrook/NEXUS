@@ -539,3 +539,13 @@ Updated: 2026-11-14
 - Tests cover full export, empty-store restore, idempotent repeat restore, conflict handling, malformed/duplicate records and backup checksum/type round-trip.
 - CI [43582449928](https://github.com/ImNotBrook/NEXUS/actions/runs/43582449928) passed 83 test files / 536 tests, dependency audit (0 vulnerabilities), scheduled-runner checks, derivatives checks and production build. Final deployment is tracked on the subsequent documentation commit.
 - Research-run reports and parameter-trial manifests are still not included in backup files. Full NEXUS device-local data backup remains incomplete.
+
+
+## Stage 10 — AI-led strategy proposal inbox
+
+- Product direction clarified: NEXUS is responsible for generating candidate strategies; manual Strategy Studio authoring is secondary. The existing scheduled AI research workflow generates bounded proposals when an eligible free provider is configured, compiles them into reviewed deterministic strategy factories and evaluates them alongside deterministic candidates.
+- Added `src/domain/ai-strategy-review.ts` and unit tests. It validates versioned automated-research artifacts, provider identity and proposal schema, then creates deterministic strategy IDs and immutable human-origin definitions only after the caller supplies an explicit approval timestamp.
+- Added a mobile AI Strategy Proposal Inbox to Strategy Studio. It imports the `automated-research.json` file from the GitHub Actions artifact, displays provider/model, market context, parameters and rationale, and requires a per-proposal **Approve and save strategy** click. Importing alone does not save anything. Approved strategies are stored append-only and become eligible for historical research; they are not approved for paper execution.
+- Provider secrets remain only in GitHub Actions secrets. If AI providers are not configured or fail, the scheduled workflow falls back to deterministic candidates. Current AI generation remains parameter-level discovery within three reviewed families, not unrestricted code or arbitrary new strategy families.
+- The scheduled workflow's artifact is retained for 30 days. Android import requires downloading the artifact ZIP from GitHub Actions and extracting `automated-research.json` with the Files app. Durable server-side proposal sync is not implemented.
+- New AI review tests cover artifact schema/provider validation, rejection of fallback/malformed proposals, deterministic reviewed definitions and invalid approval timestamps. CI/deployment verification is pending for the current implementation.
