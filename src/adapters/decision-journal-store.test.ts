@@ -13,7 +13,7 @@ function memoryIndexedDb(): IDBFactory {
       stores.set(name, new Map());
       return { createIndex: () => undefined };
     },
-    transaction: (names: string | string[]) => {
+    transaction: () => {
       const transaction: Record<string, unknown> = {};
       const objectStore = (name: string) => {
         const rows = stores.get(name);
