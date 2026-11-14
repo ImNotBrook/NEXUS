@@ -217,10 +217,10 @@ export async function generateAiStrategyProposalsWithFallback(
       const payload: unknown = await response.json();
       const decoded = JSON.parse(extractContent(payload)) as unknown;
       if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) throw new TypeError("invalid strategy response");
-      const response = decoded as Record<string, unknown>;
-      const proposals = parseAiStrategyProposals(response);
-      if (!Array.isArray(response.composedStrategies) || response.composedStrategies.length < 1 || response.composedStrategies.length > 2) throw new TypeError("AI must return one or two composed strategy specifications");
-      const composedStrategies = response.composedStrategies.map(parseComposedStrategy);
+      const decodedResponse = decoded as Record<string, unknown>;
+      const proposals = parseAiStrategyProposals(decodedResponse);
+      if (!Array.isArray(decodedResponse.composedStrategies) || decodedResponse.composedStrategies.length < 1 || decodedResponse.composedStrategies.length > 2) throw new TypeError("AI must return one or two composed strategy specifications");
+      const composedStrategies = decodedResponse.composedStrategies.map(parseComposedStrategy);
       attempts.push({ provider: provider.id, status: "generated" });
       return {
         status: "generated",
