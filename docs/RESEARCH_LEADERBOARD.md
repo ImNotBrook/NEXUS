@@ -6,7 +6,7 @@ The leaderboard surfaces the strongest saved ordinary walk-forward research obse
 
 ## Current scope
 
-- Reads existing `ResearchRunStore` records from local IndexedDB; it does not duplicate or migrate experiment history.
+- Reads **all** existing `ResearchRunStore` records from local IndexedDB via `listAll()`; it does not duplicate or migrate experiment history. The separate saved-history panel remains limited to the newest 50 for mobile usability.
 - Groups records only when the full dataset fingerprint, candle count, first/last timestamps, symbol, interval, provider and complete research/execution configuration match exactly.
 - A run missing valid market provenance is placed in its own isolated group and listed as non-comparable. No missing metadata is inferred.
 - Within each compatibility group, every saved run/candidate observation is retained.
