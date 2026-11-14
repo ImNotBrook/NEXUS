@@ -172,6 +172,9 @@ describe("DecisionJournalStore", () => {
     expect(backup).toEqual({ records: [record], events: [event] });
 
     const target = new DecisionJournalStore(memoryIndexedDb());
+    await expect(target.previewRestore(backup)).resolves.toMatchObject({
+      addedRecords: 1, addedEvents: 1, unchangedRecords: 0, unchangedEvents: 0, conflicts: [],
+    });
     await expect(target.restoreAll(backup)).resolves.toEqual({
       addedRecords: 1, addedEvents: 1, unchangedRecords: 0, unchangedEvents: 0,
     });
@@ -185,6 +188,9 @@ describe("DecisionJournalStore", () => {
     const target = new DecisionJournalStore(memoryIndexedDb());
     await target.append(record);
     const before = await target.exportAll();
+    await expect(target.previewRestore({
+      records: [{ ...record, reasonCodes: ["DIFFERENT"] }], events: [event],
+    })).resolves.toMatchObject({ conflicts: [expect.stringMatching(/decision ID/i)] });
     await expect(target.restoreAll({
       records: [{ ...record, reasonCodes: ["DIFFERENT"] }], events: [event],
     })).rejects.toThrow(/conflict/i);
