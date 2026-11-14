@@ -22,6 +22,20 @@ const validPayload = {
           parameters: { fastPeriod: 8, slowPeriod: 24 },
           rationale: "Tests a quicker trend trigger against the slower baseline.",
         }],
+        composedStrategies: [{
+          schemaVersion: 1,
+          id: "trend-pullback-confirmed",
+          name: "Trend pullback confirmation",
+          marketHypothesis: "Momentum recovery after a pullback may resume an established trend.",
+          regimeScope: "uptrend",
+          timeframe: "1h",
+          entry: {
+            trigger: { type: "rsi_recovery", period: 14, oversold: 30 },
+            confirmations: [{ type: "ema_alignment", fastPeriod: 10, slowPeriod: 30 }],
+          },
+          exit: { type: "rsi_overbought", period: 14, threshold: 70 },
+          invalidation: "A loss of bullish EMA alignment invalidates the trend continuation hypothesis.",
+        }],
       }),
     },
   }],
@@ -101,6 +115,32 @@ describe("multi-provider strategy generator", () => {
     expect(result.provider).toBe("gemini");
     expect(result.proposals).toHaveLength(1);
     expect(urls).toEqual(["https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"]);
+  });
+
+  it("returns validated complete strategy compositions with the parameter proposals", async () => {
+    const result = await generateAiStrategyProposalsWithFallback(context, {
+      GEMINI_API_KEY: "gemini-secret-test-value",
+      NEXUS_AI_PROVIDER_ORDER: "gemini",
+    }, async () => new Response(JSON.stringify(validPayload), { status: 200 }));
+    expect(result.status).toBe("generated");
+    if (result.status !== "generated") throw new Error("Expected generated result");
+    expect(result.composedStrategies).toHaveLength(1);
+    expect(result.composedStrategies[0].entry.trigger.type).toBe("rsi_recovery");
+    expect(JSON.stringify(result)).not.toContain("gemini-secret-test-value");
+  });
+
+  it("rejects unsupported composed rules and falls through to deterministic fallback", async () => {
+    const invalid = JSON.parse(JSON.stringify(validPayload));
+    invalid.choices[0].message.content = JSON.stringify({
+      candidates: [{ family: "sma-crossover", parameters: { fastPeriod: 8, slowPeriod: 24 }, rationale: "Tests a faster trend trigger against a slower baseline." }],
+      composedStrategies: [{ schemaVersion: 1, id: "bad-rule", name: "Bad rule", marketHypothesis: "A sufficiently long hypothesis for validation.", regimeScope: "uptrend", timeframe: "1h", entry: { trigger: { type: "execute_code", source: "bad" }, confirmations: [] }, exit: { type: "close_below_sma", period: 20 }, invalidation: "A sufficiently long invalidation condition." }],
+    });
+    const result = await generateAiStrategyProposalsWithFallback(context, {
+      GROQ_API_KEY: "groq-test-key-12345",
+    }, async () => new Response(JSON.stringify(invalid), { status: 200 }));
+    expect(result.status).toBe("fallback");
+    expect(result.proposals).toEqual([]);
+    expect(result.composedStrategies).toEqual([]);
   });
 
   it("falls through a rate-limited provider without exposing credentials", async () => {
