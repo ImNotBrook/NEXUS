@@ -1,11 +1,47 @@
 {
   "schemaVersion": 1,
   "skills": [
-    { "id": "nexus-quant-research", "version": "1.0.0", "path": ".agents/skills/nexus-quant-research/SKILL.md", "scope": "research" },
-    { "id": "nexus-strategy-engineering", "version": "1.0.0", "path": ".agents/skills/nexus-strategy-engineering/SKILL.md", "scope": "methodology" },
-    { "id": "nexus-backtest-audit", "version": "1.0.0", "path": ".agents/skills/nexus-backtest-audit/SKILL.md", "scope": "methodology" },
-    { "id": "nexus-risk-governance", "version": "1.0.0", "path": ".agents/skills/nexus-risk-governance/SKILL.md", "scope": "risk_policy" },
-    { "id": "nexus-skill-evolution", "version": "1.0.0", "path": ".agents/skills/nexus-skill-evolution/SKILL.md", "scope": "system_policy" },
-    { "id": "nexus-market-data", "version": "1.0.0", "path": ".agents/skills/nexus-market-data/SKILL.md", "scope": "data_quality" }
+    {
+      "id": "nexus-quant-research",
+      "version": "1.0.0",
+      "path": ".agents/skills/nexus-quant-research/SKILL.md",
+      "scope": "research"
+    },
+    {
+      "id": "nexus-strategy-engineering",
+      "version": "1.0.0",
+      "path": ".agents/skills/nexus-strategy-engineering/SKILL.md",
+      "scope": "methodology"
+    },
+    {
+      "id": "nexus-backtest-audit",
+      "version": "1.0.0",
+      "path": ".agents/skills/nexus-backtest-audit/SKILL.md",
+      "scope": "methodology"
+    },
+    {
+      "id": "nexus-risk-governance",
+      "version": "1.0.0",
+      "path": ".agents/skills/nexus-risk-governance/SKILL.md",
+      "scope": "risk_policy"
+    },
+    {
+      "id": "nexus-skill-evolution",
+      "version": "1.0.0",
+      "path": ".agents/skills/nexus-skill-evolution/SKILL.md",
+      "scope": "system_policy"
+    },
+    {
+      "id": "nexus-market-data",
+      "version": "1.0.0",
+      "path": ".agents/skills/nexus-market-data/SKILL.md",
+      "scope": "data_quality"
+    },
+    {
+      "id": "nexus-indicator-selection",
+      "version": "1.0.0",
+      "path": ".agents/skills/nexus-indicator-selection/SKILL.md",
+      "scope": "research_methodology"
+    }
   ]
 }
