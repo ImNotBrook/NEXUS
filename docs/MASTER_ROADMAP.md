@@ -126,6 +126,14 @@ NEXUS must generate strategies itself. The Strategy Studio is primarily a review
 
 - AI-composed rule-engine verification: commit `06b20bc446e11c95d338de9b00eb6edd69669fec`, CI [43641802771](https://github.com/ImNotBrook/NEXUS/actions/runs/43641802771) passed 85 test files / 550 tests plus security audit, runner checks and production build; deployment [43641802814](https://github.com/ImNotBrook/NEXUS/actions/runs/43641802814) succeeded. The first public AI feed still requires a successful run of the updated Automated Research workflow to seed its branch.
 
+## Stage 11 — AI analyst evidence contract (first increment)
+
+- Added `src/domain/ai-market-analysis.ts`, a strict parser for untrusted model analysis. It requires bullish/bearish/mixed/none bias, bounded confidence, a summary, both bull and bear cases, contradictions, evidence-linked claims and explicit abstention.
+- The exact supplied evidence packet is validated for unique IDs, source labels, observation timestamps and bounded factual statements. Claims citing unknown IDs are rejected; non-abstaining output must include both cases and at least one cited claim.
+- Abstention requires bias `none`, low confidence, no claims and a reason. Unknown fields and malformed evidence are rejected.
+- Tests cover valid output, unknown citations, duplicate evidence IDs, missing counter-case, valid/invalid abstention and malformed metadata.
+- This is a contract foundation only. It does not yet call an AI provider or render an analyst panel. Citation membership is not semantic entailment; source authenticity/freshness must be established by the future evidence-packet builder. See [AI Analyst Evidence Contract](AI_ANALYST_CONTRACT.md).
+
 ## Remaining platform work — definition of done
 
 ### Strategy creation
