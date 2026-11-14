@@ -57,11 +57,16 @@ export class ResearchRunStore {
     }
     if (!isValidReport(report)) throw new TypeError("A complete research report is required");
     const id = createdAt + "-" + report.dataset.fingerprint + "-" + (++sequence);
-    if (stressFamily && (stressFamily.version !== 1 || !stressFamily.familyId.trim() ||
-        !stressFamily.scenarioId.trim() || !Number.isSafeInteger(stressFamily.scenarioIndex) ||
+    if (stressFamily && (stressFamily.version !== 1 ||
+        typeof stressFamily.familyId !== "string" || !stressFamily.familyId.trim() ||
+        typeof stressFamily.scenarioId !== "string" || !stressFamily.scenarioId.trim() ||
+        typeof stressFamily.label !== "string" || !stressFamily.label.trim() ||
+        !Number.isSafeInteger(stressFamily.scenarioIndex) || stressFamily.scenarioIndex < 0 ||
         !Number.isSafeInteger(stressFamily.scenarioCount) || stressFamily.scenarioCount < 1 ||
-        stressFamily.scenarioCount > 8 || !Array.isArray(stressFamily.expectedScenarioIds) ||
+        stressFamily.scenarioCount > 8 || stressFamily.scenarioIndex >= stressFamily.scenarioCount ||
+        !Array.isArray(stressFamily.expectedScenarioIds) ||
         stressFamily.expectedScenarioIds.length !== stressFamily.scenarioCount ||
+        !stressFamily.expectedScenarioIds.every((id) => typeof id === "string" && !!id.trim()) ||
         stressFamily.expectedScenarioIds[stressFamily.scenarioIndex] !== stressFamily.scenarioId ||
         new Set(stressFamily.expectedScenarioIds).size !== stressFamily.expectedScenarioIds.length ||
         !Number.isFinite(stressFamily.costMultiplier) || stressFamily.costMultiplier < 1 ||
