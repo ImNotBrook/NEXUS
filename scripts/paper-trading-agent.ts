@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fetchBinanceHistory } from "../src/adapters/binance-public";
@@ -133,6 +134,15 @@ async function main(): Promise<void> {
     },
   };
 
+  const configFingerprint = createHash("sha256").update(JSON.stringify({
+    symbol: config.symbol,
+    interval: config.interval,
+    approvedAt: config.approvedAt,
+    approvedBy: config.approvedBy,
+    approvalRationale: config.approvalRationale,
+    strategy: config.strategy,
+    risk: config.risk,
+  })).digest("hex");
   let state: PaperTradingAgentState;
   const stored = await readJson(statePath);
   if (stored === null) {
@@ -140,11 +150,14 @@ async function main(): Promise<void> {
       candidate.id,
       config.risk.initialCapitalUsdt,
       candles[approvalIndex].timestamp,
+      configFingerprint,
     );
   } else {
     state = stored as PaperTradingAgentState;
-    if (state.strategyId !== candidate.id || state.initialCapital !== config.risk.initialCapitalUsdt) {
-      throw new Error("Paper ledger does not match the currently approved strategy; disable and reset through human review");
+    if (state.strategyId !== candidate.id ||
+        state.initialCapital !== config.risk.initialCapitalUsdt ||
+        state.configFingerprint !== configFingerprint) {
+      throw new Error("Paper ledger configuration or risk settings changed; disable and reset through human review");
     }
   }
 

@@ -53,6 +53,7 @@ export interface PaperAgentTrade {
 export interface PaperTradingAgentState {
   schemaVersion: 1;
   strategyId: string;
+  configFingerprint: string;
   initialCapital: number;
   cash: number;
   position: PaperAgentPosition | null;
@@ -103,13 +104,16 @@ export function createPaperTradingAgentState(
   strategyId: string,
   initialCapital: number,
   approvedAt: number,
+  configFingerprint = "unbound",
 ): PaperTradingAgentState {
   if (typeof strategyId !== "string" || !strategyId.trim()) throw new TypeError("strategyId is required");
+  if (typeof configFingerprint !== "string" || !configFingerprint.trim()) throw new TypeError("configFingerprint is required");
   if (!Number.isFinite(initialCapital) || initialCapital <= 0) throw new RangeError("initialCapital must be positive");
   const tradingDay = utcDay(approvedAt);
   return {
     schemaVersion: 1,
     strategyId,
+    configFingerprint,
     initialCapital,
     cash: initialCapital,
     position: null,
@@ -135,6 +139,7 @@ export function createPaperTradingAgentState(
 function validateState(state: PaperTradingAgentState): void {
   const finiteNonNegative = (value: number): boolean => Number.isFinite(value) && value >= 0;
   if (!Number.isSafeInteger(state.lastProcessedTimestamp) || state.lastProcessedTimestamp < 0 ||
+      typeof state.configFingerprint !== "string" || !state.configFingerprint.trim() ||
       !Number.isFinite(state.initialCapital) || state.initialCapital <= 0 ||
       !finiteNonNegative(state.cash) || !Number.isFinite(state.dailyStartEquity) || state.dailyStartEquity <= 0 ||
       !finiteNonNegative(state.lastEquity) || !finiteNonNegative(state.peakEquity) ||
