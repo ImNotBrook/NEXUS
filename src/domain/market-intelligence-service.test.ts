@@ -58,6 +58,7 @@ function provider(
     candleCountByInterval?: Record<string, number>;
     timestampShiftByInterval?: Record<string, number>;
     addIncompleteCandle?: boolean;
+    malformedIncompleteCandle?: boolean;
   } = {},
 ): MarketDataProvider {
   return {
@@ -77,10 +78,10 @@ function provider(
         const boundary = Math.floor(NOW / intervalMs) * intervalMs;
         candles.push({
           timestamp: boundary,
-          open: 9_000,
-          high: 9_100,
-          low: 8_900,
-          close: 9_000,
+          open: options.malformedIncompleteCandle ? -1 : 9_000,
+          high: options.malformedIncompleteCandle ? -1 : 9_100,
+          low: options.malformedIncompleteCandle ? -1 : 8_900,
+          close: options.malformedIncompleteCandle ? -1 : 9_000,
           volume: 10_000,
         });
       }
@@ -106,18 +107,17 @@ describe("loadMarketIntelligence", () => {
   it("loads all four frames, validates closed candles and confirms the 1H cross-feed", async () => {
     const result = await loadMarketIntelligence(serviceInput({
       providers: [
-        provider("binance", { addIncompleteCandle: true }),
-        provider("kraken", { addIncompleteCandle: true }),
+        provider("binance", { addIncompleteCandle: true, malformedIncompleteCandle: true }),
+        provider("kraken", { addIncompleteCandle: true, malformedIncompleteCandle: true }),
       ],
     }));
     expect(result.snapshot.dataQuality).toBe("pass");
     expect(result.snapshot.coverage.availableTimeframes).toBe(4);
     expect(result.crossFeedStatus).toBe("within_tolerance");
     expect(result.marketDataTrusted).toBe(true);
-    expect(result.snapshots["1h"]?.candles.at(-1)?.timestamp)
-      .toBe(Math.floor(NOW / INTERVALS["1h"]) * INTERVALS["1h"]);
+    expect(result.snapshots["1h"]?.candles).toHaveLength(60);
     expect(result.snapshot.frames["1h"].latestCandleAt)
-      .toBe(result.snapshots["1h"]?.candles.at(-2)?.timestamp);
+      .toBe(result.snapshots["1h"]?.candles.at(-1)?.timestamp);
   });
 
   it("falls back to the secondary provider for an unavailable timeframe", async () => {
