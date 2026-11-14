@@ -19,6 +19,8 @@ export interface ShadowTradePlan {
   candidateId: string;
   symbol: string;
   instrumentCategory: "spot" | "linear_perpetual" | "inverse_perpetual";
+  /** Candle volume must be expressed in base-asset units for participation limits. */
+  volumeUnit: "base" | "quote";
   side: "long" | "short";
   decisionAt: number;
   entry: ShadowEntryOrder;
@@ -93,6 +95,9 @@ export function validateShadowTradePlan(plan: ShadowTradePlan): void {
   if (!/^[A-Z0-9]{3,30}$/.test(plan.symbol)) throw new TypeError("symbol must be normalized uppercase alphanumeric");
   if (plan.instrumentCategory !== "spot") {
     throw new TypeError("Shadow simulator v1 supports spot instruments only; derivatives require funding-aware costs");
+  }
+  if (plan.volumeUnit !== "base") {
+    throw new TypeError("Shadow simulator requires base-asset candle volume");
   }
   if (plan.side !== "long" && plan.side !== "short") throw new TypeError("side must be long or short");
   if (![plan.decisionAt, plan.entry.earliestEligibleAt, plan.entry.expiresAt, plan.horizonEnd].every(validTime)) {
