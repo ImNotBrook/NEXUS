@@ -125,7 +125,7 @@ describe("persistent paper trading agent", () => {
     expect(next.position).toBeNull();
     expect(next.completedTrades).toBe(1);
     expect(next.trades[0].exitReason).toBe("take-profit");
-    expect(next.trades[0].exitPrice).toBe(110);
+    expect(next.trades[0].exitPrice).toBeCloseTo(110, 8);
     expect(next.fills.at(-1)?.totalAdverseBps).toBe(0);
   });
 
