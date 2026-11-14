@@ -399,9 +399,6 @@ export function simulateShadowOutcome(
 
     if (outcome.positionRemainingQuantity <= EPSILON) {
       outcome.positionRemainingQuantity = 0;
-      if (outcome.entryOrderStatus === "pending") {
-        outcome.entryOrderStatus = "cancelled";
-      }
       outcome.status = "completed";
       break;
     }
