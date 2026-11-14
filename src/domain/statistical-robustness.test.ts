@@ -38,8 +38,10 @@ describe("buildStatisticalRobustnessReport", () => {
     const second = buildStatisticalRobustnessReport(input, 3);
     expect(first).toEqual(second);
     expect(first.completedTrades).toBe(50);
-    expect(first.winRateConfidence95.lowerPct).toBeLessThan(first.winRatePct!);
-    expect(first.winRateConfidence95.upperPct).toBeGreaterThan(first.winRatePct!);
+    expect(first.winRateConfidence95).not.toBeNull();
+    const winRateInterval = first.winRateConfidence95!;
+    expect(winRateInterval.lowerPct).toBeLessThan(first.winRatePct!);
+    expect(winRateInterval.upperPct).toBeGreaterThan(first.winRatePct!);
     expect(first.expectancyBlockBootstrap95).not.toBeNull();
     expect(first.warnings).toContain("Multiple candidates were evaluated; the best observed result is exposed to selection bias.");
   });
