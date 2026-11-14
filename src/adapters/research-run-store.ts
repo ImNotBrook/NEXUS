@@ -1,10 +1,13 @@
 import type { ResearchBatchResult } from "../domain/research-pipeline";
 import { RESEARCH_RUN_STORE, openNexusDatabase } from "./nexus-database";
+import type { ExecutionStressFamilyMetadata } from "../domain/execution-stress-leaderboard";
 
 export interface StoredResearchRun {
   id: string;
   createdAt: number;
   report: ResearchBatchResult;
+  /** Present only when this report is one persisted scenario in an execution-stress family. */
+  stressFamily?: ExecutionStressFamilyMetadata;
 }
 
 function requestResult<T>(request: IDBRequest<T>): Promise<T> {
@@ -48,13 +51,25 @@ export class ResearchRunStore {
     return this.databasePromise;
   }
 
-  async save(report: ResearchBatchResult, createdAt = Date.now()): Promise<StoredResearchRun> {
+  async save(report: ResearchBatchResult, createdAt = Date.now(), stressFamily?: ExecutionStressFamilyMetadata): Promise<StoredResearchRun> {
     if (!Number.isSafeInteger(createdAt) || createdAt < 0) {
       throw new RangeError("createdAt must be a non-negative safe integer");
     }
     if (!isValidReport(report)) throw new TypeError("A complete research report is required");
     const id = createdAt + "-" + report.dataset.fingerprint + "-" + (++sequence);
-    const record: StoredResearchRun = { id, createdAt, report: structuredClone(report) };
+    if (stressFamily && (stressFamily.version !== 1 || !stressFamily.familyId.trim() ||
+        !stressFamily.scenarioId.trim() || !Number.isSafeInteger(stressFamily.scenarioIndex) ||
+        !Number.isSafeInteger(stressFamily.scenarioCount) || stressFamily.scenarioCount < 1 ||
+        stressFamily.scenarioCount > 8 || !Array.isArray(stressFamily.expectedScenarioIds) ||
+        stressFamily.expectedScenarioIds.length !== stressFamily.scenarioCount ||
+        stressFamily.expectedScenarioIds[stressFamily.scenarioIndex] !== stressFamily.scenarioId ||
+        new Set(stressFamily.expectedScenarioIds).size !== stressFamily.expectedScenarioIds.length ||
+        !Number.isFinite(stressFamily.costMultiplier) || stressFamily.costMultiplier < 1 ||
+        !Number.isFinite(stressFamily.participationMultiplier) || stressFamily.participationMultiplier <= 0 ||
+        stressFamily.participationMultiplier > 1)) {
+      throw new TypeError("Valid execution stress family metadata is required");
+    }
+    const record: StoredResearchRun = { id, createdAt, report: structuredClone(report), ...(stressFamily ? { stressFamily: structuredClone(stressFamily) } : {}) };
     const database = await this.openDatabase();
     const transaction = database.transaction(RESEARCH_RUN_STORE, "readwrite");
     const done = transactionComplete(transaction);
