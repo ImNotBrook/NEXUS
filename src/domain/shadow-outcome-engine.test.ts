@@ -169,4 +169,36 @@ describe("simulateShadowOutcome", () => {
     }), [])).toThrow(/penetration/i);
   });
 
+  it("carries partial target-limit exits until the remaining position is filled", () => {
+    const result = simulateShadowOutcome(plan(), [
+      candle(2_000, 100, 101, 99, 100, 1_000),
+      candle(3_000, 100, 112, 99, 111, 5),
+      candle(4_000, 100, 112, 99, 111, 5),
+    ]);
+    expect(result.status).toBe("completed");
+    expect(result.exitFilledQuantity).toBeCloseTo(1);
+    expect(result.fillEvents.filter((event) => event.eventType === "exit")).toHaveLength(2);
+  });
+
+  it("keeps a triggered partial stop as a market exit even if price later recovers", () => {
+    const result = simulateShadowOutcome(plan(), [
+      candle(2_000, 100, 101, 99, 100, 1_000),
+      candle(3_000, 100, 101, 94, 96, 5),
+      candle(4_000, 100, 102, 99, 101, 5),
+    ]);
+    expect(result.status).toBe("completed");
+    expect(result.exitReason).toBe("stop-loss");
+    expect(result.exitFilledQuantity).toBeCloseTo(1);
+    expect(result.exitAveragePrice).toBeLessThan(100);
+  });
+
+  it("calculates MFE and MAE only from post-entry candles", () => {
+    const result = simulateShadowOutcome(plan(), [
+      candle(2_000, 100, 105, 98, 100),
+      candle(3_000, 100, 104, 97, 101),
+    ]);
+    expect(result.mfeBps).toBeGreaterThan(0);
+    expect(result.maeBps).toBeGreaterThan(0);
+  });
+
 });
