@@ -71,6 +71,7 @@ describe("Strategy Studio domain contract", () => {
     expect(first.candidates.map((candidate) => candidate.id))
       .toEqual(second.candidates.map((candidate) => candidate.id));
     expect(first.candidates).toHaveLength(first.trialCount);
+    expect(new Set(first.definitions.map((definition) => definition.id + "@" + definition.version)).size).toBe(first.trialCount);
     expect(first.manifest.trialIds).toEqual(first.candidates.map((candidate) => candidate.id));
     expect(first.manifest.selectionBiasWarning).toContain("multiple");
   });
