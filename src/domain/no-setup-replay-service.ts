@@ -23,6 +23,7 @@ export interface NoSetupReplayServiceReport {
   triggersDetected: number;
   noTrigger: number;
   alreadyDetected: number;
+  detected: Array<{ decisionId: string; triggerAt: number; entryReferencePrice: number }>;
   failures: Array<{ decisionId: string; reason: string }>;
 }
 
@@ -54,6 +55,7 @@ export async function evaluateNoSetupReplays(input: {
     triggersDetected: 0,
     noTrigger: 0,
     alreadyDetected: 0,
+    detected: [],
     failures: [],
   };
 
@@ -107,6 +109,7 @@ export async function evaluateNoSetupReplays(input: {
         throw new Error("Journal returned a different missed-opportunity event identity");
       }
       report.triggersDetected += 1;
+      report.detected.push({ decisionId: record.decisionId, triggerAt: result.trigger.timestamp, entryReferencePrice: result.trigger.entryReferencePrice });
     } catch (error) {
       report.failures.push({
         decisionId: record.decisionId,
