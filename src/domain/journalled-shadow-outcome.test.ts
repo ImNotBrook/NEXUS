@@ -93,8 +93,11 @@ class MemoryJournal implements ShadowOutcomeJournal {
 }
 const testHasher = async (value: unknown): Promise<string> => {
   const text = JSON.stringify(value);
-  return text.length.toString(16) + "-" + text.slice(-20).length.toString(16) + "-" +
-    [...text].reduce((sum, char) => (sum + char.charCodeAt(0)) % 65535, 0).toString(16);
+  let hash = 2_166_136_261;
+  for (const character of text) {
+    hash = Math.imul(hash ^ character.charCodeAt(0), 16_777_619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
 };
 
 describe("journalShadowOutcome", () => {
