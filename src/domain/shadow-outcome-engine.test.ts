@@ -15,6 +15,7 @@ const plan = (overrides: Partial<ShadowTradePlan> = {}): ShadowTradePlan => ({
   decisionId: "decision-1",
   candidateId: "candidate-1",
   symbol: "BTCUSDT",
+  instrumentCategory: "spot",
   side: "long",
   decisionAt: 1_000,
   entry: {
@@ -156,4 +157,16 @@ describe("simulateShadowOutcome", () => {
       candle(2_000, 100, 101, 99, 100),
     ])).toThrow();
   });
+  it("rejects non-spot instruments until funding-aware simulation is implemented", () => {
+    expect(() => simulateShadowOutcome(plan({
+      instrumentCategory: "linear_perpetual",
+    }), [])).toThrow(/spot/i);
+  });
+
+  it("requires non-zero penetration for target limit execution", () => {
+    expect(() => simulateShadowOutcome(plan({
+      entry: { ...plan().entry, penetrationBps: 0 },
+    }), [])).toThrow(/penetration/i);
+  });
+
 });
