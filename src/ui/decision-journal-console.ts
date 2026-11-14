@@ -98,6 +98,8 @@ export function mountDecisionJournalConsole(root: HTMLElement): void {
   const journalRestoreLabel = node("label", "small", "Select decision journal backup");
   const journalFile = node("input");
   journalFile.type = "file";
+  journalFile.id = "nexus-journal-backup-file";
+  journalRestoreLabel.htmlFor = journalFile.id;
   journalFile.accept = "application/json,.json";
   journalFile.setAttribute("aria-label", "Select decision journal backup file");
   const journalPreview = node("p", "small", "No journal backup selected");
@@ -110,6 +112,8 @@ export function mountDecisionJournalConsole(root: HTMLElement): void {
   const paperRestoreLabel = node("label", "small", "Select paper account backup");
   const paperFile = node("input");
   paperFile.type = "file";
+  paperFile.id = "nexus-paper-backup-file";
+  paperRestoreLabel.htmlFor = paperFile.id;
   paperFile.accept = "application/json,.json";
   paperFile.setAttribute("aria-label", "Select paper account backup file");
   const paperPreview = node("p", "small", "No paper account backup selected");
@@ -197,9 +201,13 @@ export function mountDecisionJournalConsole(root: HTMLElement): void {
         throw new Error("Journal backup must contain both records and linked events");
       }
       pendingJournal = envelope as LocalBackupEnvelope<JournalBackupPayload>;
+      const preview = await store.previewRestore(pendingJournal.payload);
       journalPreview.textContent = "Verified " + file.name + " · " + envelope.payload.records.length
-        + " decisions · " + envelope.payload.events.length + " events · checksum valid. Confirm to preview conflicts and restore.";
-      journalConfirm.disabled = false;
+        + " decisions · " + envelope.payload.events.length + " events · checksum valid. Preview: "
+        + preview.addedRecords + " new decisions, " + preview.addedEvents + " new events, "
+        + (preview.unchangedRecords + preview.unchangedEvents) + " identical duplicates. "
+        + (preview.conflicts.length ? "Restore blocked: " + preview.conflicts.join("; ") : "No conflicts. Confirm to import.");
+      journalConfirm.disabled = preview.conflicts.length > 0;
     } catch (error) {
       journalPreview.textContent = error instanceof Error ? "Journal backup rejected: " + error.message : "Journal backup rejected";
     }
