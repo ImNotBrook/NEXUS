@@ -345,4 +345,35 @@ describe("buildMarketIntelligenceSnapshot", () => {
     )).rejects.toThrow(/volume unit/i);
   });
 
+  it("produces the same content hash when equivalent inputs use different object-key order", async () => {
+    const base = input();
+    const first = await buildMarketIntelligenceSnapshot(base, testHasher);
+    const reorderedFrames = { ...base.frames };
+    const daily = reorderedFrames["1d"]!;
+    reorderedFrames["1d"] = {
+      ...daily,
+      candles: daily.candles.map((candle) => ({
+        volume: candle.volume,
+        close: candle.close,
+        low: candle.low,
+        high: candle.high,
+        open: candle.open,
+        timestamp: candle.timestamp,
+      })),
+    };
+    const reordered = await buildMarketIntelligenceSnapshot({
+      ...base,
+      config: {
+        highVolatilityAtrPct: base.config.highVolatilityAtrPct,
+        lowVolatilityAtrPct: base.config.lowVolatilityAtrPct,
+        trendThresholdPct: base.config.trendThresholdPct,
+        atrPeriod: base.config.atrPeriod,
+        slowEmaPeriod: base.config.slowEmaPeriod,
+        fastEmaPeriod: base.config.fastEmaPeriod,
+      },
+      frames: reorderedFrames,
+    }, testHasher);
+    expect(reordered.contentHash).toBe(first.contentHash);
+  });
+
 });
