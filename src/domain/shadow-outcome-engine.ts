@@ -100,6 +100,9 @@ export function validateShadowTradePlan(plan: ShadowTradePlan): void {
     throw new TypeError("Shadow simulator requires base-asset candle volume");
   }
   if (plan.side !== "long" && plan.side !== "short") throw new TypeError("side must be long or short");
+  if (plan.side === "short") {
+    throw new TypeError("Spot short simulation requires borrow availability and borrow-cost modelling");
+  }
   if (![plan.decisionAt, plan.entry.earliestEligibleAt, plan.entry.expiresAt, plan.horizonEnd].every(validTime)) {
     throw new RangeError("Decision, entry and horizon times must be non-negative safe integers");
   }
@@ -222,6 +225,11 @@ export function simulateShadowOutcome(
 ): ShadowOutcome {
   validateShadowTradePlan(plan);
   const candles = validateCandles(inputCandles);
+  if (candles.some((candle) =>
+    candle.open <= 0 || candle.high <= 0 || candle.low <= 0 || candle.close <= 0
+  )) {
+    throw new RangeError("Spot shadow simulation requires strictly positive OHLC prices");
+  }
   const outcome: ShadowOutcome = {
     schemaVersion: 1,
     simulationVersion: plan.simulationVersion,
