@@ -378,7 +378,7 @@ Updated: 2026-11-14
 - Fixed a rendering defect where the grouped navigation element was created but never appended to the sidebar.
 - Sidebar now exposes all seven workspace destinations across Workspace, Research, Automation and Controls groups.
 - Page-level and panel-level question-mark buttons open touch-friendly explanatory popovers with accessible expanded state.
-- PR #21 merged to main. CI passed 207 tests across 39 files, dependency audit, strict TypeScript and production build. GitHub Pages deployment run #43535990267 for PR #21 merge commit `761c4667208b356f56213ef5d54e29dfa344c169` completed successfully. Deployment of the later PR #22 automation commit is still pending.
+- PR #21 merged to main. CI passed 207 tests across 39 files, dependency audit, strict TypeScript and production build. GitHub Pages deployment run #43535990267 for PR #21 merge commit `761c4667208b356f56213ef5d54e29dfa344c169` completed successfully. The later PR #22 automation and PR #23 paper-agent changes are now included in Pages deployment run #43537370072 on main commit `b4ec6b4da288283190fdfdd35ace48b5f6d7b9a2`.
 - No real-device Android browser E2E suite exists yet; manual Galaxy A55 verification is still required.
 
 
@@ -390,3 +390,15 @@ Updated: 2026-11-14
 - AI inference is optional and requires the user to create a Groq API key and add it as the repository Actions secret `GROQ_API_KEY`. Without it, deterministic research still runs.
 - PR #22 merged to main as `5aee08405babd25266bd4834c105f5515f1cb89e`. PR CI passed 217 tests across 43 files, dependency audit, TypeScript checking of the scheduled runner and production build.
 - This phase does not auto-promote strategies, place paper orders or enable live trading. The automation workflow's first manual/scheduled run still needs to be executed and its artifact inspected. No paid plan or billing activation is required.
+
+
+## Persistent automated paper trading (2026-11-14)
+
+- Added a checkpointed long-only paper account engine. It processes only candles newer than the persisted checkpoint, reconstructs stateful strategy evaluators from available history, and is idempotent on replay.
+- Signal orders fill at the next candle open with fee, adverse slippage, spread, market impact and candle-volume participation limits. Partial fills and pending orders persist between runs.
+- Added bounded fill/trade/equity history, persisted-state validation, max position allocation and a daily loss lockout for new entries. The loss lockout does not force liquidation.
+- Added hourly GitHub Actions workflow at five minutes past each UTC hour. It writes checkpoints to a separate `nexus-paper-ledger` branch and uploads a 30-day report artifact.
+- The ledger config is disabled by default. It requires a human approver, rationale, approval timestamp, exact reviewed strategy ID and parameters. No strategy is auto-selected or promoted.
+- PR #23 merged as `b4ec6b4da288283190fdfdd35ace48b5f6d7b9a2`. CI passed 224 tests across 44 files, dependency audit, strict TypeScript checks for both scheduled runners and production build. Pages deployment run #43537370072 passed.
+- The paper workflow has not yet been manually dispatched. Its first run will report disabled and place no simulated orders until a human-approved config is supplied.
+- Current paper agent is signal-based and does not yet implement protective stop/target exits in its continuous state machine. No live exchange routing, exchange keys, paid services or billing activation.
