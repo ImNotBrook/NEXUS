@@ -8,12 +8,12 @@ Updated: 2026-11-14
 - Stage 3 Shadow Outcomes is connected. New eligible decisions register an immutable shadow plan at the original decision timestamp. Manual outcome collection fetches closed Binance 1H candles, checks historical continuity, simulates the frozen plan and appends content-addressed outcome events.
 - The horizon-proof candle contributes only its timestamp to maturity; its OHLCV is excluded from the simulated path. Incomplete, ambiguous, unresolved or data-degraded observations are excluded from learning cohorts.
 - The mobile workspace now includes **Decision workbench**, **Decision journal** and **Shadow outcomes** destinations.
-- Latest verified CI: 69 test files and 466 tests passed; TypeScript checks, dependency audit and production build passed.
-- Latest verified GitHub Pages deployment succeeded at commit `fa24e1f9bfa65015d3c8d9d6d40a889b15c7e094`: https://imnotbrook.github.io/NEXUS/
-- CI run: https://github.com/ImNotBrook/NEXUS/actions/runs/43565115658
-- Deployment run: https://github.com/ImNotBrook/NEXUS/actions/runs/43565115674
+- Latest verified CI: 70 test files and 468 tests passed; TypeScript checks, dependency audit and production build passed.
+- Latest verified GitHub Pages deployment succeeded at commit `ba2cdc44ff13cb321cb133c496e3fead2d4ef2ac`: https://imnotbrook.github.io/NEXUS/
+- CI run: https://github.com/ImNotBrook/NEXUS/actions/runs/43565557003
+- Deployment run: https://github.com/ImNotBrook/NEXUS/actions/runs/43565556997
 - No paid plans, billing activation, exchange credentials or live-order adapter were added.
-- Remaining verification: test the deployed Shadow outcomes screen on a real Android browser with at least one new decision plan; the browser/device workflow has not been physically exercised by the development agent.
+- End-to-end domain verification now covers candidate generation -> decision journal -> decision-time shadow-plan registration -> historical replay -> maturity-gated learning cohort. Remaining verification: exercise the deployed Shadow outcomes screen on the user's Android browser with a newly registered plan; the physical device workflow has not been independently operated by the development agent.
 
 
 ## Completed
