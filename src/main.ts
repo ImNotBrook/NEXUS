@@ -6,6 +6,7 @@ import { mountAutomationConsole } from "./ui/automation-console";
 import { mountDecisionJournalConsole } from "./ui/decision-journal-console";
 import { mountDecisionWorkbenchConsole } from "./ui/decision-workbench-console";
 import { mountShadowOutcomeConsole } from "./ui/shadow-outcome-console";
+import { mountStrategyStudioConsole } from "./ui/strategy-studio-console";
 import { evaluateShadowOutcomes } from "./domain/shadow-outcome-service";
 import { evaluateNoSetupReplays } from "./domain/no-setup-replay-service";
 import { DecisionJournalStore } from "./adapters/decision-journal-store";
@@ -113,6 +114,7 @@ root.innerHTML = `
       <article class="panel"><span class="panel-label">SYSTEM STATUS</span><h2>Core safeguards</h2><ul><li>Paper trading only</li><li>AI changes require approval</li><li>Backtest integrity enforced</li></ul></article>
     </section>
     <div id="research-console-mount"></div>
+    <div id="strategy-studio-mount"></div>
     <div id="decision-workbench-mount"></div>
     <div id="decision-journal-mount"></div>
     <div id="shadow-outcome-mount"></div>
@@ -124,6 +126,8 @@ root.innerHTML = `
 
 document.documentElement.dataset.qualificationReady = String(!result.qualified);
 const researchConsoleMount = document.querySelector<HTMLElement>("#research-console-mount");
+const strategyStudioMount = document.querySelector<HTMLElement>("#strategy-studio-mount");
+if (strategyStudioMount) mountStrategyStudioConsole(strategyStudioMount);
 if (researchConsoleMount) mountResearchConsole(researchConsoleMount);
 const decisionJournalMount = document.querySelector<HTMLElement>("#decision-journal-mount");
 if (decisionJournalMount) mountDecisionJournalConsole(decisionJournalMount);
