@@ -53,6 +53,8 @@ export interface ShadowOutcome {
   decisionId: string;
   candidateId: string;
   status: ShadowOutcomeStatus;
+  /** True only when supplied market data reaches or passes the declared horizon. */
+  horizonReached: boolean;
   invalidationReason: "ENTRY_GAPPED_OUT_OF_PLAN" | null;
   pendingExitReason: ShadowExitReason | null;
   entryOrderStatus: "pending" | "filled" | "expired" | "cancelled";
@@ -232,6 +234,7 @@ export function simulateShadowOutcome(
     decisionId: plan.decisionId,
     candidateId: plan.candidateId,
     status: "pending",
+    horizonReached: false,
     invalidationReason: null,
     pendingExitReason: null,
     entryOrderStatus: "pending",
@@ -459,6 +462,7 @@ export function simulateShadowOutcome(
     }
   }
 
+  outcome.horizonReached = candles.some((candle) => candle.timestamp >= plan.horizonEnd);
   if (outcome.entryOrderStatus === "pending" &&
       candles.some((candle) => candle.timestamp >= plan.entry.expiresAt && candle.timestamp <= plan.horizonEnd)) {
     outcome.entryOrderStatus = "expired";
