@@ -104,7 +104,7 @@ describe("journalShadowOutcome", () => {
   it("does not hash or store OHLC values beyond the declared horizon", async () => {
     const journal = new MemoryJournal();
     const base = [candle(2_000, 100, 101, 99, 100), candle(11_000, 100, 101, 99, 100)];
-    const extended = [...base, candle(12_000, 500, 600, 400, 550)];
+    const extended = [...base, candle(12_000, -1, -1, -1, -1)];
     const first = await journalShadowOutcome(plan, base, 4_000, journal, testHasher);
     const second = await journalShadowOutcome(plan, extended, 4_000, journal, testHasher);
     expect(second.event.eventId).toBe(first.event.eventId);
