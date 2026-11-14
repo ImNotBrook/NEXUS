@@ -6,7 +6,7 @@ The leaderboard surfaces the strongest saved walk-forward research observations 
 
 ## Current scope
 
-- Reads **all** existing `ResearchRunStore` records from local IndexedDB via `listAll()`; it does not duplicate or migrate experiment history. This includes individual execution-stress scenario reports saved in that store, but does not identify or aggregate them as a stress family. The separate saved-history panel remains limited to the newest 50 for mobile usability.
+- Reads **all** existing `ResearchRunStore` records from local IndexedDB via `listAll()`; it does not duplicate or migrate experiment history. The separate saved-history panel remains limited to the newest 50 for mobile usability.\n- Execution-stress runs persist a versioned family manifest alongside each scenario report: family ID, scenario ID/order, expected scenario list, label, cost multiplier and participation multiplier. Complete families are reconstructed from those same stored reports; there is no second source of truth.
 - Groups records only when the full dataset fingerprint, candle count, first/last timestamps, symbol, interval, provider and complete research/execution configuration match exactly.
 - A run missing valid market provenance is placed in its own isolated group and listed as non-comparable. No missing metadata is inferred.
 - Within each compatibility group, every saved run/candidate observation is retained.
@@ -20,7 +20,7 @@ The leaderboard surfaces the strongest saved walk-forward research observations 
 
 - Nested walk-forward reports remain in their own store and view; they are not mixed with ordinary reports.
 - Sealed final holdout results remain in the sealed ledger and are not used for leaderboard ranking.
-- Execution-stress scenarios are currently saved as individual reports without a durable scenario-family/run-type manifest. Exact config matching keeps their assumptions separated, but this first leaderboard release does not label or aggregate a dedicated stress-survivor ranking. That requires a separately versioned stress-run record contract.
+- Incomplete, duplicated or internally inconsistent execution-stress families are excluded from the survivor ranking. Legacy reports without family metadata remain unassigned; membership is never inferred.\n- Nested walk-forward reports and sealed holdout results remain in their own dedicated research-console sections and ledgers. They are deliberately not numerically mixed with ordinary walk-forward or stress-family rankings.
 - The store is device-local. Records do not sync between browsers/devices and remain subject to local browser storage loss.
 - Dataset fingerprints are reproducibility identifiers, not cryptographic proofs. Identical fingerprints do not prove that a market data provider has never revised its source history.
 - Historical rankings are subject to multiple-testing and selection bias. They do not establish future profitability or statistical significance.
@@ -31,3 +31,13 @@ The leaderboard surfaces the strongest saved walk-forward research observations 
 - UI reads the same saved-run store as experiment history and refreshes the leaderboard after saves/deletes.
 - No research run, candidate, strategy configuration, holdout seal, account balance or order is changed by leaderboard rendering.
 - Full repository CI and production build must pass before release.
+
+
+## Execution-stress family aggregation
+
+- Each newly completed execution-stress run writes the same versioned family manifest alongside every scenario report in `ResearchRunStore`.
+- The leaderboard reconstructs a family only when every expected scenario exists exactly once and shares the same dataset identity, market provenance, date range and ordered candidate manifest.
+- Candidate ranking reuses `rankExecutionStressCandidates`: sample sufficiency across scenarios, worst-case OOS return, median scenario return, worst drawdown, worst expectancy and stable candidate ID.
+- Partial writes caused by interruption are retained in history but excluded from ranking. Re-running creates a new family ID; it does not silently complete or overwrite an older partial family.
+- Older scenario reports remain valid ordinary history and are not retroactively grouped.
+- Nested research and sealed holdout retain their own separate ledgers and report views. No cross-type ranking is performed.
