@@ -34,6 +34,7 @@ describe("derivatives observation validation", () => {
     expect(() => validateDerivativesObservations([{ ...accountRatio, longAccountRatio: 1.2 }])).toThrow(/account ratio/);
     expect(() => validateDerivativesObservations([{ ...openInterest, unit: "quote_currency" }])).toThrow(/unit/);
     expect(() => validateDerivativesObservations([{ ...funding, fundingRate: Infinity }])).toThrow(/fundingRate/);
+    expect(() => validateDerivativesObservations([{ ...funding, provider: "bad|provider" }])).toThrow(/provider/);
   });
 });
 
