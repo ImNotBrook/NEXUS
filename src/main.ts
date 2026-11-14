@@ -7,6 +7,7 @@ import { mountDecisionJournalConsole } from "./ui/decision-journal-console";
 import { mountDecisionWorkbenchConsole } from "./ui/decision-workbench-console";
 import { mountShadowOutcomeConsole } from "./ui/shadow-outcome-console";
 import { evaluateShadowOutcomes } from "./domain/shadow-outcome-service";
+import { evaluateNoSetupReplays } from "./domain/no-setup-replay-service";
 import { DecisionJournalStore } from "./adapters/decision-journal-store";
 import { runDecisionWorkbench } from "./domain/decision-workbench-service";
 import type { ApprovedDonchianStrategy } from "./domain/strategy-candidate-generator";
@@ -143,6 +144,20 @@ if (shadowOutcomeMount) mountShadowOutcomeConsole(shadowOutcomeMount, async () =
         maxCandles: 1_000,
       }, fetch, now);
     },
+  });
+}, async () => {
+  const now = Date.now();
+  return evaluateNoSetupReplays({
+    journal: decisionJournalStore,
+    now,
+    fetchHistory: (spec, startTime, endTime) => fetchBinanceHistory({
+      symbol: spec.symbol,
+      interval: "1h",
+      startTime,
+      endTime,
+      pageLimit: 500,
+      maxCandles: 1_000,
+    }, fetch, now),
   });
 });
 const skillConsoleMount = document.querySelector<HTMLElement>("#skill-console-mount");
