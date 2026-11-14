@@ -163,7 +163,7 @@ describe("loadMarketIntelligence", () => {
     const result = await loadMarketIntelligence(serviceInput({
       providers: [
         provider("binance"),
-        provider("kraken", { timestampShiftByInterval: { "1h": INTERVALS["1h"] * 2 } }),
+        provider("kraken", { timestampShiftByInterval: { "1h": -INTERVALS["1h"] } }),
       ],
     }));
     expect(result.crossFeedStatus).toBe("insufficient_overlap");
