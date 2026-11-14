@@ -256,4 +256,22 @@ describe("journalShadowOutcome", () => {
     expect(result.outcome.entryFilledQuantity).toBe(1);
   });
 
+  it("records the timestamp proving horizon maturity without storing post-horizon OHLC", async () => {
+    const journal = new MemoryJournal();
+    const result = await journalShadowOutcome(
+      plan,
+      [
+        candle(2_000, 100, 101, 99, 100),
+        candle(11_000, 100, 101, 99, 100),
+      ],
+      12_000,
+      journal,
+      testHasher,
+    );
+    expect(result.event.payload.observedThrough).toBe(11_000);
+    expect(result.event.payload.candleCount).toBe(1);
+    expect(result.event.payload.candles).toHaveLength(1);
+    expect(result.event.payload.horizonReached).toBe(true);
+  });
+
 });
