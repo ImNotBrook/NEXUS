@@ -95,7 +95,7 @@ describe("StrategyLibraryStore", () => {
         open: close - 0.1, high: close + 0.5, low: close - 0.5, close, volume: 100,
       };
     });
-    const report = runResearchBatch(candles, [candidate, composedCandidate], {
+    const report = runResearchBatch(candles, [candidate], {
       folds: { trainBars: 100, testBars: 40, stepBars: 40, embargoBars: 2, expanding: true },
       backtest: { initialCapital: 10_000, feeRate: 0.001, slippageBps: 5, allocationFraction: 0.25 },
       regime: { fastEmaPeriod: 5, slowEmaPeriod: 13, atrPeriod: 14, trendThresholdPct: 0.1, lowVolatilityAtrPct: 0.3, highVolatilityAtrPct: 1.5 },
@@ -154,7 +154,7 @@ describe("StrategyLibraryStore", () => {
         open: close - 0.1, high: close + 0.5, low: close - 0.5, close, volume: 100,
       };
     });
-    const report = runResearchBatch(candles, [candidate], {
+    const report = runResearchBatch(candles, [candidate, composedCandidate], {
       folds: { trainBars: 100, testBars: 40, stepBars: 40, embargoBars: 2, expanding: true },
       backtest: { initialCapital: 10_000, feeRate: 0.001, slippageBps: 5, allocationFraction: 0.25 },
       regime: { fastEmaPeriod: 5, slowEmaPeriod: 13, atrPeriod: 14, trendThresholdPct: 0.1, lowVolatilityAtrPct: 0.3, highVolatilityAtrPct: 1.5 },
