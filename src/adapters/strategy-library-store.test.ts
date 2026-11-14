@@ -122,7 +122,7 @@ describe("StrategyLibraryStore", () => {
         }],
       },
     });
-    const reviewed = createHumanReviewedStrategyDefinition(artifact.proposals[0], 1_800_000_000_000);
+    const reviewed = createHumanReviewedStrategyDefinition(artifact.proposals[0], 1_800_000_000_000, artifact);
     expect(reviewed.origin).toBe("human");
 
     const database = memoryIndexedDb();
