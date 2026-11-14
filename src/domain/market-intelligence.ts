@@ -77,6 +77,7 @@ export interface MarketIntelligenceSnapshot {
   instrumentCategory: "spot" | "linear_perpetual" | "inverse_perpetual";
   volumeUnit: "base" | "quote";
   evaluationTime: number;
+  config: MarketRegimeConfig;
   latestSourceAvailableAt: number | null;
   dataQuality: MarketFrameQuality;
   coverage: {
@@ -603,6 +604,14 @@ export async function buildMarketIntelligenceSnapshot(
     instrumentCategory: input.instrumentCategory,
     volumeUnit: input.volumeUnit,
     evaluationTime: input.evaluationTime,
+    config: {
+      fastEmaPeriod: input.config.fastEmaPeriod,
+      slowEmaPeriod: input.config.slowEmaPeriod,
+      atrPeriod: input.config.atrPeriod,
+      trendThresholdPct: input.config.trendThresholdPct,
+      lowVolatilityAtrPct: input.config.lowVolatilityAtrPct,
+      highVolatilityAtrPct: input.config.highVolatilityAtrPct,
+    },
     latestSourceAvailableAt,
     dataQuality,
     coverage: {
