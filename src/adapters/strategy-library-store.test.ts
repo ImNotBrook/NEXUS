@@ -103,7 +103,8 @@ describe("StrategyLibraryStore", () => {
     expect(report.candidateResults[0].id).toBe("btc-sma@1.0.0");
     expect(report.dataset.metadata?.symbol).toBe("BTCUSDT");
   });
-\n  it("rejects duplicate versions instead of overwriting an immutable definition", async () => {
+
+  it("rejects duplicate versions instead of overwriting an immutable definition", async () => {
     const store = new StrategyLibraryStore(memoryIndexedDb());
     await store.save(definition);
     await expect(store.save({ ...definition, name: "Mutated definition" })).rejects.toThrow();
