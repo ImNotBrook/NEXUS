@@ -31,7 +31,7 @@ v1 groups by:
 - original decision status (ENTER, WAIT, REJECT);
 - setup family.
 
-Each cohort reports matured candidate count, completed trade count, no-fill candidate count, mean/median net R, win rate, and mean MFE/MAE for completed trades.
+Each cohort reports its first/last decision timestamps, matured candidate count, completed trade count, no-fill candidate count, mean/median net R, win rate, and mean MFE/MAE for completed trades.
 
 Net R is:
 
