@@ -148,6 +148,15 @@ export async function journalShadowOutcome(
     throw new RangeError("A valid recording timestamp at or after the decision time is required");
   }
   assertPlanMatchesDecision(plan, await journal.get(plan.decisionId));
+  const priorEvents = await journal.listEvents(plan.decisionId);
+  const registeredPlan = priorEvents.find((event) =>
+    event.eventType === "shadow_plan_registered" &&
+    event.payload.plan !== null &&
+    JSON.stringify(event.payload.plan) === JSON.stringify(plan)
+  );
+  if (!registeredPlan || registeredPlan.occurredAt !== plan.decisionAt) {
+    throw new Error("A shadow plan must be registered at decision time before outcome simulation");
+  }
 
   if (!["pass", "degraded", "fail"].includes(dataQuality)) {
     throw new TypeError("Shadow outcome data quality is invalid");
@@ -206,8 +215,7 @@ export async function journalShadowOutcome(
   };
   validateDecisionJournalEvent(event);
 
-  const existingEvents = await journal.listEvents(plan.decisionId);
-  const existing = existingEvents.find((item) => item.eventId === event.eventId);
+  const existing = priorEvents.find((item) => item.eventId === event.eventId);
   if (existing) {
     if (
       existing.decisionId === event.decisionId &&
