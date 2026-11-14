@@ -378,7 +378,7 @@ Updated: 2026-11-14
 - Fixed a rendering defect where the grouped navigation element was created but never appended to the sidebar.
 - Sidebar now exposes all seven workspace destinations across Workspace, Research, Automation and Controls groups.
 - Page-level and panel-level question-mark buttons open touch-friendly explanatory popovers with accessible expanded state.
-- PR #21 merged to main. CI passed 207 tests across 39 files, dependency audit, strict TypeScript and production build. Pages deployment #27? No: the current deployment is associated with PR #21 merge commit `761c4667208b356f56213ef5d54e29dfa344c169` and completed successfully.
+- PR #21 merged to main. CI passed 207 tests across 39 files, dependency audit, strict TypeScript and production build. GitHub Pages deployment run #43535990267 for PR #21 merge commit `761c4667208b356f56213ef5d54e29dfa344c169` completed successfully. Deployment of the later PR #22 automation commit is still pending.
 - No real-device Android browser E2E suite exists yet; manual Galaxy A55 verification is still required.
 
 
