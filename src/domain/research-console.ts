@@ -5,6 +5,7 @@ import { createBaselineResearchCandidates } from "../strategies/baseline-researc
 import { ResearchRunStore, type StoredResearchRun } from "../adapters/research-run-store";
 import { compareResearchRuns } from "./research-comparison";
 import { runProtectiveExitSensitivity } from "./protective-exit-sensitivity";
+import { runNestedWalkForwardSelection } from "./nested-walk-forward-selection";
 
 const INTERVAL_MS: Partial<Record<BinanceInterval, number>> = {
   "1m": 60_000, "3m": 180_000, "5m": 300_000, "15m": 900_000,
@@ -241,6 +242,13 @@ export function mountResearchConsole(container: HTMLElement): void {
         <button id="run-sensitivity" type="button" disabled>Run protective-exit sensitivity</button>
         <div id="sensitivity-results" aria-live="polite"></div>
       </section>
+      <section class="research-result sensitivity-controls">
+        <h3>Nested walk-forward selection</h3>
+        <p class="small">Select stop/target settings only inside each outer training window, then evaluate the frozen settings once on its later outer test window. The mobile run is capped at eight outer folds.</p>
+        <label>Minimum inner completed trades<input id="nested-min-trades" type="number" min="0" max="1000" step="1" value="3" /></label>
+        <button id="run-nested-selection" type="button" disabled>Run nested walk-forward</button>
+        <div id="nested-selection-results" aria-live="polite"></div>
+      </section>
       <p id="research-status" class="paper-status" role="status">Ready · public Binance spot data · no API key required</p>
       <div id="research-results" aria-live="polite"></div>
       <section class="saved-research"><h3>Saved experiment history</h3><p class="small">Stored only on this device. Clearing browser site data can erase these records.</p><div id="research-history" aria-live="polite">Loading saved experiments…</div><button id="compare-research" type="button" disabled>Compare selected experiments</button><div id="research-comparison" aria-live="polite"></div></section>
@@ -259,8 +267,12 @@ export function mountResearchConsole(container: HTMLElement): void {
   const sensitivityStops = container.querySelector<HTMLInputElement>("#sensitivity-stops");
   const sensitivityTargets = container.querySelector<HTMLInputElement>("#sensitivity-targets");
   const sensitivityResults = container.querySelector<HTMLElement>("#sensitivity-results");
+  const nestedButton = container.querySelector<HTMLButtonElement>("#run-nested-selection");
+  const nestedMinTrades = container.querySelector<HTMLInputElement>("#nested-min-trades");
+  const nestedResults = container.querySelector<HTMLElement>("#nested-selection-results");
   if (!form || !button || !status || !results || !history || !compareButton || !comparisonTarget ||
-      !sensitivityButton || !sensitivityStops || !sensitivityTargets || !sensitivityResults) return;
+      !sensitivityButton || !sensitivityStops || !sensitivityTargets || !sensitivityResults ||
+      !nestedButton || !nestedMinTrades || !nestedResults) return;
   const runStore = new ResearchRunStore();
   let sensitivityContext: { candles: Candle[]; candidates: ReturnType<typeof createBaselineResearchCandidates>; pipeline: ResearchPipelineConfig; metadata: { symbol: string; interval: string; provider: string } } | null = null;
   const selectedRunIds = new Set<string>();
@@ -350,6 +362,88 @@ export function mountResearchConsole(container: HTMLElement): void {
   };
   void refreshHistory();
 
+
+  nestedButton.addEventListener("click", () => {
+    if (!sensitivityContext || nestedButton.disabled) return;
+    try {
+      const grid = {
+        stopLossValuesPct: parsePercentGrid(sensitivityStops.value),
+        takeProfitValuesPct: parsePercentGrid(sensitivityTargets.value),
+      };
+      const minimumInnerTrades = Number(nestedMinTrades.value);
+      if (!Number.isSafeInteger(minimumInnerTrades) || minimumInnerTrades < 0) {
+        throw new RangeError("Minimum inner completed trades must be a non-negative integer");
+      }
+      const { candles, candidates, pipeline, metadata } = sensitivityContext;
+      const trainBars = pipeline.folds.trainBars;
+      const testBars = pipeline.folds.testBars;
+      const embargoBars = pipeline.folds.embargoBars ?? 0;
+      const innerTrainBars = Math.max(20, Math.floor(trainBars / 2));
+      const innerTestBars = Math.max(10, Math.floor(testBars / 2));
+      const outerStepBars = Math.max(testBars, Math.ceil((candles.length - trainBars - embargoBars) / 8));
+      nestedButton.disabled = true;
+      sensitivityButton.disabled = true;
+      nestedButton.textContent = "Running nested selection…";
+      nestedResults.replaceChildren();
+      status.textContent = "Selecting parameters inside outer training windows; outer tests remain untouched…";
+      const report = runNestedWalkForwardSelection(candles, candidates, pipeline, {
+        outerFolds: { ...pipeline.folds, stepBars: outerStepBars },
+        innerFolds: {
+          trainBars: innerTrainBars,
+          testBars: innerTestBars,
+          stepBars: innerTestBars,
+          embargoBars,
+          expanding: true,
+        },
+        grid,
+        minimumInnerTrades,
+      }, metadata);
+      const panel = el("div", "research-result");
+      panel.append(el("h4", "", report.outerFoldCount + " outer folds · " + report.candidateResults.length + " strategies"));
+      panel.append(el("p", "small", report.selectionWarning));
+      for (const candidate of report.candidateResults) {
+        const card = el("section", "research-result");
+        card.append(el("h4", "", candidate.name));
+        card.append(el("p", "small", "Outer compounded return " + candidate.compoundedOuterReturnPct.toFixed(2) +
+          "% · mean fold " + candidate.meanOuterReturnPct.toFixed(2) + "% · worst outer drawdown " +
+          candidate.worstOuterFoldDrawdownPct.toFixed(2) + "% · completed trades " + candidate.totalOuterCompletedTrades));
+        card.append(el("p", "small", "Parameter stability: " + candidate.parameterStability.map((item) =>
+          "stop " + (item.stopLossPct === undefined ? "off" : item.stopLossPct + "%") +
+          " / target " + (item.takeProfitPct === undefined ? "off" : item.takeProfitPct + "%") +
+          " in " + item.outerFoldCount + " folds").join(" · ")));
+        const table = el("div", "regime-table");
+        const header = el("div", "regime-row regime-header");
+        ["OUTER FOLD", "SELECTED STOP", "SELECTED TARGET", "INNER OOS RETURN", "OUTER OOS RETURN", "OUTER WORST DD", "OUTER TRADES", "FEES"].forEach((value) => header.append(el("span", "", value)));
+        table.append(header);
+        for (const fold of candidate.folds) {
+          const row = el("div", "regime-row");
+          [
+            String(fold.outerFoldIndex + 1),
+            fold.selectedStopLossPct === undefined ? "Off" : fold.selectedStopLossPct + "%",
+            fold.selectedTakeProfitPct === undefined ? "Off" : fold.selectedTakeProfitPct + "%",
+            fold.innerSelection.compoundedReturnPct.toFixed(2) + "%",
+            fold.outerEvaluation.evaluation.compoundedReturnPct.toFixed(2) + "%",
+            (fold.outerEvaluation.scorecard.worstFoldDrawdownPct ?? 0).toFixed(2) + "%",
+            String(fold.outerEvaluation.scorecard.completedTrades),
+            fold.outerEvaluation.scorecard.totalFees.toFixed(2),
+          ].forEach((value) => row.append(el("span", "", value)));
+          table.append(row);
+          row.title = fold.selectionReason;
+        }
+        card.append(table);
+        panel.append(card);
+      }
+      nestedResults.append(panel);
+      status.textContent = "Nested walk-forward complete · " + report.outerFoldCount + " outer folds · results displayed separately from inner selection";
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Nested walk-forward selection failed";
+    } finally {
+      nestedButton.disabled = sensitivityContext === null;
+      sensitivityButton.disabled = sensitivityContext === null;
+      nestedButton.textContent = "Run nested walk-forward";
+    }
+  });
+
   sensitivityButton.addEventListener("click", async () => {
     if (!sensitivityContext || sensitivityButton.disabled) return;
     try {
@@ -434,8 +528,10 @@ export function mountResearchConsole(container: HTMLElement): void {
 
     button.disabled = true;
     sensitivityButton.disabled = true;
+    nestedButton.disabled = true;
     sensitivityContext = null;
     sensitivityResults.replaceChildren();
+    nestedResults.replaceChildren();
     button.textContent = "Loading history…";
     results.replaceChildren();
     status.textContent = "Fetching completed public candles…";
@@ -474,6 +570,7 @@ export function mountResearchConsole(container: HTMLElement): void {
         const executionReport = runResearchBatch(candles, candidates, settings.pipeline, metadata);
         sensitivityContext = { candles, candidates, pipeline: settings.pipeline, metadata };
         sensitivityButton.disabled = false;
+        nestedButton.disabled = false;
         results.replaceChildren();
         const comparisonGrid = el("div", "execution-comparison-grid");
         const legacyPanel = el("section", "execution-comparison-panel");
