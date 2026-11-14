@@ -62,7 +62,7 @@ describe("AI-composed strategy contract", () => {
     });
     const evaluator = compileComposedStrategy(specification).fit([]);
     const closes = [10, 9, 8, 7, 6, 7, 8, 9, 10, 11, 10, 9, 8, 7, 6];
-    const signals = closes.map((close, index) => {
+    const signals = closes.map((_, index) => {
       const history = closes.slice(0, index + 1).map((value, i) => ({
         timestamp: i * 3_600_000, open: value, high: value + 1, low: value - 1, close: value, volume: 10,
       }));
