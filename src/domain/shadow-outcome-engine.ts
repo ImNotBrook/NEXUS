@@ -278,6 +278,15 @@ export function simulateShadowOutcome(
           candleVolume: availableVolume,
         }, plan.executionModel);
         if (execution.filledQuantity > EPSILON) {
+          const executionWithinPlan = plan.side === "long"
+            ? execution.executionPrice > plan.stopPrice && execution.executionPrice < plan.targetPrice
+            : execution.executionPrice < plan.stopPrice && execution.executionPrice > plan.targetPrice;
+          if (!executionWithinPlan) {
+            outcome.entryOrderStatus = "cancelled";
+            outcome.status = "invalidated";
+            outcome.invalidationReason = "ENTRY_GAPPED_OUT_OF_PLAN";
+            break;
+          }
           fill = {
             quantity: execution.filledQuantity,
             price: execution.executionPrice,
