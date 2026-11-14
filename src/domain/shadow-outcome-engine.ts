@@ -18,6 +18,7 @@ export interface ShadowTradePlan {
   decisionId: string;
   candidateId: string;
   symbol: string;
+  instrumentCategory: "spot" | "linear_perpetual" | "inverse_perpetual";
   side: "long" | "short";
   decisionAt: number;
   entry: ShadowEntryOrder;
@@ -88,6 +89,9 @@ export function validateShadowTradePlan(plan: ShadowTradePlan): void {
     if (typeof value !== "string" || !value.trim()) throw new TypeError(name + " is required");
   }
   if (!/^[A-Z0-9]{3,30}$/.test(plan.symbol)) throw new TypeError("symbol must be normalized uppercase alphanumeric");
+  if (plan.instrumentCategory !== "spot") {
+    throw new TypeError("Shadow simulator v1 supports spot instruments only; derivatives require funding-aware costs");
+  }
   if (plan.side !== "long" && plan.side !== "short") throw new TypeError("side must be long or short");
   if (![plan.decisionAt, plan.entry.earliestEligibleAt, plan.entry.expiresAt, plan.horizonEnd].every(validTime)) {
     throw new RangeError("Decision, entry and horizon times must be non-negative safe integers");
@@ -107,12 +111,11 @@ export function validateShadowTradePlan(plan: ShadowTradePlan): void {
     if (!Number.isFinite(plan.entry.limitPrice) || (plan.entry.limitPrice ?? 0) <= 0) {
       throw new RangeError("A positive limitPrice is required for a limit entry");
     }
-    if (plan.entry.penetrationBps <= 0 || plan.entry.penetrationBps >= 10_000) {
-      throw new RangeError("Limit penetrationBps must be in (0, 10000)");
-    }
+  } else if (plan.entry.limitPrice !== undefined) {
+    throw new TypeError("Market entries cannot include a limitPrice");
   }
-  if (!Number.isFinite(plan.entry.penetrationBps) || plan.entry.penetrationBps < 0 || plan.entry.penetrationBps >= 10_000) {
-    throw new RangeError("penetrationBps must be in [0, 10000)");
+  if (!Number.isFinite(plan.entry.penetrationBps) || plan.entry.penetrationBps <= 0 || plan.entry.penetrationBps >= 10_000) {
+    throw new RangeError("penetrationBps must be in (0, 10000); target limit fills require price penetration");
   }
   if (!Number.isFinite(plan.quantity) || plan.quantity <= 0) throw new RangeError("quantity must be positive");
   if (!Number.isFinite(plan.stopPrice) || plan.stopPrice <= 0 ||
