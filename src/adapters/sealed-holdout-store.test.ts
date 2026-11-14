@@ -34,6 +34,7 @@ function memoryIndexedDb(): IDBFactory {
           queueMicrotask(() => {
             request.result = [...records.values()].map((record) => structuredClone(record));
             (request.onsuccess as (() => void) | undefined)?.();
+            (transaction.oncomplete as (() => void) | undefined)?.();
           });
           return request;
         },
