@@ -83,7 +83,8 @@ jobs:
               status: report.aiGeneration.status,
               provider: report.aiGeneration.provider,
               model: report.aiGeneration.model,
-              proposals: report.aiGeneration.proposals
+              proposals: report.aiGeneration.proposals,
+              composedStrategies: report.aiGeneration.composedStrategies
             }
           };
           fs.writeFileSync("/tmp/ai-strategy-proposals.json", JSON.stringify(publication, null, 2) + "\n");
