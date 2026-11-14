@@ -37,6 +37,16 @@ describe("multi-period risk circuit breaker", () => {
     expect(result.reasons).toContain("weekly-loss-limit");
   });
 
+  it("keeps a weekly halt latched after equity recovers until the next UTC week", () => {
+    const state = createRiskCircuitBreakerState(monday, 10_000);
+    const breached = advanceRiskCircuitBreaker(state, monday + HOUR, 9_500, config, { dataQualityHealthy: true });
+    const recovered = advanceRiskCircuitBreaker(breached.state, monday + 2 * HOUR, 10_000, config, { dataQualityHealthy: true });
+    expect(recovered.entryBlocked).toBe(true);
+    expect(recovered.reasons).toContain("weekly-loss-limit");
+    const nextWeek = advanceRiskCircuitBreaker(recovered.state, monday + 7 * 24 * HOUR, 10_000, config, { dataQualityHealthy: true });
+    expect(nextWeek.entryBlocked).toBe(false);
+  });
+
   it("blocks new entries when the monthly loss threshold is reached", () => {
     const state = createRiskCircuitBreakerState(monday, 10_000);
     const result = advanceRiskCircuitBreaker(state, monday + HOUR, 9_000, config, {
