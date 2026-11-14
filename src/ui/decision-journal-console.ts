@@ -93,6 +93,7 @@ export function mountDecisionJournalConsole(root: HTMLElement): void {
   };
 
   refresh.addEventListener("click", () => { void load(); });
+  window.addEventListener("nexus:decision-journal-updated", () => { void load(); });
   exportButton.addEventListener("click", () => {
     if (!records.length) return;
     const blob = new Blob([serializeDecisionJournalExport(records)], {
