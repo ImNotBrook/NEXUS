@@ -4,6 +4,7 @@ import { runResearchBatch, type ResearchBatchResult, type ResearchPipelineConfig
 import { createBaselineResearchCandidates } from "../strategies/baseline-research-candidates";
 import { ResearchRunStore, type StoredResearchRun } from "../adapters/research-run-store";
 import { compareResearchRuns } from "./research-comparison";
+import { runProtectiveExitSensitivity } from "./protective-exit-sensitivity";
 
 const INTERVAL_MS: Partial<Record<BinanceInterval, number>> = {
   "1m": 60_000, "3m": 180_000, "5m": 300_000, "15m": 900_000,
@@ -122,6 +123,15 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, t
   return node;
 }
 
+function parsePercentGrid(value: string): number[] {
+  const tokens = value.split(",").map((item) => item.trim()).filter(Boolean);
+  const values = tokens.map(Number);
+  if (values.some((item) => !Number.isFinite(item))) {
+    throw new RangeError("Sensitivity values must be comma-separated finite percentages");
+  }
+  return values;
+}
+
 function metric(label: string, value: string): HTMLElement {
   const wrapper = el("div", "research-metric");
   wrapper.append(el("span", "", label), el("strong", "", value));
@@ -223,6 +233,14 @@ export function mountResearchConsole(container: HTMLElement): void {
         <label>Protective take profit (%)<input name="takeProfitPct" type="number" min="0.01" step="0.1" placeholder="Disabled" /></label>
         <button id="run-research" type="submit">Run research batch</button>
       </form>
+      <section class="research-result sensitivity-controls">
+        <h3>Protective-exit sensitivity grid</h3>
+        <p class="small">Run an independent grid on the last fetched dataset and identical walk-forward folds. Leave either grid blank to test the disabled setting on that axis.</p>
+        <label>Stop-loss grid (%)<input id="sensitivity-stops" value="2, 4" inputmode="decimal" /></label>
+        <label>Take-profit grid (%)<input id="sensitivity-targets" value="4, 8" inputmode="decimal" /></label>
+        <button id="run-sensitivity" type="button" disabled>Run protective-exit sensitivity</button>
+        <div id="sensitivity-results" aria-live="polite"></div>
+      </section>
       <p id="research-status" class="paper-status" role="status">Ready · public Binance spot data · no API key required</p>
       <div id="research-results" aria-live="polite"></div>
       <section class="saved-research"><h3>Saved experiment history</h3><p class="small">Stored only on this device. Clearing browser site data can erase these records.</p><div id="research-history" aria-live="polite">Loading saved experiments…</div><button id="compare-research" type="button" disabled>Compare selected experiments</button><div id="research-comparison" aria-live="polite"></div></section>
@@ -237,8 +255,14 @@ export function mountResearchConsole(container: HTMLElement): void {
   const history = container.querySelector<HTMLElement>("#research-history");
   const compareButton = container.querySelector<HTMLButtonElement>("#compare-research");
   const comparisonTarget = container.querySelector<HTMLElement>("#research-comparison");
-  if (!form || !button || !status || !results || !history || !compareButton || !comparisonTarget) return;
+  const sensitivityButton = container.querySelector<HTMLButtonElement>("#run-sensitivity");
+  const sensitivityStops = container.querySelector<HTMLInputElement>("#sensitivity-stops");
+  const sensitivityTargets = container.querySelector<HTMLInputElement>("#sensitivity-targets");
+  const sensitivityResults = container.querySelector<HTMLElement>("#sensitivity-results");
+  if (!form || !button || !status || !results || !history || !compareButton || !comparisonTarget ||
+      !sensitivityButton || !sensitivityStops || !sensitivityTargets || !sensitivityResults) return;
   const runStore = new ResearchRunStore();
+  let sensitivityContext: { candles: Candle[]; candidates: ReturnType<typeof createBaselineResearchCandidates>; pipeline: ResearchPipelineConfig; metadata: { symbol: string; interval: string; provider: string } } | null = null;
   const selectedRunIds = new Set<string>();
   let cachedRuns: StoredResearchRun[] = [];
 
@@ -326,6 +350,63 @@ export function mountResearchConsole(container: HTMLElement): void {
   };
   void refreshHistory();
 
+  sensitivityButton.addEventListener("click", async () => {
+    if (!sensitivityContext || sensitivityButton.disabled) return;
+    try {
+      const grid = {
+        stopLossValuesPct: parsePercentGrid(sensitivityStops.value),
+        takeProfitValuesPct: parsePercentGrid(sensitivityTargets.value),
+      };
+      sensitivityButton.disabled = true;
+      sensitivityButton.textContent = "Running sensitivity grid…";
+      sensitivityResults.replaceChildren();
+      status.textContent = "Running protective-exit sensitivity scenarios…";
+      const report = runProtectiveExitSensitivity(sensitivityContext.candles, sensitivityContext.candidates, sensitivityContext.pipeline, grid, sensitivityContext.metadata);
+      const panel = el("div", "research-result");
+      panel.append(el("h4", "", report.scenarioCount + " protective-exit scenarios"));
+      panel.append(el("p", "small", report.selectionWarning));
+      const table = el("div", "regime-table");
+      const header = el("div", "regime-row regime-header");
+      ["SCENARIO", "STRATEGY", "OOS RETURN", "WORST DD", "FOLD σ", "PF", "EXPECTANCY", "TRADES", "FEES", "POSITIVE FOLDS", "AVG EXPOSURE", "COMPLETED TURNOVER", "STOP EXITS", "TARGET EXITS", "PENDING QTY"].forEach((value) => header.append(el("span", "", value)));
+      table.append(header);
+      for (const scenario of report.scenarios) {
+        for (const candidate of scenario.report.candidateResults) {
+          const row = el("div", "regime-row");
+          const stopExits = candidate.evaluation.folds.reduce((sum, fold) => sum + fold.result.trades.filter((trade) => trade.exitReason === "stop-loss").length, 0);
+          const targetExits = candidate.evaluation.folds.reduce((sum, fold) => sum + fold.result.trades.filter((trade) => trade.exitReason === "take-profit").length, 0);
+          const equityPoints = candidate.evaluation.folds.flatMap((fold) => fold.result.equityCurve);
+          const averageExposurePct = equityPoints.length
+            ? equityPoints.reduce((sum, point) => sum + (point.equity > 0 ? point.positionValue / point.equity : 0), 0) / equityPoints.length * 100
+            : 0;
+          const completedTurnover = candidate.evaluation.folds.reduce((sum, fold) =>
+            sum + fold.result.trades.reduce((tradeSum, trade) =>
+              tradeSum + trade.quantity * (trade.entryPrice + trade.exitPrice) / fold.result.startingCapital, 0), 0);
+          [scenario.label, candidate.name, candidate.evaluation.compoundedReturnPct.toFixed(2) + "%",
+            candidate.scorecard.worstFoldDrawdownPct === null ? "—" : candidate.scorecard.worstFoldDrawdownPct.toFixed(2) + "%",
+            candidate.scorecard.foldReturnStdDevPct === null ? "—" : candidate.scorecard.foldReturnStdDevPct.toFixed(2) + "%",
+            candidate.scorecard.profitFactor === null ? "—" : candidate.scorecard.profitFactor.toFixed(2),
+            candidate.scorecard.expectancyPerTrade === null ? "—" : candidate.scorecard.expectancyPerTrade.toFixed(2),
+            String(candidate.scorecard.completedTrades), candidate.scorecard.totalFees.toFixed(2),
+            candidate.scorecard.positiveFoldPct === null ? "—" : candidate.scorecard.positiveFoldPct.toFixed(0) + "%",
+            averageExposurePct.toFixed(1) + "%", completedTurnover.toFixed(2) + "x",
+            String(stopExits), String(targetExits), candidate.evaluation.totalPendingQuantity.toFixed(6)]
+            .forEach((value) => row.append(el("span", "", value)));
+          table.append(row);
+        }
+        await runStore.save(scenario.report);
+      }
+      panel.append(table);
+      sensitivityResults.append(panel);
+      await refreshHistory();
+      status.textContent = "Sensitivity complete · " + report.scenarioCount + " scenarios · reports saved locally";
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Sensitivity analysis failed";
+    } finally {
+      sensitivityButton.disabled = sensitivityContext === null;
+      sensitivityButton.textContent = "Run protective-exit sensitivity";
+    }
+  });
+
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     if (button.disabled) return;
@@ -352,6 +433,9 @@ export function mountResearchConsole(container: HTMLElement): void {
     }
 
     button.disabled = true;
+    sensitivityButton.disabled = true;
+    sensitivityContext = null;
+    sensitivityResults.replaceChildren();
     button.textContent = "Loading history…";
     results.replaceChildren();
     status.textContent = "Fetching completed public candles…";
@@ -388,6 +472,8 @@ export function mountResearchConsole(container: HTMLElement): void {
         };
         const legacyReport = runResearchBatch(candles, candidates, legacyPipeline, metadata);
         const executionReport = runResearchBatch(candles, candidates, settings.pipeline, metadata);
+        sensitivityContext = { candles, candidates, pipeline: settings.pipeline, metadata };
+        sensitivityButton.disabled = false;
         results.replaceChildren();
         const comparisonGrid = el("div", "execution-comparison-grid");
         const legacyPanel = el("section", "execution-comparison-panel");

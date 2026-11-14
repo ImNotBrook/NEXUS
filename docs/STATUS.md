@@ -338,3 +338,13 @@ Updated: 2026-11-14
 - Added regression tests for walk-forward protective execution, console configuration, report configuration persistence and mismatch rejection.
 - GitHub Actions verification for PR #14: dependency installation, dependency security audit, full Vitest suite and production build completed successfully. Final workflow completion is pending.
 - Historical research only; no exchange routing or live execution introduced.
+
+
+## Protective-exit sensitivity research (2026-11-14)
+
+- Added a bounded Cartesian stop-loss/take-profit sensitivity runner. It always includes a disabled baseline, rejects invalid/duplicate values, and caps the grid at 25 scenarios for mobile resource control.
+- Every scenario reuses the same candle dataset, candidate definitions, walk-forward folds, allocation and execution assumptions. It does not rank or automatically select parameters.
+- Exposed the grid in the mobile research console using the last fetched dataset. Each scenario report is saved locally and displays OOS return, worst-fold drawdown, profit factor, completed trades, fees, positive-fold share, stop/target exit counts and pending quantity.
+- Added an explicit selection-bias warning: choosing the best parameter on these same OOS folds invalidates an unbiased performance claim. Nested walk-forward selection or a final untouched holdout is required.
+- Corrected a pipeline defect discovered during integration: the research batch stored the execution model in its report but did not pass it to walk-forward evaluation; execution-aware research now uses the configured fill model in every fold.
+- Historical paper research only. Candle volume remains a liquidity proxy; no live routing or paid services added.

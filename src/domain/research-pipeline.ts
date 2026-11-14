@@ -95,6 +95,7 @@ export function runResearchBatch(
     const evaluation = evaluateWalkForward(candles, {
       folds: config.folds,
       backtest: config.backtest,
+      executionModel: config.executionModel,
       fit: candidate.fit,
     });
     return {
