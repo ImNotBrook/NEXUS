@@ -318,7 +318,9 @@ export function simulateShadowOutcome(
       }
 
       if (fill) {
-        volumeUsed += fill.quantity;
+        // Convert executed quantity back to base-volume units so entry and exit
+        // fills share one aggregate participation cap for this candle.
+        volumeUsed += fill.quantity / plan.executionModel.maxParticipationRate;
         const previousNotional = (outcome.entryAveragePrice ?? 0) * outcome.entryFilledQuantity;
         outcome.entryFilledQuantity += fill.quantity;
         outcome.entryAveragePrice = (previousNotional + fill.quantity * fill.price) / outcome.entryFilledQuantity;
@@ -415,7 +417,7 @@ export function simulateShadowOutcome(
     }
 
     if (!exitFill) continue;
-    volumeUsed += exitFill.quantity;
+    volumeUsed += exitFill.quantity / plan.executionModel.maxParticipationRate;
     const previousExitNotional = (outcome.exitAveragePrice ?? 0) * outcome.exitFilledQuantity;
     outcome.exitFilledQuantity += exitFill.quantity;
     outcome.exitAveragePrice = (previousExitNotional + exitFill.quantity * exitFill.price) / outcome.exitFilledQuantity;
