@@ -188,7 +188,7 @@ describe("DecisionJournalStore", () => {
     await expect(target.restoreAll({
       records: [{ ...record, reasonCodes: ["DIFFERENT"] }], events: [event],
     })).rejects.toThrow(/conflict/i);
-    await expect(target.restoreAll({ records: [], events: [event] })).rejects.toThrow(/missing decision/i);
+    await expect(target.restoreAll({ records: [], events: [{ ...event, decisionId: "missing-decision" }] })).rejects.toThrow(/missing decision/i);
     expect(await target.exportAll()).toEqual(before);
   });
 
