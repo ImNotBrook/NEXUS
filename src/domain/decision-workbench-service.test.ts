@@ -35,7 +35,7 @@ const strategy = {
 const breakout: Candle[] = [100, 101, 102, 106].map((close, index) => ({
   timestamp: now - (4 - index) * 3_600_000, open: close - 1,
   high: [101, 102, 103, 107][index], low: [99, 100, 101, 105][index],
-  close, volume: 100,
+  close, volume: 1_000,
 }));
 const noBreak: Candle[] = [100, 101, 102, 102.5].map((close, index) => ({
   timestamp: now - (4 - index) * 3_600_000, open: close - 1,
@@ -50,8 +50,16 @@ function base(overrides: Record<string, unknown> = {}) {
   return {
     snapshot: market(), candles: breakout, crossFeedStatus: "within_tolerance" as const,
     strategy, evaluationTime: now,
-    riskGate: { eligible: true, reasonCodes: [] },
-    economicsGate: { eligible: true, reasonCodes: [] },
+    gatePolicy: {
+      instrumentCategory: "spot" as const,
+      equity: 10_000, existingExposure: 0, maxRiskPerTrade: 20,
+      maxRiskFraction: 0.002, maxNotional: 2_000, maxExposure: 2_000,
+      minimumNetRewardRisk: 1.4,
+      execution: {
+        feeRate: 0.001, baseSlippageBps: 10, halfSpreadBps: 0,
+        maxParticipationRate: 0.05, marketImpactBpsAtMaxParticipation: 0,
+      },
+    },
     minimumSupportingFamilies: 2, versions, clockSource: "test-clock",
     journal: journal(), decisionId: "workbench-decision",
     ...overrides,
@@ -79,10 +87,19 @@ describe("runDecisionWorkbench integration", () => {
 
   it("lets the deterministic risk gate reject a generated candidate and journals it", async () => {
     const result = await runDecisionWorkbench(base({
-      riskGate: { eligible: false, reasonCodes: ["MAX_RISK_BUDGET_EXCEEDED"] },
+      gatePolicy: {
+        instrumentCategory: "spot" as const,
+        equity: 10_000, existingExposure: 0, maxRiskPerTrade: 10,
+        maxRiskFraction: 0.002, maxNotional: 2_000, maxExposure: 2_000,
+        minimumNetRewardRisk: 1.4,
+        execution: {
+          feeRate: 0.001, baseSlippageBps: 10, halfSpreadBps: 0,
+          maxParticipationRate: 0.05, marketImpactBpsAtMaxParticipation: 0,
+        },
+      },
     }));
     expect(result.assessment.result.status).toBe("REJECT");
-    expect(result.assessment.result.reasonCodes).toContain("MAX_RISK_BUDGET_EXCEEDED");
+    expect(result.assessment.result.reasonCodes).toContain("MAX_RISK_PER_TRADE_EXCEEDED");
     expect(result.assessment.record.status).toBe("REJECT");
   });
 
