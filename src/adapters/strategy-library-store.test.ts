@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { StrategyLibraryStore } from "./strategy-library-store";
 import { createResearchCandidateFromDefinition, type StrategyDefinition } from "../domain/strategy-studio";
 import { runResearchBatch } from "../domain/research-pipeline";
-import { createHumanReviewedStrategyDefinition, parseAutomatedResearchAiArtifact } from "../domain/ai-strategy-review";
+import { createHumanReviewedComposedStrategyDefinition, createHumanReviewedStrategyDefinition, parseAutomatedResearchAiArtifact } from "../domain/ai-strategy-review";
 
 function memoryIndexedDb(): IDBFactory {
   const stores = new Map<string, Map<string, unknown>>();
@@ -95,7 +95,7 @@ describe("StrategyLibraryStore", () => {
         open: close - 0.1, high: close + 0.5, low: close - 0.5, close, volume: 100,
       };
     });
-    const report = runResearchBatch(candles, [candidate], {
+    const report = runResearchBatch(candles, [candidate, composedCandidate], {
       folds: { trainBars: 100, testBars: 40, stepBars: 40, embargoBars: 2, expanding: true },
       backtest: { initialCapital: 10_000, feeRate: 0.001, slippageBps: 5, allocationFraction: 0.25 },
       regime: { fastEmaPeriod: 5, slowEmaPeriod: 13, atrPeriod: 14, trendThresholdPct: 0.1, lowVolatilityAtrPct: 0.3, highVolatilityAtrPct: 1.5 },
@@ -120,16 +120,33 @@ describe("StrategyLibraryStore", () => {
           parameters: { fastPeriod: 8, slowPeriod: 24 },
           rationale: "Tests a faster trend trigger against a slower baseline.",
         }],
+        composedStrategies: [{
+          schemaVersion: 1,
+          id: "trend-pullback-confirmed",
+          name: "Trend pullback confirmation",
+          marketHypothesis: "Momentum recovery after a pullback may resume an established trend.",
+          regimeScope: "uptrend",
+          timeframe: "1h",
+          entry: { trigger: { type: "rsi_recovery", period: 14, oversold: 30 }, confirmations: [{ type: "ema_alignment", fastPeriod: 10, slowPeriod: 30 }] },
+          exit: { type: "rsi_overbought", period: 14, threshold: 70 },
+          invalidation: "A loss of bullish EMA alignment invalidates the trend continuation hypothesis.",
+        }],
       },
     });
     const reviewed = createHumanReviewedStrategyDefinition(artifact.proposals[0], 1_800_000_000_000, artifact);
+    const composed = createHumanReviewedComposedStrategyDefinition(artifact.composedStrategies[0], 1_800_000_000_000, artifact);
     expect(reviewed.origin).toBe("human");
+    expect(composed.family).toBe("composed-rule");
 
     const database = memoryIndexedDb();
-    const saved = await new StrategyLibraryStore(database).save(reviewed as StrategyDefinition);
+    const writer = new StrategyLibraryStore(database);
+    const saved = await writer.save(reviewed as StrategyDefinition);
+    const savedComposed = await writer.save(composed as StrategyDefinition);
     const reloaded = await new StrategyLibraryStore(database).list();
-    expect(reloaded[0].id).toBe(saved.id);
-    const candidate = createResearchCandidateFromDefinition(reloaded[0].definition);
+    expect(reloaded.map(record => record.id)).toContain(saved.id);
+    expect(reloaded.map(record => record.id)).toContain(savedComposed.id);
+    const candidate = createResearchCandidateFromDefinition(reloaded.find(record => record.id === saved.id)!.definition);
+    const composedCandidate = createResearchCandidateFromDefinition(reloaded.find(record => record.id === savedComposed.id)!.definition);
     const candles = Array.from({ length: 300 }, (_, index) => {
       const close = 100 + index * 0.08 + Math.sin(index / 5) * 2;
       return {
@@ -142,8 +159,9 @@ describe("StrategyLibraryStore", () => {
       backtest: { initialCapital: 10_000, feeRate: 0.001, slippageBps: 5, allocationFraction: 0.25 },
       regime: { fastEmaPeriod: 5, slowEmaPeriod: 13, atrPeriod: 14, trendThresholdPct: 0.1, lowVolatilityAtrPct: 0.3, highVolatilityAtrPct: 1.5 },
     }, { symbol: "BTCUSDT", interval: "1h", provider: "synthetic-test" });
-    expect(report.candidateResults).toHaveLength(1);
-    expect(report.candidateResults[0].id).toBe(saved.id);
+    expect(report.candidateResults).toHaveLength(2);
+    expect(report.candidateResults.map(result => result.id)).toContain(saved.id);
+    expect(report.candidateResults.map(result => result.id)).toContain(savedComposed.id);
   });
 
   it("exports the complete strategy library and restores it idempotently after reload", async () => {
