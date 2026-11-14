@@ -385,4 +385,18 @@ describe("evaluateLearningCohorts", () => {
     expect(report.cohorts[0].lastDecisionAt).toBe(1_000);
   });
 
+  it("excludes completed outcomes whose exit accounting does not close the filled quantity", () => {
+    const plan = makePlan();
+    const outcome = makeOutcome(plan, "completed", {
+      exitFilledQuantity: 0.5,
+      positionRemainingQuantity: 0.5,
+    });
+    const report = evaluateLearningCohorts([
+      makeObservation({ plan, decision: makeDecision(plan), outcome }),
+    ]);
+    expect(report.eligibleObservations).toBe(0);
+    expect(report.excluded[0].reason).toBe("invalid_fill_accounting");
+    expect(report.cohorts).toHaveLength(0);
+  });
+
 });
