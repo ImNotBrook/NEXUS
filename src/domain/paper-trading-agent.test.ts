@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Candle } from "./candles";
 import { createPaperTradingAgentState, runPaperTradingAgentCycle, type PaperTradingAgentConfig } from "./paper-trading-agent";
 
+const DAY = 86_400_000;
 const HOUR = 3_600_000;
 const config: PaperTradingAgentConfig = {
   allocationFraction: 0.25,
