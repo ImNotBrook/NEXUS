@@ -1,6 +1,7 @@
 import type { ResearchBatchResult } from "../domain/research-pipeline";
 import { RESEARCH_RUN_STORE, openNexusDatabase } from "./nexus-database";
 import type { ExecutionStressFamilyMetadata } from "../domain/execution-stress-leaderboard";
+import type { StrategyTrialManifest } from "../domain/strategy-studio";
 
 export interface StoredResearchRun {
   id: string;
@@ -8,6 +9,8 @@ export interface StoredResearchRun {
   report: ResearchBatchResult;
   /** Present only when this report is one persisted scenario in an execution-stress family. */
   stressFamily?: ExecutionStressFamilyMetadata;
+  /** Exact parameter-trial manifest used to produce this report, when applicable. */
+  strategyTrials?: StrategyTrialManifest;
 }
 
 function requestResult<T>(request: IDBRequest<T>): Promise<T> {
@@ -51,7 +54,7 @@ export class ResearchRunStore {
     return this.databasePromise;
   }
 
-  async save(report: ResearchBatchResult, createdAt = Date.now(), stressFamily?: ExecutionStressFamilyMetadata): Promise<StoredResearchRun> {
+  async save(report: ResearchBatchResult, createdAt = Date.now(), stressFamily?: ExecutionStressFamilyMetadata, strategyTrials?: StrategyTrialManifest): Promise<StoredResearchRun> {
     if (!Number.isSafeInteger(createdAt) || createdAt < 0) {
       throw new RangeError("createdAt must be a non-negative safe integer");
     }
@@ -74,7 +77,29 @@ export class ResearchRunStore {
         stressFamily.participationMultiplier > 1)) {
       throw new TypeError("Valid execution stress family metadata is required");
     }
-    const record: StoredResearchRun = { id, createdAt, report: structuredClone(report), ...(stressFamily ? { stressFamily: structuredClone(stressFamily) } : {}) };
+    if (strategyTrials && (
+        strategyTrials.generatorVersion !== "1.0.0" ||
+        typeof strategyTrials.baseStrategyId !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(strategyTrials.baseStrategyId) ||
+        typeof strategyTrials.baseVersion !== "string" || !/^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$/.test(strategyTrials.baseVersion) ||
+        !Number.isSafeInteger(strategyTrials.trialCount) || strategyTrials.trialCount < 1 || strategyTrials.trialCount > 25 ||
+        !Array.isArray(strategyTrials.trialIds) || strategyTrials.trialIds.length !== strategyTrials.trialCount ||
+        strategyTrials.trialIds.some((id) => typeof id !== "string" || !id.trim()) ||
+        new Set(strategyTrials.trialIds).size !== strategyTrials.trialIds.length ||
+        !strategyTrials.parameterGrid || typeof strategyTrials.parameterGrid !== "object" ||
+        Object.keys(strategyTrials.parameterGrid).length === 0 ||
+        Object.values(strategyTrials.parameterGrid).some((values) =>
+          !Array.isArray(values) || values.length === 0 || values.some((value) => !Number.isFinite(value)) ||
+          new Set(values).size !== values.length) ||
+        Object.values(strategyTrials.parameterGrid).reduce((count, values) => count * values.length, 1) !== strategyTrials.trialCount ||
+        typeof strategyTrials.selectionBiasWarning !== "string" || !strategyTrials.selectionBiasWarning.trim()
+      )) {
+      throw new TypeError("A valid strategy trial manifest is required");
+    }
+    const record: StoredResearchRun = {
+      id, createdAt, report: structuredClone(report),
+      ...(stressFamily ? { stressFamily: structuredClone(stressFamily) } : {}),
+      ...(strategyTrials ? { strategyTrials: structuredClone(strategyTrials) } : {}),
+    };
     const database = await this.openDatabase();
     const transaction = database.transaction(RESEARCH_RUN_STORE, "readwrite");
     const done = transactionComplete(transaction);
