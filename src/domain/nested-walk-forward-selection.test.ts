@@ -103,7 +103,7 @@ describe("runNestedWalkForwardSelection", () => {
     expect(result.candidateResults[0].totalFees).toBeGreaterThan(0);
     expect(result.candidateResults[0].totalFillEvents).toBeGreaterThan(0);
     expect(result.candidateResults[0].averageExposurePct).toBeGreaterThan(0);
-    expect(result.candidateResults[0].completedTurnover).toBe(0);
+    expect(result.candidateResults[0].completedTurnover).toBeGreaterThan(0);
   });
 
   it("rejects invalid fold geometry and selection thresholds", () => {
