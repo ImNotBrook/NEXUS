@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DerivativesObservationStore } from "./derivatives-observation-store";
-import type { DerivativesObservation } from "../domain/derivatives-data";
+import type { FundingRateObservation } from "../domain/derivatives-data";
 
 function memoryIndexedDb(): IDBFactory {
   const stores = new Map<string, Map<string, unknown>>();
@@ -52,7 +52,7 @@ function memoryIndexedDb(): IDBFactory {
 }
 
 const base = 1_700_000_000_000;
-const funding: DerivativesObservation[] = [
+const funding: FundingRateObservation[] = [
   { metric: "funding_rate", provider: "bybit", symbol: "BTCUSDT", category: "linear",
     timestamp: base, fundingRate: 0.0001, unit: "rate_per_settlement" },
   { metric: "funding_rate", provider: "bybit", symbol: "BTCUSDT", category: "linear",
