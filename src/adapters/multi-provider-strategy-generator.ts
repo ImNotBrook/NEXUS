@@ -96,7 +96,6 @@ const DEFAULT_PROVIDER_ORDER: readonly AiProviderId[] = [
   "gemini",
   "zai",
   "cloudflare",
-  "nvidia",
 ];
 
 function validateContext(context: AiMarketContext): void {
