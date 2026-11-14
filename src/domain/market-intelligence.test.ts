@@ -23,10 +23,12 @@ const CONFIG = {
   highVolatilityAtrPct: 1.5,
 };
 
+type FrameOverrides = Partial<MarketFrameInput> & { volatilityRange?: number };
+
 function makeFrame(
   timeframe: MarketTimeframe,
   direction: "up" | "down" | "flat" = "up",
-  overrides: Partial<MarketFrameInput> = {},
+  overrides: FrameOverrides = {},
 ): MarketFrameInput {
   const intervalMs = INTERVALS[timeframe];
   const latestBoundary = Math.floor(NOW / intervalMs) * intervalMs;
@@ -47,7 +49,7 @@ function makeFrame(
       volume: 100 + index,
     };
   });
-  const { volatilityRange: _ignored, ...frameOverrides } = overrides as Partial<MarketFrameInput> & { volatilityRange?: number };
+  const { volatilityRange: _ignored, ...frameOverrides } = overrides;
   return {
     symbol: "BTCUSDT",
     timeframe,
@@ -213,7 +215,7 @@ describe("buildMarketIntelligenceSnapshot", () => {
 
   it("labels high realised volatility as stress without inferring direction", async () => {
     const snapshot = await buildMarketIntelligenceSnapshot(input({
-      "1d": makeFrame("1d", "flat", { volatilityRange: 30 } as Partial<MarketFrameInput>),
+      "1d": makeFrame("1d", "flat", { volatilityRange: 30 }),
       "4h": makeFrame("4h", "flat", { volatilityRange: 30 } as Partial<MarketFrameInput>),
       "1h": makeFrame("1h", "flat", { volatilityRange: 1 }),
       "15m": makeFrame("15m", "flat", { volatilityRange: 1 }),
