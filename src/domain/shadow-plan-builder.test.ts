@@ -40,7 +40,7 @@ describe("buildShadowTradePlan", () => {
     expect(result.plan.entry.orderType).toBe("market");
     expect(result.plan.entry.earliestEligibleAt).toBeGreaterThan(result.plan.decisionAt);
     expect(result.plan.entry.expiresAt).toBe(decision().candidate!.expiresAt);
-    expect(result.plan.horizonEnd).toBe(decision().decisionAt + 24 * 60 * 60 * 1000);
+    expect(result.plan.horizonEnd).toBe(decision().decisionAt + 24 * 60 * 60 * 1000 - 1);
     expect(result.plan.executionModel.feeRate).toBe(0.001);
   });
 
