@@ -72,8 +72,26 @@ describe("evaluateNoSetupReplays", () => {
       fetchHistory: async () => [candle(decisionAt + hour, 104)],
     });
     expect(report.triggersDetected).toBe(0);
-    expect(report.noTrigger).toBe(1);
+    expect(report.pending).toBe(1);
+    expect(report.noTrigger).toBe(0);
     expect(journal.events).toHaveLength(1);
+  });
+
+  it("journals a completed no-trigger result only after the full frozen expiry window", async () => {
+    const journal = new MemoryJournal();
+    const input = {
+      journal, now: decisionAt + 3 * hour,
+      fetchHistory: async () => [candle(decisionAt + hour, 100), candle(decisionAt + 2 * hour, 101)],
+    };
+    const first = await evaluateNoSetupReplays(input);
+    expect(first.noTrigger).toBe(1);
+    expect(journal.events.at(-1)).toMatchObject({
+      eventType: "no_setup_replay_completed",
+      payload: { evaluationBars: 2, expiryBars: 2, result: "no_breakout_within_frozen_window" },
+    });
+    const second = await evaluateNoSetupReplays(input);
+    expect(second.alreadyEvaluated).toBe(1);
+    expect(journal.events.filter((event) => event.eventType === "no_setup_replay_completed")).toHaveLength(1);
   });
 
   it("is idempotent after a trigger has already been journalled", async () => {
