@@ -401,7 +401,7 @@ Updated: 2026-11-14
 - The ledger config is disabled by default. It requires a human approver, rationale, approval timestamp, exact reviewed strategy ID and parameters. No strategy is auto-selected or promoted.
 - PR #23 merged as `b4ec6b4da288283190fdfdd35ace48b5f6d7b9a2`. CI passed 224 tests across 44 files, dependency audit, strict TypeScript checks for both scheduled runners and production build. Pages deployment run #43537370072 passed.
 - The paper workflow has not yet been manually dispatched. Its first run will report disabled and place no simulated orders until a human-approved config is supplied.
-- Current paper agent is signal-based and does not yet implement protective stop/target exits in its continuous state machine. No live exchange routing, exchange keys, paid services or billing activation.
+- PR #25 adds optional protective stop/target exits to the continuous paper agent, including adverse stop execution, persistent target limits, partial remainders and adverse stop/target collision resolution. No live exchange routing, exchange keys, paid services or billing activation.
 
 
 ## Paper-ledger configuration fingerprint (2026-11-14)
@@ -418,4 +418,11 @@ Updated: 2026-11-14
 - Take-profit exits use limit semantics, retain target price across partial fills and receive opening-gap price improvement.
 - Stop/target collisions resolve to the adverse stop; protective orders activate only after the entry candle and block same-candle re-entry.
 - PR #25 merged as `19bce2448fa08c98d005e8086d7185f15f62b03f`; CI passed 229 tests across 44 files, dependency audit, strict TypeScript checks and production build.
-- The latest Pages deployment for this commit is pending; verify before treating the updated paper-agent console as live.
+- Pages deployment run #43537960917 for main commit `339ca4359c56eeef6c17c0aeec9767bef0f94a3b` includes the PR #25 paper-agent UI. PR #26 help-copy fix is deployed in run #43538234649 on main commit `e13e62c91a2c39719d3db8af0c2d01e11958ca86`.
+
+
+## Automation help copy (2026-11-14)
+
+- PR #26 updated the Automation page help text to accurately describe optional Groq AI proposal generation, human approval for paper trading and disabled live trading.
+- CI passed 230 tests across 44 files, dependency audit, TypeScript checks for both scheduled runners and production build.
+- PR #26 merged as `e13e62c91a2c39719d3db8af0c2d01e11958ca86`; GitHub Pages deployment run #43538234649 completed successfully.
