@@ -23,7 +23,7 @@ describe("local backup envelope", () => {
   });
 
   it("creates and verifies a strategy library backup envelope", async () => {
-    const payload = [{ id: "btc-sma@1.0.0", createdAt: 1000, definition: { id: "btc-sma", version: "1.0.0" } }];
+    const payload = { records: [{ id: "btc-sma@1.0.0", createdAt: 1000, definition: { id: "btc-sma", version: "1.0.0" } }] };
     const backup = await createLocalBackup("strategy-library", payload, 1_800_000_000_000);
     const parsed = await parseLocalBackup(JSON.stringify(backup), "strategy-library");
     expect(parsed.kind).toBe("strategy-library");
