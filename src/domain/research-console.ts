@@ -755,17 +755,7 @@ export function mountResearchConsole(container: HTMLElement): void {
             .forEach((value) => row.append(el("span", "", value)));
           table.append(row);
         }
-        await runStore.save(scenario.report, Date.now(), {
-          version: 1,
-          familyId: stressFamilyId,
-          scenarioId: scenario.id,
-          scenarioIndex: report.scenarios.indexOf(scenario),
-          scenarioCount: report.scenarioCount,
-          expectedScenarioIds,
-          label: familyLabel,
-          costMultiplier: scenario.costMultiplier,
-          participationMultiplier: scenario.participationMultiplier,
-        });
+        await runStore.save(scenario.report);
       }
       panel.append(table);
       sensitivityResults.append(panel);
@@ -825,7 +815,17 @@ export function mountResearchConsole(container: HTMLElement): void {
           ].forEach((value) => row.append(el("span", "", value)));
           table.append(row);
         }
-        await runStore.save(scenario.report);
+        await runStore.save(scenario.report, Date.now(), {
+          version: 1,
+          familyId: stressFamilyId,
+          scenarioId: scenario.id,
+          scenarioIndex: report.scenarios.indexOf(scenario),
+          scenarioCount: report.scenarioCount,
+          expectedScenarioIds,
+          label: familyLabel,
+          costMultiplier: scenario.costMultiplier,
+          participationMultiplier: scenario.participationMultiplier,
+        });
       }
       panel.append(table);
       executionStressResults.append(panel);
