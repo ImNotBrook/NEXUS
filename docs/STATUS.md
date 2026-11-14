@@ -2,6 +2,20 @@
 
 Updated: 2026-11-14
 
+## Current verified release state (overrides older historical notes below)
+
+- Stage 2 Decision Workbench is connected to live public market refresh, deterministic Donchian candidate generation, human session approval, candidate-relative evidence, hard risk/economics gates and append-only decision journalling.
+- Stage 3 Shadow Outcomes is connected. New eligible decisions register an immutable shadow plan at the original decision timestamp. Manual outcome collection fetches closed Binance 1H candles, checks historical continuity, simulates the frozen plan and appends content-addressed outcome events.
+- The horizon-proof candle contributes only its timestamp to maturity; its OHLCV is excluded from the simulated path. Incomplete, ambiguous, unresolved or data-degraded observations are excluded from learning cohorts.
+- The mobile workspace now includes **Decision workbench**, **Decision journal** and **Shadow outcomes** destinations.
+- Latest verified CI: 69 test files and 466 tests passed; TypeScript checks, dependency audit and production build passed.
+- Latest verified GitHub Pages deployment succeeded at commit `fa24e1f9bfa65015d3c8d9d6d40a889b15c7e094`: https://imnotbrook.github.io/NEXUS/
+- CI run: https://github.com/ImNotBrook/NEXUS/actions/runs/43565115658
+- Deployment run: https://github.com/ImNotBrook/NEXUS/actions/runs/43565115674
+- No paid plans, billing activation, exchange credentials or live-order adapter were added.
+- Remaining verification: test the deployed Shadow outcomes screen on a real Android browser with at least one new decision plan; the browser/device workflow has not been physically exercised by the development agent.
+
+
 ## Completed
 - Empty NEXUS repository inspected and confirmed.
 - Product constraints, safety boundaries and architecture baseline documented.
