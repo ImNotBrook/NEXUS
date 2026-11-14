@@ -9,6 +9,7 @@ import { runExecutionStressTest } from "./execution-stress-test";
 import { rankResearchCandidates } from "./research-result-ranking";
 import { rankExecutionStressCandidates } from "./execution-stress-ranking";
 import { buildResearchLeaderboard, type ResearchLeaderboardEntry } from "./research-leaderboard";
+import { buildExecutionStressLeaderboard } from "./execution-stress-leaderboard";
 import { runNestedWalkForwardSelection, type NestedWalkForwardResult, type NestedWalkForwardConfig } from "./nested-walk-forward-selection";
 import { NestedResearchRunStore } from "../adapters/nested-research-run-store";
 import { prepareSealedHoldout, evaluateSealedHoldout } from "./sealed-holdout";
@@ -259,6 +260,36 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
   }
 }
 
+let executionStressFamilySequence = 0;
+
+function renderExecutionStressLeaderboard(target: HTMLElement, records: readonly StoredResearchRun[]): void {
+  target.replaceChildren();
+  const leaderboard = buildExecutionStressLeaderboard(records);
+  if (leaderboard.families.length === 0) {
+    target.append(el("p", "small", "No complete persisted execution-stress families yet. New stress runs are grouped after every scenario report is saved."));
+  }
+  for (const family of leaderboard.families) {
+    const panel = el("article", "research-result");
+    panel.append(el("h4", "", family.label + " · " + family.scenarioCount + " scenarios"));
+    panel.append(el("p", "small", "Complete family · " + family.runIds.length + " persisted reports · ordered by worst-case stressed OOS return, sample sufficiency, median return and downside."));
+    for (const item of family.rankedCandidates.slice(0, 5)) {
+      const row = el("div", "saved-run");
+      const details = el("div", "saved-run-info");
+      details.append(
+        el("strong", "", "#" + item.rank + " · " + item.name + (item.sampleSufficient ? "" : " · INSUFFICIENT SAMPLE")),
+        el("span", "small", "Worst-case return " + item.worstCaseReturnPct.toFixed(2) + "% · median " + item.medianReturnPct.toFixed(2) + "% · worst DD " + (item.worstDrawdownPct === null ? "—" : item.worstDrawdownPct.toFixed(2) + "%") + " · worst expectancy " + (item.worstExpectancyPerTrade === null ? "—" : item.worstExpectancyPerTrade.toFixed(2) + " USDT") + " · minimum " + item.minimumCompletedTrades + " trades / " + item.minimumFoldCount + " folds"),
+        el("span", "small", "Candidate " + item.candidateId + " · " + item.scenarioCount + " scenarios"),
+      );
+      row.append(details);
+      panel.append(row);
+    }
+    target.append(panel);
+  }
+  if (leaderboard.excludedFamilyIds.length) target.append(el("p", "small", "Incomplete or inconsistent families excluded: " + leaderboard.excludedFamilyIds.join(", ")));
+  if (leaderboard.unassignedRunIds.length) target.append(el("p", "small", "Legacy/non-family reports are not assigned to stress families: " + leaderboard.unassignedRunIds.length));
+  target.append(el("p", "small", "This is a descriptive research shortlist, not strategy promotion, qualification or permission to trade. Incomplete families never rank."));
+}
+
 function renderResearchLeaderboard(target: HTMLElement, records: readonly StoredResearchRun[]): void {
   target.replaceChildren();
   const leaderboard = buildResearchLeaderboard(records);
@@ -404,7 +435,7 @@ export function mountResearchConsole(container: HTMLElement): void {
       </section>
       <p id="research-status" class="paper-status" role="status">Ready · public Binance spot data · no API key required</p>
       <div id="research-results" aria-live="polite"></div>
-      <section class="saved-research"><h3>Global research leaderboard</h3><p class="small">Best historical return and most robust result are shown separately across all locally saved walk-forward report records. Only exact matching datasets, provenance and research/execution settings share a comparison group.</p><div id="research-leaderboard" aria-live="polite">Loading leaderboard…</div></section><section class="saved-research"><h3>Saved experiment history</h3><p class="small">Stored only on this device. Clearing browser site data can erase these records.</p><div id="research-history" aria-live="polite">Loading saved experiments…</div><button id="compare-research" type="button" disabled>Compare selected experiments</button><div id="research-comparison" aria-live="polite"></div></section>
+      <section class="saved-research"><h3>Global research leaderboard</h3><p class="small">Best historical return and most robust result are shown separately across all locally saved walk-forward report records. Only exact matching datasets, provenance and research/execution settings share a comparison group.</p><div id="research-leaderboard" aria-live="polite">Loading leaderboard…</div><h3>Execution-stress survivors</h3><p class="small">Complete scenario families only. Each candidate is ranked across every persisted scenario using the established worst-case stress ranking; partial or inconsistent families are excluded.</p><div id="execution-stress-leaderboard" aria-live="polite">Loading stress families…</div></section><section class="saved-research"><h3>Saved experiment history</h3><p class="small">Stored only on this device. Clearing browser site data can erase these records.</p><div id="research-history" aria-live="polite">Loading saved experiments…</div><button id="compare-research" type="button" disabled>Compare selected experiments</button><div id="research-comparison" aria-live="polite"></div></section>
       <p class="small">Baseline parameters and regime thresholds are fixed research defaults, not optimized recommendations. Results are historical simulations, not evidence of future profitability.</p>
     </section>
   `;
@@ -415,6 +446,7 @@ export function mountResearchConsole(container: HTMLElement): void {
   const results = container.querySelector<HTMLElement>("#research-results");
   const history = container.querySelector<HTMLElement>("#research-history");
   const leaderboardTarget = container.querySelector<HTMLElement>("#research-leaderboard");
+  const executionStressLeaderboardTarget = container.querySelector<HTMLElement>("#execution-stress-leaderboard");
   const compareButton = container.querySelector<HTMLButtonElement>("#compare-research");
   const comparisonTarget = container.querySelector<HTMLElement>("#research-comparison");
   const sensitivityButton = container.querySelector<HTMLButtonElement>("#run-sensitivity");
@@ -430,7 +462,7 @@ export function mountResearchConsole(container: HTMLElement): void {
   const holdoutButton = container.querySelector<HTMLButtonElement>("#run-sealed-holdout");
   const holdoutResults = container.querySelector<HTMLElement>("#sealed-holdout-results");
   const holdoutHistory = container.querySelector<HTMLElement>("#sealed-holdout-history");
-  if (!form || !button || !status || !results || !history || !leaderboardTarget || !compareButton || !comparisonTarget ||
+  if (!form || !button || !status || !results || !history || !leaderboardTarget || !executionStressLeaderboardTarget || !compareButton || !comparisonTarget ||
       !sensitivityButton || !sensitivityStops || !sensitivityTargets || !sensitivityResults ||
       !executionStressButton || !executionStressResults ||
       !nestedButton || !nestedMinTrades || !nestedResults || !nestedHistory ||
@@ -529,6 +561,7 @@ export function mountResearchConsole(container: HTMLElement): void {
       const [records, allRecords] = await Promise.all([runStore.list(50), runStore.listAll()]);
       cachedRuns = records;
       renderResearchLeaderboard(leaderboardTarget, allRecords);
+      renderExecutionStressLeaderboard(executionStressLeaderboardTarget, allRecords);
       history.replaceChildren();
       if (records.length === 0) {
         selectedRunIds.clear();
@@ -722,7 +755,17 @@ export function mountResearchConsole(container: HTMLElement): void {
             .forEach((value) => row.append(el("span", "", value)));
           table.append(row);
         }
-        await runStore.save(scenario.report);
+        await runStore.save(scenario.report, Date.now(), {
+          version: 1,
+          familyId: stressFamilyId,
+          scenarioId: scenario.id,
+          scenarioIndex: report.scenarios.indexOf(scenario),
+          scenarioCount: report.scenarioCount,
+          expectedScenarioIds,
+          label: familyLabel,
+          costMultiplier: scenario.costMultiplier,
+          participationMultiplier: scenario.participationMultiplier,
+        });
       }
       panel.append(table);
       sensitivityResults.append(panel);
@@ -749,6 +792,9 @@ export function mountResearchConsole(container: HTMLElement): void {
       panel.append(el("h4", "", report.scenarioCount + " execution scenarios"));
       panel.append(el("p", "small", report.selectionWarning));
       const ranked = rankExecutionStressCandidates(report);
+      const stressFamilyId = Date.now() + "-" + report.datasetFingerprint + "-" + (++executionStressFamilySequence);
+      const expectedScenarioIds = report.scenarios.map((scenario) => scenario.id);
+      const familyLabel = "Execution stress · " + metadata.symbol + " · " + metadata.interval + " · " + report.datasetFingerprint;
       const ranking = el("div", "research-result");
       ranking.append(el("h4", "", "Best overall under execution stress"));
       ranking.append(el("p", "small", "Ordered by sample sufficiency, then worst-case return across all scenarios, median return, worst drawdown and worst expectancy. This is a research shortlist only; it does not promote or execute a strategy."));
