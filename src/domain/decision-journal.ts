@@ -54,6 +54,28 @@ export interface DecisionJournalEvent {
   payload: Record<string, unknown>;
 }
 
+
+function secureUuid(): string {
+  const generator = globalThis.crypto?.randomUUID;
+  if (typeof generator !== "function") {
+    throw new Error("Secure UUID generation is unavailable in this environment");
+  }
+  return generator.call(globalThis.crypto);
+}
+
+/** Collision-resistant identifiers; wall-clock time is deliberately not used as identity. */
+export function createDecisionJournalId(randomUUID: () => string = secureUuid): string {
+  const value = randomUUID();
+  if (!requiredString(value)) throw new TypeError("A secure UUID is required for a decision ID");
+  return "decision:" + value;
+}
+
+export function createDecisionJournalEventId(randomUUID: () => string = secureUuid): string {
+  const value = randomUUID();
+  if (!requiredString(value)) throw new TypeError("A secure UUID is required for an event ID");
+  return "event:" + value;
+}
+
 function requiredString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
