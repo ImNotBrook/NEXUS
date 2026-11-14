@@ -45,26 +45,26 @@ const parentRecord: DecisionJournalRecord = {
   clockSource: "test-clock",
   symbol: plan.symbol,
   timeframe: plan.timeframe,
-  status: "WAIT",
-  reasonCodes: ["TRIGGER_NOT_CONFIRMED"],
+  status: "REJECT",
+  reasonCodes: ["RISK_GATE_BLOCKED"],
   candidate: {
     id: plan.candidateId,
     symbol: plan.symbol,
     side: "long",
     setupFamily: "structure-retest",
     timeframe: plan.timeframe,
-    triggerConfirmed: false,
+    triggerConfirmed: true,
     expiresAt: plan.entry.expiresAt,
     plan: { entryPrice: 100, stopPrice: 95, targetPrices: [110], quantity: 1 },
   },
   marketSnapshotRefs: [{ snapshotId: "snapshot-1", contentHash: "sha256:decision" }],
   evidence: [],
   result: {
-    status: "WAIT", reasonCodes: ["TRIGGER_NOT_CONFIRMED"],
+    status: "REJECT", reasonCodes: ["RISK_GATE_BLOCKED"],
     supportingFamilies: [], contradictingFamilies: [],
     supportingEvidenceIds: [], contradictingEvidenceIds: [], invalidEvidence: [],
     supportScore: 0, contradictionScore: 0, coverageScore: 0, uncertaintyScore: 1,
-    riskEligible: true,
+    riskEligible: false,
   },
   thesis: { bullCase: ["Structure"], bearCase: ["No trigger"], alternatives: [], invalidation: ["Breakdown"] },
   versions: { engine: "ede-1", score: "score-1", strategy: "strategy-1", riskPolicy: "risk-1" },
@@ -198,6 +198,27 @@ describe("journalShadowOutcome", () => {
       new MemoryJournal(),
       testHasher,
     )).rejects.toThrow(/match/i);
+  });
+
+  it("does not create a shadow entry from an unconfirmed trigger", async () => {
+    const waitingDecision: DecisionJournalRecord = {
+      ...parentRecord,
+      status: "WAIT",
+      reasonCodes: ["TRIGGER_NOT_CONFIRMED"],
+      candidate: { ...parentRecord.candidate!, triggerConfirmed: false },
+      result: {
+        ...parentRecord.result,
+        status: "WAIT",
+        reasonCodes: ["TRIGGER_NOT_CONFIRMED"],
+      },
+    };
+    await expect(journalShadowOutcome(
+      plan,
+      [],
+      4_000,
+      new MemoryJournal(new Set([plan.decisionId]), waitingDecision),
+      testHasher,
+    )).rejects.toThrow(/trigger/i);
   });
 
 });
