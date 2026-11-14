@@ -26,6 +26,11 @@ function createMemoryIndexedDb(): IDBFactory {
           });
           return request;
         },
+        add: (value: { id: string }) => {
+          if (store.has(value.id)) throw new DOMException("Duplicate key", "ConstraintError");
+          store.set(value.id, structuredClone(value));
+          queueMicrotask(() => (transaction.oncomplete as (() => void) | undefined)?.());
+        },
         put: (value: { id: string }) => {
           store.set(value.id, structuredClone(value));
           queueMicrotask(() => (transaction.oncomplete as (() => void) | undefined)?.());
@@ -68,6 +73,17 @@ describe("PaperAccountStore", () => {
     expect(restored?.cash).toBeCloseTo(filled.cash);
     expect(restored?.fills).toHaveLength(1);
     expect(restored?.config).toEqual(filled.config);
+  });
+
+  it("restores only into an empty account and refuses to overwrite existing paper state", async () => {
+    const factory = createMemoryIndexedDb();
+    const store = new PaperAccountStore(factory);
+    const original = createPaperAccount({}, Date.UTC(2026, 0, 1));
+    await store.restore(original);
+    expect(await store.load()).toEqual(original);
+    await expect(store.restore(createPaperAccount({}, Date.UTC(2026, 0, 2)))).rejects.toThrow();
+    expect(await store.load()).toEqual(original);
+    await expect(store.restore({ ...original, cash: Number.NaN })).rejects.toThrow(/cash/i);
   });
 
   it("keeps separately named local paper accounts isolated", async () => {
