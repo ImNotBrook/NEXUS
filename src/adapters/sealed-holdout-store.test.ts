@@ -58,6 +58,7 @@ function memoryIndexedDb(): IDBFactory {
 const seal: SealedHoldoutSeal = {
   protocol: "NEXUS_FINAL_HOLDOUT_V1",
   identity: { symbol: "BTCUSDT", interval: "1h", startTimestamp: 1_000, endTimestamp: 2_000 },
+  provider: "Binance public spot",
   datasetFingerprint: "fnv1a32:dataset", developmentFingerprint: "fnv1a32:dev",
   holdoutFingerprint: "fnv1a32:holdout", candidateIds: ["baseline-v1"],
   candidateFingerprint: "fnv1a32:candidate", pipelineFingerprint: "fnv1a32:pipeline",
