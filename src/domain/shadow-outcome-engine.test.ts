@@ -189,7 +189,7 @@ describe("simulateShadowOutcome", () => {
 
   it("calculates MFE and MAE only from post-entry candles", () => {
     const result = simulateShadowOutcome(plan(), [
-      candle(2_000, 100, 105, 98, 100),
+      candle(2_000, 100, 101, 99, 100),
       candle(3_000, 100, 104, 97, 101),
     ]);
     expect(result.mfeBps).toBeGreaterThan(0);
@@ -262,6 +262,16 @@ describe("simulateShadowOutcome", () => {
     ]);
     expect(result.status).toBe("open");
     expect(result.horizonReached).toBe(false);
+  });
+
+  it("marks a limit-entry candle ambiguous when a protective level also trades", () => {
+    const result = simulateShadowOutcome(plan({
+      entry: { orderType: "limit", referencePrice: 100, limitPrice: 100,
+        earliestEligibleAt: 2_000, expiresAt: 3_000, penetrationBps: 10 },
+    }), [candle(2_000, 100.5, 112, 99.8, 111)]);
+    expect(result.status).toBe("ambiguous");
+    expect(result.entryFilledQuantity).toBe(1);
+    expect(result.exitFilledQuantity).toBe(0);
   });
 
 });
