@@ -1,4 +1,5 @@
 import type { ResearchCandidate } from "./research-pipeline";
+import { compileComposedStrategy, parseComposedStrategy, type ComposedStrategySpecification } from "../strategies/composed-strategy-compiler";
 import {
   createDonchianBreakout,
   createRsiMeanReversion,
@@ -9,13 +10,14 @@ export const STRATEGY_DEFINITION_SCHEMA_VERSION = 1 as const;
 export const STRATEGY_TRIAL_GENERATOR_VERSION = "1.0.0";
 export const STRATEGY_TRIAL_LIMIT = 25;
 
-export type StrategyFamily = "sma-crossover" | "rsi-mean-reversion" | "donchian-breakout";
+export type StrategyFamily = "sma-crossover" | "rsi-mean-reversion" | "donchian-breakout" | "composed-rule";
 export type StrategyOrigin = "human" | "template" | "ai-proposal";
 
 export type StrategyParameters =
   | { fastPeriod: number; slowPeriod: number }
   | { period: number; oversold: number; overbought: number }
-  | { period: number };
+  | { period: number }
+  | ComposedStrategySpecification;
 
 export interface AiStrategyProvenance {
   provider: "groq" | "gemini" | "zai" | "cloudflare" | "nvidia";
@@ -126,6 +128,10 @@ export function validateStrategyDefinition(input: unknown): StrategyDefinitionVa
     if (Object.keys(parameters).sort().join(",") !== "period" || !finiteInteger(parameters.period, 2, 300)) {
       reasons.push("Donchian period must be an integer from 2 to 300");
     }
+  } else if (definition.family === "composed-rule") {
+    try { parseComposedStrategy(parameters); } catch (error) {
+      reasons.push(error instanceof Error ? error.message : "Composed strategy specification is invalid");
+    }
   } else {
     reasons.push("Unsupported strategy family");
   }
@@ -197,6 +203,11 @@ export function createResearchCandidateFromDefinition(definitionInput: StrategyD
     case "donchian-breakout":
       fit = () => createDonchianBreakout({ ...definition.parameters as { period: number } });
       break;
+    case "composed-rule": {
+      const compiled = compileComposedStrategy(definition.parameters as ComposedStrategySpecification);
+      fit = compiled.fit;
+      break;
+    }
   }
   return {
     id: definition.id + "@" + definition.version,
@@ -234,6 +245,7 @@ export function buildStrategyParameterTrials(
   if (!gridInput || typeof gridInput !== "object" || Array.isArray(gridInput)) {
     throw new TypeError("A parameter grid is required");
   }
+  if (base.family === "composed-rule") throw new RangeError("Composed rule strategies use explicit rule revisions, not numeric parameter grids");
   const allowed = Object.keys(base.parameters).sort();
   const keys = Object.keys(gridInput).sort();
   if (keys.length === 0 || keys.some((key) => !allowed.includes(key))) {
