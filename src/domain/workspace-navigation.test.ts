@@ -27,6 +27,12 @@ describe("workspace navigation", () => {
     ]);
   });
 
+  it("explains the optional AI and human approval gates for automation", () => {
+    const automation = WORKSPACE_PAGES.find((page) => page.id === "automation");
+    expect(automation?.help).toContain("human approves");
+    expect(automation?.help).toContain("Live trading remains disabled");
+  });
+
   it("returns only known pages", () => {
     expect(getWorkspacePage("research")?.label).toBe("Strategy research");
     expect(getWorkspacePage("missing")).toBeUndefined();
