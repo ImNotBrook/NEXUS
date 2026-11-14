@@ -26,7 +26,7 @@ describe("automated strategy candidate search", () => {
   it("provides a fresh strategy factory for each candidate", () => {
     for (const candidate of createAutomatedResearchCandidates()) {
       expect(typeof candidate.fit).toBe("function");
-      expect(candidate.fit()).toBeTypeOf("function");
+      expect(candidate.fit([])).toBeTypeOf("function");
     }
   });
 });
