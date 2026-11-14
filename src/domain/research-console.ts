@@ -381,7 +381,7 @@ export function mountResearchConsole(container: HTMLElement): void {
     try {
       const { candles, candidates, pipeline, metadata } = sensitivityContext;
       const plan = prepareSealedHoldout(candles, metadata, 0.2, 2);
-      const evaluation = evaluateSealedHoldout(plan, candidates, pipeline, 0.2);
+      const evaluation = evaluateSealedHoldout(plan, candidates, pipeline);
       const reserved = await sealedHoldoutStore.reserve(evaluation.seal);
       const completed = await sealedHoldoutStore.complete(reserved.id, evaluation.report);
       holdoutResults.append(el("p", "small", "SEALED FINAL HOLDOUT · one test fold per strategy · development " +
