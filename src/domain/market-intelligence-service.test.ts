@@ -74,6 +74,9 @@ function provider(
         ...candle,
         timestamp: candle.timestamp + (options.timestampShiftByInterval?.[request.interval] ?? 0),
       }));
+      if (options.zeroVolumeInterval === request.interval && candles.length) {
+        candles[candles.length - 1] = { ...candles[candles.length - 1], volume: 0 };
+      }
       if (options.addIncompleteCandle) {
         const intervalMs = INTERVALS[request.interval];
         const boundary = Math.floor(NOW / intervalMs) * intervalMs;
