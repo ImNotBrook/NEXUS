@@ -14,6 +14,6 @@ NEXUS is a mobile-first, research-led trading intelligence platform. The initial
 
 ## Development
 
-See [AGENTS.md](AGENTS.md) for engineering rules, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system boundaries, [docs/PAPER_TRADING.md](docs/PAPER_TRADING.md) for simulation assumptions, and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the free Android deployment path, and [docs/LEARNING_AND_SKILLS.md](docs/LEARNING_AND_SKILLS.md) for the hybrid skill-learning and approval model, and [docs/MARKET_REGIMES.md](docs/MARKET_REGIMES.md) for causal market regime diagnostics, and [docs/STRATEGY_LIBRARY.md](docs/STRATEGY_LIBRARY.md) for baseline strategies.
+See [AGENTS.md](AGENTS.md) for engineering rules, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system boundaries, [docs/PAPER_TRADING.md](docs/PAPER_TRADING.md) for simulation assumptions, and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the free Android deployment path, and [docs/LEARNING_AND_SKILLS.md](docs/LEARNING_AND_SKILLS.md) for the hybrid skill-learning and approval model, and [docs/MARKET_REGIMES.md](docs/MARKET_REGIMES.md) for causal market regime diagnostics, and [docs/STRATEGY_LIBRARY.md](docs/STRATEGY_LIBRARY.md) for baseline strategies, and [docs/FREE_AI_PROVIDERS.md](docs/FREE_AI_PROVIDERS.md) for the free AI provider registry and routing policy.
 
 The initial frontend is a static TypeScript application. It must remain usable from a modern Android browser and must not depend on a permanently running backend.
