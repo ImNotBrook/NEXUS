@@ -44,7 +44,7 @@ describe("workspace navigation", () => {
 
   it("explains that outcomes require pre-registered plans and exclude immature paths", () => {
     const outcomes = WORKSPACE_PAGES.find((page) => page.id === "outcomes");
-    expect(outcomes?.help).toContain("pre-registered");
+    expect(outcomes?.help).toContain("registered with the original decision");
     expect(outcomes?.help).toContain("ambiguous");
   });
 
