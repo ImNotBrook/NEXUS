@@ -126,6 +126,14 @@ describe("ResearchRunStore", () => {
     await expect(store.save(report, -1)).rejects.toThrow();
   });
 
+  it("lists the complete saved history independently of the bounded recent-history view", async () => {
+    const store = new ResearchRunStore(memoryIndexedDb());
+    const first = await store.save(report, 1000);
+    const second = await store.save({ ...report, dataset: { ...report.dataset, fingerprint: "fnv1a32:87654321" } }, 2000);
+    expect((await store.list(1)).map((record) => record.id)).toEqual([second.id]);
+    expect((await store.listAll()).map((record) => record.id)).toEqual([second.id, first.id]);
+  });
+
   it("deletes a stored run without affecting other records", async () => {
     const store = new ResearchRunStore(memoryIndexedDb());
     const first = await store.save(report, 1000);
