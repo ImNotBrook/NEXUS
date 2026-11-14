@@ -17,3 +17,17 @@ NEXUS is a mobile-first, research-led trading intelligence platform. The initial
 See [AGENTS.md](AGENTS.md) for engineering rules, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system boundaries, [docs/PAPER_TRADING.md](docs/PAPER_TRADING.md) for simulation assumptions, and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the free Android deployment path, and [docs/LEARNING_AND_SKILLS.md](docs/LEARNING_AND_SKILLS.md) for the hybrid skill-learning and approval model, and [docs/MARKET_REGIMES.md](docs/MARKET_REGIMES.md) for causal market regime diagnostics, and [docs/STRATEGY_LIBRARY.md](docs/STRATEGY_LIBRARY.md) for baseline strategies.
 
 The initial frontend is a static TypeScript application. It must remain usable from a modern Android browser and must not depend on a permanently running backend.
+
+
+---
+
+# NEXUS Paper Trading Ledger
+
+This branch stores only the simulated paper-trading configuration and checkpoint.
+
+- `data/paper-trading-config.json` is human-controlled and disabled by default.
+- `data/paper-trading-state.json` is updated by the scheduled GitHub Actions paper-trading worker.
+- The ledger is public because this repository is public. It must contain simulated balances and market-derived results only.
+- Never put API keys, exchange credentials, personal information or real account data here.
+
+To enable paper trading, first review a candidate's nested walk-forward report and final untouched holdout. Then update the config with an explicit strategy ID, exact parameters, approval timestamp (Unix milliseconds), approver and rationale, and set `enabled` to true. The worker rejects unapproved or mismatched strategy configurations.
