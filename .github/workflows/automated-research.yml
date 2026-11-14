@@ -49,3 +49,63 @@ jobs:
           path: artifacts/automated-research.json
           if-no-files-found: error
           retention-days: 30
+
+  publish-proposals:
+    needs: research
+    if: success()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Checkout NEXUS
+        uses: actions/checkout@v4
+      - name: Download the completed research report
+        uses: actions/download-artifact@v4
+        with:
+          name: nexus-automated-research-${{ github.run_number }}
+          path: artifacts
+      - name: Create a sanitised proposal-only feed
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const report = JSON.parse(fs.readFileSync("artifacts/automated-research.json", "utf8"));
+          if (report.schemaVersion !== 1 || !report.aiGeneration || !Array.isArray(report.aiGeneration.proposals)) {
+            throw new Error("Automated research report does not match the expected schema");
+          }
+          const publication = {
+            schemaVersion: 1,
+            createdAt: report.createdAt,
+            symbol: report.symbol,
+            interval: report.interval,
+            aiGeneration: {
+              status: report.aiGeneration.status,
+              provider: report.aiGeneration.provider,
+              model: report.aiGeneration.model,
+              proposals: report.aiGeneration.proposals
+            }
+          };
+          fs.writeFileSync("/tmp/ai-strategy-proposals.json", JSON.stringify(publication, null, 2) + "\n");
+          NODE
+      - name: Publish latest proposal feed to the dedicated branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin ai-proposals || true
+          if git show-ref --verify --quiet refs/remotes/origin/ai-proposals; then
+            git checkout -B ai-proposals origin/ai-proposals
+          else
+            git checkout --orphan ai-proposals
+            git rm -rf . || true
+          fi
+          cp /tmp/ai-strategy-proposals.json ai-strategy-proposals.json
+          git add ai-strategy-proposals.json
+          if git diff --cached --quiet; then
+            echo "Latest proposal feed is unchanged."
+          else
+            git commit -m "chore: publish latest AI strategy proposals"
+            git push origin ai-proposals
+          fi
