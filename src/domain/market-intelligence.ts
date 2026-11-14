@@ -263,7 +263,14 @@ function buildFrame(
     intervalMs: frame.intervalMs,
     maxAgeMs: frame.maxAgeMs,
     qualityStatus: frame.qualityStatus,
-    candles: eligibleCandles,
+    candles: eligibleCandles.map((candle) => ({
+      timestamp: candle.timestamp,
+      open: candle.open,
+      high: candle.high,
+      low: candle.low,
+      close: candle.close,
+      volume: candle.volume,
+    })),
   };
 
   if (frame.fetchedAt > input.evaluationTime) {
@@ -557,7 +564,14 @@ export async function buildMarketIntelligenceSnapshot(
     instrumentCategory: input.instrumentCategory,
     volumeUnit: input.volumeUnit,
     evaluationTime: input.evaluationTime,
-    config: input.config,
+    config: {
+      fastEmaPeriod: input.config.fastEmaPeriod,
+      slowEmaPeriod: input.config.slowEmaPeriod,
+      atrPeriod: input.config.atrPeriod,
+      trendThresholdPct: input.config.trendThresholdPct,
+      lowVolatilityAtrPct: input.config.lowVolatilityAtrPct,
+      highVolatilityAtrPct: input.config.highVolatilityAtrPct,
+    },
     frames: frameResults.map((result) => result.hashSource),
     derived: {
       macroTrend,
