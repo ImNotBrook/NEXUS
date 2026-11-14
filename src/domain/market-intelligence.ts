@@ -250,10 +250,17 @@ function buildFrame(
     throw new RangeError("Each timeframe is limited to " + MAX_FRAME_CANDLES + " candles");
   }
 
+  // An untraceable timestamp cannot be safely classified as historical or future.
+  if (frame.candles.some((candle) => !candle || !validTime(candle.timestamp))) {
+    return {
+      snapshot: unavailableFrame(timeframe, "failed", "Candle timestamp is invalid or missing", frame),
+      hashSource: { timeframe, status: "failed", provider: frame.provider, fetchedAt: frame.fetchedAt },
+    };
+  }
+
   // Candle timestamps are bar-open times. Only a fully closed bar is eligible.
-  // Filter first so malformed future bars cannot contaminate historical prefixes.
+  // Filter first so malformed future OHLC cannot contaminate historical prefixes.
   const eligibleCandles = frame.candles.filter((candle) =>
-    candle && validTime(candle.timestamp) &&
     candle.timestamp <= Number.MAX_SAFE_INTEGER - frame.intervalMs &&
     candle.timestamp + frame.intervalMs <= input.evaluationTime
   );
@@ -552,6 +559,8 @@ export async function buildMarketIntelligenceSnapshot(
   const relativeVolume20 = frames["1h"].relativeVolume20;
   const liquidityStatus = relativeVolume20 === null ? "unknown" : "partial";
   const missingDimensions = [
+    "market_structure_events",
+    "elliott_wave_scenarios",
     "order_book_depth",
     "market_breadth",
     "derivatives_positioning",
