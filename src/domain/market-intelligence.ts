@@ -1,4 +1,3 @@
-import { atr, ema } from "./indicators";
 import { validateCandles, type Candle } from "./candles";
 import {
   classifyMarketRegimes,
@@ -111,6 +110,7 @@ export interface MarketIntelligenceSnapshot {
 export type MarketIntelligenceHasher = (value: unknown) => Promise<string>;
 
 const TIMEFRAMES: readonly MarketTimeframe[] = ["1d", "4h", "1h", "15m"];
+const MAX_FRAME_CANDLES = 5_000;
 const INTERVAL_MS: Record<MarketTimeframe, number> = {
   "1d": 86_400_000,
   "4h": 14_400_000,
@@ -239,6 +239,10 @@ function buildFrame(
       snapshot: unavailableFrame(timeframe, "failed", "Candle collection is not an array", frame),
       hashSource: { timeframe, status: "failed", provider: frame.provider, fetchedAt: frame.fetchedAt },
     };
+  }
+
+  if (frame.candles.length > MAX_FRAME_CANDLES) {
+    throw new RangeError("Each timeframe is limited to " + MAX_FRAME_CANDLES + " candles");
   }
 
   // Candle timestamps are bar-open times. Only a fully closed bar is eligible.
