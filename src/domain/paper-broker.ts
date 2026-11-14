@@ -109,6 +109,16 @@ export function validatePaperAccountSnapshot(value: unknown): asserts value is P
   }
 }
 
+export function isPristinePaperAccount(account: PaperAccount): boolean {
+  return account.fills.length === 0 &&
+    account.openOrders.length === 0 &&
+    Object.keys(account.positions).length === 0 &&
+    account.cash === account.initialCash &&
+    account.realizedPnl === 0 &&
+    account.totalFees === 0 &&
+    account.dailyStartEquity === account.initialCash;
+}
+
 const DEFAULT_CONFIG: PaperBrokerConfig = {
   initialCash: 10_000,
   feeRate: 0.001,
