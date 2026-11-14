@@ -333,4 +333,26 @@ describe("evaluateLearningCohorts", () => {
     expect(report.excluded.map((item) => item.reason)).toContain("duplicate_observation_id");
     expect(report.excluded.map((item) => item.reason)).toContain("invalid_observation");
   });
+  it("keeps different simulation versions in separate cohorts", () => {
+    const v1 = makePlan({ simulationVersion: "shadow-v1" });
+    const v2 = makePlan({ simulationVersion: "shadow-v2" });
+    const report = evaluateLearningCohorts([
+      makeObservation({
+        observationId: "simulation-v1",
+        plan: v1,
+        decision: makeDecision(v1),
+        outcome: makeOutcome(v1),
+      }),
+      makeObservation({
+        observationId: "simulation-v2",
+        plan: v2,
+        decision: makeDecision(v2),
+        outcome: makeOutcome(v2),
+      }),
+    ]);
+    expect(report.cohorts).toHaveLength(2);
+    expect(report.cohorts.map((cohort) => cohort.simulationVersion).sort())
+      .toEqual(["shadow-v1", "shadow-v2"]);
+  });
+
 });
