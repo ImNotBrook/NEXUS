@@ -87,6 +87,18 @@ describe("NestedResearchRunStore", () => {
     });
   });
 
+  it("accepts valid walk-forward configs that use the default step size", async () => {
+    const store = new NestedResearchRunStore(memoryIndexedDb());
+    const defaultStepConfig = {
+      ...config,
+      outerFolds: { ...config.outerFolds, stepBars: undefined },
+      innerFolds: { ...config.innerFolds, stepBars: undefined },
+    };
+    await expect(store.save(report, metadata, defaultStepConfig, 1000)).resolves.toMatchObject({
+      config: defaultStepConfig,
+    });
+  });
+
   it("returns isolated copies so callers cannot mutate persisted records", async () => {
     const store = new NestedResearchRunStore(memoryIndexedDb());
     await store.save(report, metadata, config, 1000);
