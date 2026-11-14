@@ -70,8 +70,8 @@ describe("additional trend and momentum indicators", () => {
   it("calculates stochastic %K and its smoothed %D", async () => {
     const { stochastic } = await import("./indicators");
     const result = stochastic([10, 12, 13, 14], [8, 9, 11, 12], [9, 11, 13, 14], 2, 2);
-    expect(result.k).toEqual([null, null, 100, 100]);
-    expect(result.d).toEqual([null, null, null, 100]);
+    expect(result.k).toEqual([null, 75, 100, 100]);
+    expect(result.d).toEqual([null, null, 87.5, 100]);
   });
 
   it("returns zero CCI for a constant typical price", async () => {
