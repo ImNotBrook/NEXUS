@@ -274,4 +274,18 @@ describe("journalShadowOutcome", () => {
     expect(result.event.payload.horizonReached).toBe(true);
   });
 
+  it("creates a distinct observation when the first horizon-proof timestamp changes", async () => {
+    const journal = new MemoryJournal();
+    const causal = candle(2_000, 100, 101, 99, 100);
+    const first = await journalShadowOutcome(
+      plan, [causal, candle(11_000, 100, 101, 99, 100)], 12_000, journal, testHasher,
+    );
+    const second = await journalShadowOutcome(
+      plan, [causal, candle(12_000, 100, 101, 99, 100)], 13_000, journal, testHasher,
+    );
+    expect(second.event.eventId).not.toBe(first.event.eventId);
+    expect(journal.events).toHaveLength(2);
+    expect(second.event.payload.candles).toHaveLength(1);
+  });
+
 });
