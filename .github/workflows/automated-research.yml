@@ -94,6 +94,7 @@ jobs:
             }
           };
           fs.writeFileSync("/tmp/ai-strategy-proposals.json", JSON.stringify(publication, null, 2) + "\n");
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, "publish=true\\n");
           NODE
       - name: Publish latest proposal feed to the dedicated branch
         if: steps.feed.outputs.publish == 'true'
