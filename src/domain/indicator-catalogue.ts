@@ -56,6 +56,16 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     redundancyGroup: "moving_average", defaultParameters: { period: 20 },
   },
   {
+    id: "wma", name: "Weighted Moving Average", category: "trend", implementation: "implemented",
+    purpose: "Smooth price while assigning linearly greater weight to recent observations.",
+    inputs: ["close"], bestIn: ["uptrend", "downtrend"],
+    usefulWhen: ["Alternative trend smoothing with explicit recent-price weighting"],
+    avoidWhen: ["Stacking several moving-average variants as independent confirmation"],
+    interpretation: "A rising WMA indicates rising weighted average price over the selected window.",
+    limitations: ["Still lagging", "Highly correlated with SMA and EMA"],
+    redundancyGroup: "moving_average", defaultParameters: { period: 20 },
+  },
+  {
     id: "ema", name: "Exponential Moving Average", category: "trend", implementation: "implemented",
     purpose: "Weight recent prices more heavily to track trend changes faster than SMA.",
     inputs: ["close"], bestIn: ["uptrend", "downtrend"],
