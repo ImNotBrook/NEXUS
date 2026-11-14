@@ -124,6 +124,8 @@ NEXUS must generate strategies itself. The Strategy Studio is primarily a review
 - CI passed 83 test files / 536 tests, dependency audit (0 vulnerabilities), scheduled-runner checks, derivatives checks and production build on commit `6f586c6719d2969eb506c8f351f3058f1772fcb5` (CI [43582449928](https://github.com/ImNotBrook/NEXUS/actions/runs/43582449928)).
 - Remaining: research-run reports and trial manifests are not yet backed up; nested research, sealed holdouts and other local ledgers also remain outside the current backup formats. This increment does not claim a full-device backup.
 
+- AI-composed rule-engine verification: commit `06b20bc446e11c95d338de9b00eb6edd69669fec`, CI [43641802771](https://github.com/ImNotBrook/NEXUS/actions/runs/43641802771) passed 85 test files / 550 tests plus security audit, runner checks and production build; deployment [43641802814](https://github.com/ImNotBrook/NEXUS/actions/runs/43641802814) succeeded. The first public AI feed still requires a successful run of the updated Automated Research workflow to seed its branch.
+
 ## Remaining platform work — definition of done
 
 ### Strategy creation
