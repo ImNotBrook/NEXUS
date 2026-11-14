@@ -404,7 +404,7 @@ export function mountResearchConsole(container: HTMLElement): void {
       </section>
       <p id="research-status" class="paper-status" role="status">Ready · public Binance spot data · no API key required</p>
       <div id="research-results" aria-live="polite"></div>
-      <section class="saved-research"><h3>Global research leaderboard</h3><p class="small">Best historical return and most robust result are shown separately. Only exact matching datasets, provenance and research/execution settings share a comparison group.</p><div id="research-leaderboard" aria-live="polite">Loading leaderboard…</div></section><section class="saved-research"><h3>Saved experiment history</h3><p class="small">Stored only on this device. Clearing browser site data can erase these records.</p><div id="research-history" aria-live="polite">Loading saved experiments…</div><button id="compare-research" type="button" disabled>Compare selected experiments</button><div id="research-comparison" aria-live="polite"></div></section>
+      <section class="saved-research"><h3>Global research leaderboard</h3><p class="small">Best historical return and most robust result are shown separately across all locally saved ordinary research runs. Only exact matching datasets, provenance and research/execution settings share a comparison group.</p><div id="research-leaderboard" aria-live="polite">Loading leaderboard…</div></section><section class="saved-research"><h3>Saved experiment history</h3><p class="small">Stored only on this device. Clearing browser site data can erase these records.</p><div id="research-history" aria-live="polite">Loading saved experiments…</div><button id="compare-research" type="button" disabled>Compare selected experiments</button><div id="research-comparison" aria-live="polite"></div></section>
       <p class="small">Baseline parameters and regime thresholds are fixed research defaults, not optimized recommendations. Results are historical simulations, not evidence of future profitability.</p>
     </section>
   `;
@@ -526,9 +526,9 @@ export function mountResearchConsole(container: HTMLElement): void {
 
   const refreshHistory = async (): Promise<void> => {
     try {
-      const records = await runStore.list(50);
+      const [records, allRecords] = await Promise.all([runStore.list(50), runStore.listAll()]);
       cachedRuns = records;
-      renderResearchLeaderboard(leaderboardTarget, records);
+      renderResearchLeaderboard(leaderboardTarget, allRecords);
       history.replaceChildren();
       if (records.length === 0) {
         selectedRunIds.clear();
