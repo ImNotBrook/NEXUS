@@ -355,7 +355,7 @@ Updated: 2026-11-14
 - Added candidate-specific nested selection for protective stop-loss/take-profit settings. Each outer fold performs its bounded parameter grid only on the outer training slice, then freezes the chosen settings before evaluating the untouched outer test window.
 - Inner selection uses compounded inner OOS return, with lower worst-fold drawdown as a tie-breaker. Exact ties preserve the disabled-baseline-first scenario order.
 - Added a minimum inner completed-trade eligibility threshold. If no scenario meets it, the disabled protective-exit baseline is retained rather than selecting a no-trade or under-sampled configuration.
-- Reports separate inner selection metrics from outer test metrics, selected parameters per outer fold, aggregate outer returns/drawdown/trades and parameter stability.
+- Reports separate inner selection metrics from outer test metrics, selected parameters per outer fold, aggregate outer returns/drawdown/trades, profit factor, expectancy, fees, completed turnover, average exposure, stop/target exits, fill events, pending quantity and parameter stability.
 - Added a mobile console action with an eight-outer-fold cap, existing 25-scenario grid cap and configurable minimum inner trade count.
 - Added regression specifications for training/test separation, invariance of a fold's selection to changes in that fold's outer test data, baseline fallback, invalid fold geometry and separation of inner/outer metrics.
 - See `docs/NESTED_WALK_FORWARD_SELECTION.md` for the protocol and limits.
