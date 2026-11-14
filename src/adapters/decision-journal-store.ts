@@ -156,6 +156,55 @@ export class DecisionJournalStore {
     };
   }
 
+  /** Read-only restore preview: reports additions, identical duplicates and conflicts. */
+  async previewRestore(snapshot: {
+    records: DecisionJournalRecord[];
+    events: DecisionJournalEvent[];
+  }): Promise<{ addedRecords: number; addedEvents: number; unchangedRecords: number; unchangedEvents: number; conflicts: string[] }> {
+    if (!snapshot || !Array.isArray(snapshot.records) || !Array.isArray(snapshot.events)) {
+      throw new TypeError("A complete decision journal backup is required");
+    }
+    const importedRecords = new Map<string, DecisionJournalRecord>();
+    for (const record of snapshot.records) {
+      validateDecisionJournalRecord(record);
+      if (importedRecords.has(record.decisionId)) throw new Error("Backup contains duplicate decision IDs");
+      importedRecords.set(record.decisionId, record);
+    }
+    const importedEvents = new Map<string, DecisionJournalEvent>();
+    for (const event of snapshot.events) {
+      validateDecisionJournalEvent(event);
+      if (importedEvents.has(event.eventId)) throw new Error("Backup contains duplicate event IDs");
+      importedEvents.set(event.eventId, event);
+    }
+    const existing = await this.exportAll();
+    const existingRecords = new Map(existing.records.map((record) => [record.decisionId, record]));
+    const existingEvents = new Map(existing.events.map((event) => [event.eventId, event]));
+    const equal = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
+    const conflicts: string[] = [];
+    let unchangedRecords = 0;
+    let unchangedEvents = 0;
+    for (const [id, record] of importedRecords) {
+      const current = existingRecords.get(id);
+      if (current && !equal(current, record)) conflicts.push("Decision ID has different content: " + id);
+      else if (current) unchangedRecords += 1;
+    }
+    for (const [id, event] of importedEvents) {
+      const current = existingEvents.get(id);
+      if (current && !equal(current, event)) conflicts.push("Event ID has different content: " + id);
+      else if (current) unchangedEvents += 1;
+      const parent = importedRecords.get(event.decisionId) ?? existingRecords.get(event.decisionId);
+      if (!parent) conflicts.push("Event references missing decision: " + event.eventId);
+      else if (event.occurredAt < parent.decisionAt) conflicts.push("Event predates decision: " + event.eventId);
+    }
+    return {
+      addedRecords: importedRecords.size - unchangedRecords - conflicts.filter((item) => item.startsWith("Decision ID")).length,
+      addedEvents: importedEvents.size - unchangedEvents - conflicts.filter((item) => item.startsWith("Event ID")).length,
+      unchangedRecords,
+      unchangedEvents,
+      conflicts,
+    };
+  }
+
   /**
    * Imports a complete journal snapshot in one IndexedDB transaction.
    * Existing IDs are accepted only when byte-for-byte equivalent; conflicting
