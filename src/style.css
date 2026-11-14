@@ -123,3 +123,24 @@
 #market-paper-gate{border-left:2px solid #c99d55;padding:9px 11px;background:#2a2418;color:#e4c98f}
 @media(max-width:720px){.intelligence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:360px){.intelligence-grid{grid-template-columns:1fr}}
+
+
+/* Read-only decision journal */
+.journal-panel{grid-column:1/-1}
+.journal-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.journal-actions button{min-height:40px}
+.journal-list{display:grid;gap:10px}
+.journal-record{border:1px solid #29445b;border-radius:8px;padding:12px;background:#0d1d2d;min-width:0}
+.journal-record-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.journal-record-header>div{display:grid;gap:5px;min-width:0}
+.journal-meta{font-size:10px;color:#8194a8}
+.journal-status{font-size:10px;font-weight:700;letter-spacing:.08em;padding:5px 8px;border:1px solid #456078;border-radius:5px;white-space:nowrap}
+.journal-status-enter{color:#70d9b3;border-color:#286d5c}
+.journal-status-wait{color:#e5c27d;border-color:#78633b}
+.journal-status-reject{color:#ef9b9b;border-color:#784646}
+.journal-status-no_setup{color:#aebdd0}
+.journal-reasons{font-size:11px;color:#e3c98f;overflow-wrap:anywhere}
+.journal-thesis{font-size:12px;color:#b5c4d4;overflow-wrap:anywhere}
+.journal-details summary{cursor:pointer;color:#79c9de;font-size:11px;padding:8px 0}
+.journal-snapshot{max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#081522;border-radius:6px;padding:10px;color:#a9bdcf;font-size:10px}
+@media(max-width:420px){.journal-record-header{flex-direction:column}.journal-status{align-self:flex-start}}
