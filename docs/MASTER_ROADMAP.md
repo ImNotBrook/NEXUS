@@ -40,7 +40,7 @@ NEXUS is intended to become a mobile-first AI trading intelligence and automated
 | 6 | Sealed final holdout | DONE | Chronological final holdout, embargo and local overlap lock |
 | 7 | Statistical robustness | DONE | Confidence intervals, bootstrap, fold consistency and conservative statuses |
 | 8 | Execution stress testing and best-first ranking | DONE | Adverse execution scenarios and deterministic candidate ordering |
-| 9 | Global research leaderboard | PARTIAL | Ordinary saved-run leaderboard is connected; nested/holdout separation is preserved; dedicated stress-family aggregation and broader integration verification remain |
+| 9 | Global research leaderboard | PARTIAL | Ordinary and complete execution-stress family rankings are connected; nested/holdout ledgers remain separate; collective integration verification remains |
 | 10 | Strategy creation studio | PLANNED | Versioned strategy specifications, reusable templates, rule composer and safe candidate generation |
 | 11 | AI analyst and research agents | PARTIAL | Governed provider adapters and proposal foundations exist; complete multi-agent workflow, evidence citations, structured outputs and evaluations |
 | 12 | Market intelligence expansion | PARTIAL | Core multi-timeframe technical evidence exists; complete resilient market coverage, liquidity/order-book and derivatives dimensions with source-quality controls |
@@ -53,20 +53,20 @@ NEXUS is intended to become a mobile-first AI trading intelligence and automated
 
 ## Active stage: 9 — Global Research Leaderboard
 
-Implementation note: v1 reads all `ResearchRunStore` walk-forward report records; individual stress scenario reports may appear in isolated configuration groups, but are not aggregated as stress families. Nested research and sealed holdout remain in their own ledgers. Execution-stress scenarios are not yet aggregated as a dedicated stress-survivor family because the current persistence contract stores scenario reports individually without a scenario-family manifest. See [RESEARCH_LEADERBOARD.md](RESEARCH_LEADERBOARD.md).
+Implementation note: the ordinary leaderboard reads all `ResearchRunStore` records. Newly run execution-stress scenarios carry a versioned family manifest and are aggregated only when every expected scenario is present and consistent; legacy or interrupted families are excluded rather than inferred. Nested research and sealed holdout remain in their own ledgers and dedicated views. See [RESEARCH_LEADERBOARD.md](RESEARCH_LEADERBOARD.md).
 
 ### Scope
 - Read existing locally persisted research runs; do not create a second source of truth.
 - Compare runs only when dataset identity/provenance, symbol, interval, date range, fold design, strategy identity/version and execution assumptions are compatible.
 - If key metadata is absent, mark a run non-comparable rather than guessing.
-- Show separate views for: best raw historical result, most robust research candidate, and strongest execution-stress survivor.
+- Show separate views for: best raw historical result, most robust research candidate, and strongest complete execution-stress survivor; keep nested research and sealed holdout in their own separate views.
 - Display sample size, fold count, worst-fold return/drawdown, expectancy, costs, unresolved exposure and statistical review state.
 - Preserve all runs. No automatic deletion, tuning, promotion or paper-order placement.
 - Keep rankings deterministic with explicit tie-breaks and explain why entries are grouped or excluded.
 
 ### Acceptance criteria
 - Unit tests cover compatibility, missing metadata, config mismatches, candidate identity, stable ordering and empty history.
-- Integration tests load persisted runs and produce the same leaderboard after refresh/reopen.
+- Integration tests load persisted ordinary and stress-family runs and produce the same rankings after refresh/reopen; incomplete or inconsistent stress families are excluded.
 - Mobile UI clearly separates incomparable groups and warns that historical ranking is not a profitability guarantee.
 - Existing research, stress, holdout and paper workflows remain unchanged.
 - CI, dependency audit, TypeScript and production build pass before deployment.
