@@ -183,7 +183,7 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
     const candidate = ranked.candidate;
     const card = el("article", "research-result");
     const heading = el("div", "research-result-heading");
-    heading.append(el("h3", "", "#" + rankedCandidates.indexOf(ranked) + 1 + " · " + candidate.name), el("span", "tag safe", candidate.id));
+    heading.append(el("h3", "", "#" + ranked.rank + " · " + candidate.name), el("span", "tag safe", candidate.id));
     card.append(heading);
     const stats = el("div", "research-summary");
     stats.append(
