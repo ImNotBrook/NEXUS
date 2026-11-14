@@ -274,4 +274,18 @@ describe("simulateShadowOutcome", () => {
     expect(result.exitFilledQuantity).toBe(0);
   });
 
+  it("expires an unfilled entry when supplied data proves the horizon has passed", () => {
+    const result = simulateShadowOutcome(plan({
+      horizonEnd: 3_000,
+      entry: { orderType: "limit", referencePrice: 100, limitPrice: 100,
+        earliestEligibleAt: 2_000, expiresAt: 2_500, penetrationBps: 10 },
+    }), [
+      candle(2_000, 100.5, 101, 99.95, 100.2),
+      candle(4_000, 100, 101, 99, 100),
+    ]);
+    expect(result.horizonReached).toBe(true);
+    expect(result.entryOrderStatus).toBe("expired");
+    expect(result.status).toBe("expired");
+  });
+
 });
