@@ -5,6 +5,7 @@ import { createBaselineResearchCandidates } from "../strategies/baseline-researc
 import { ResearchRunStore, type StoredResearchRun } from "../adapters/research-run-store";
 import { compareResearchRuns } from "./research-comparison";
 import { runProtectiveExitSensitivity } from "./protective-exit-sensitivity";
+import { runExecutionStressTest } from "./execution-stress-test";
 import { runNestedWalkForwardSelection, type NestedWalkForwardResult, type NestedWalkForwardConfig } from "./nested-walk-forward-selection";
 import { NestedResearchRunStore } from "../adapters/nested-research-run-store";
 import { prepareSealedHoldout, evaluateSealedHoldout } from "./sealed-holdout";
@@ -314,6 +315,12 @@ export function mountResearchConsole(container: HTMLElement): void {
         <div id="sensitivity-results" aria-live="polite"></div>
       </section>
       <section class="research-result sensitivity-controls">
+        <h3>Execution stress test</h3>
+        <p class="small">Re-run the same strategies, market candles and walk-forward folds under 1.5×, 2× and 3× fees/slippage/spread/impact, plus half the baseline candle-participation capacity. This tests survivability; it does not select an optimal configuration.</p>
+        <button id="run-execution-stress" type="button" disabled>Run execution stress test</button>
+        <div id="execution-stress-results" aria-live="polite"></div>
+      </section>
+      <section class="research-result sensitivity-controls">
         <h3>Nested walk-forward selection</h3>
         <p class="small">Select stop/target settings only inside each outer training window, then evaluate the frozen settings once on its later outer test window. The mobile run is capped at eight outer folds.</p>
         <label>Minimum inner completed trades<input id="nested-min-trades" type="number" min="0" max="1000" step="1" value="3" /></label>
@@ -347,6 +354,8 @@ export function mountResearchConsole(container: HTMLElement): void {
   const sensitivityStops = container.querySelector<HTMLInputElement>("#sensitivity-stops");
   const sensitivityTargets = container.querySelector<HTMLInputElement>("#sensitivity-targets");
   const sensitivityResults = container.querySelector<HTMLElement>("#sensitivity-results");
+  const executionStressButton = container.querySelector<HTMLButtonElement>("#run-execution-stress");
+  const executionStressResults = container.querySelector<HTMLElement>("#execution-stress-results");
   const nestedButton = container.querySelector<HTMLButtonElement>("#run-nested-selection");
   const nestedMinTrades = container.querySelector<HTMLInputElement>("#nested-min-trades");
   const nestedResults = container.querySelector<HTMLElement>("#nested-selection-results");
@@ -356,6 +365,7 @@ export function mountResearchConsole(container: HTMLElement): void {
   const holdoutHistory = container.querySelector<HTMLElement>("#sealed-holdout-history");
   if (!form || !button || !status || !results || !history || !compareButton || !comparisonTarget ||
       !sensitivityButton || !sensitivityStops || !sensitivityTargets || !sensitivityResults ||
+      !executionStressButton || !executionStressResults ||
       !nestedButton || !nestedMinTrades || !nestedResults || !nestedHistory ||
       !holdoutButton || !holdoutResults || !holdoutHistory) return;
   const runStore = new ResearchRunStore();
@@ -658,6 +668,52 @@ export function mountResearchConsole(container: HTMLElement): void {
     }
   });
 
+  executionStressButton.addEventListener("click", async () => {
+    if (!sensitivityContext || executionStressButton.disabled) return;
+    executionStressButton.disabled = true;
+    executionStressButton.textContent = "Running execution stress…";
+    executionStressResults.replaceChildren();
+    status.textContent = "Replaying identical walk-forward folds under adverse execution assumptions…";
+    try {
+      const { candles, candidates, pipeline, metadata } = sensitivityContext;
+      const report = runExecutionStressTest(candles, candidates, pipeline, {}, metadata);
+      const panel = el("div", "research-result");
+      panel.append(el("h4", "", report.scenarioCount + " execution scenarios"));
+      panel.append(el("p", "small", report.selectionWarning));
+      const table = el("div", "regime-table");
+      const header = el("div", "regime-row regime-header");
+      ["SCENARIO", "STRATEGY", "OOS RETURN", "WORST DD", "EXPECTANCY", "TRADES", "FEES", "PARTIAL FILLS", "PENDING QTY"].forEach((value) => header.append(el("span", "", value)));
+      table.append(header);
+      for (const scenario of report.scenarios) {
+        for (const candidate of scenario.report.candidateResults) {
+          const row = el("div", "regime-row");
+          [
+            scenario.label,
+            candidate.name,
+            candidate.evaluation.compoundedReturnPct.toFixed(2) + "%",
+            candidate.scorecard.worstFoldDrawdownPct === null ? "—" : candidate.scorecard.worstFoldDrawdownPct.toFixed(2) + "%",
+            candidate.scorecard.expectancyPerTrade === null ? "—" : candidate.scorecard.expectancyPerTrade.toFixed(2) + " USDT",
+            String(candidate.scorecard.completedTrades),
+            candidate.scorecard.totalFees.toFixed(2) + " USDT",
+            String(candidate.evaluation.totalPartialFillEvents),
+            candidate.evaluation.totalPendingQuantity.toFixed(6),
+          ].forEach((value) => row.append(el("span", "", value)));
+          table.append(row);
+        }
+        await runStore.save(scenario.report);
+      }
+      panel.append(table);
+      executionStressResults.append(panel);
+      await refreshHistory();
+      status.textContent = "Execution stress complete · " + report.scenarioCount + " scenarios · saved locally";
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Execution stress test failed";
+    } finally {
+      executionStressButton.disabled = sensitivityContext === null;
+      executionStressButton.textContent = "Run execution stress test";
+    }
+  });
+
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     if (button.disabled) return;
@@ -687,9 +743,11 @@ export function mountResearchConsole(container: HTMLElement): void {
     sensitivityButton.disabled = true;
     nestedButton.disabled = true;
     holdoutButton.disabled = true;
+    executionStressButton.disabled = true;
     sensitivityContext = null;
     sensitivityResults.replaceChildren();
     nestedResults.replaceChildren();
+    executionStressResults.replaceChildren();
     button.textContent = "Loading history…";
     results.replaceChildren();
     status.textContent = "Fetching completed public candles…";
@@ -729,6 +787,7 @@ export function mountResearchConsole(container: HTMLElement): void {
         sensitivityContext = { candles, candidates, pipeline: settings.pipeline, metadata };
         sensitivityButton.disabled = false;
         holdoutButton.disabled = false;
+        executionStressButton.disabled = false;
         holdoutResults.replaceChildren();
         nestedButton.disabled = false;
         results.replaceChildren();
