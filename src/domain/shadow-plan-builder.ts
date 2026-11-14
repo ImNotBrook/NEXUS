@@ -26,6 +26,11 @@ function blocked(reasonCode: string, explanation: string): ShadowPlanBuildResult
 export function buildShadowTradePlan(
   decision: DecisionJournalRecord,
 ): ShadowPlanBuildResult {
+  if (decision?.candidate &&
+      (decision.candidate.symbol !== decision.symbol ||
+       decision.candidate.timeframe !== decision.timeframe)) {
+    return blocked("DECISION_CANDIDATE_MISMATCH", "Candidate identity does not match its parent decision");
+  }
   try {
     validateDecisionJournalRecord(decision);
   } catch {
