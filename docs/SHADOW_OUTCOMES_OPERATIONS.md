@@ -59,3 +59,11 @@ These are descriptive sample statistics. They do not establish profitability, pr
 All plans and outcomes are append-only IndexedDB events on the current browser/device. Export the Decision Journal regularly. Clearing browser data can erase the local ledger.
 
 Historical collection currently uses one public source (Binance). A continuous series audit does not establish exchange-execution accuracy, order-book depth, queue priority, latency or real fill certainty. The simulator does not mutate the paper account and has no exchange-order adapter.
+
+
+### Replay completion semantics (follow-up)
+
+- A replay with fewer than the frozen `expiryBars` closed hourly candles is reported as pending. It is not labelled a completed no-trigger result and no terminal event is appended.
+- A replay that observes all `expiryBars` closed candles without a breakout appends one immutable `no_setup_replay_completed` event with detector version, evaluation timestamp, observed bar count and explicit Donchian-only scope.
+- Subsequent manual runs recognise the terminal completion event and do not fetch or append the same replay again. A detected first breakout remains represented by `missed_opportunity_detected` and takes precedence.
+- This terminal event means only that the Donchian-only detector found no breakout in its frozen window; it does not prove that the full strategy was invalid or unprofitable.
