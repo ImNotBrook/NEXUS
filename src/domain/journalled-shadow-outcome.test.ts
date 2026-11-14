@@ -200,7 +200,7 @@ describe("journalShadowOutcome", () => {
     )).rejects.toThrow(/match/i);
   });
 
-  it("does not create a shadow entry from an unconfirmed trigger", async () => {
+  it("rejects an unconfirmed candidate without a pre-defined limit trigger", async () => {
     const waitingDecision: DecisionJournalRecord = {
       ...parentRecord,
       status: "WAIT",
@@ -218,7 +218,42 @@ describe("journalShadowOutcome", () => {
       4_000,
       new MemoryJournal(new Set([plan.decisionId]), waitingDecision),
       testHasher,
-    )).rejects.toThrow(/trigger/i);
+    )).rejects.toThrow(/limit-entry trigger/i);
+  });
+
+  it("records a WAIT candidate using its pre-defined limit trigger", async () => {
+    const waitingDecision: DecisionJournalRecord = {
+      ...parentRecord,
+      status: "WAIT",
+      reasonCodes: ["TRIGGER_NOT_CONFIRMED"],
+      candidate: { ...parentRecord.candidate!, triggerConfirmed: false },
+      result: {
+        ...parentRecord.result,
+        status: "WAIT",
+        reasonCodes: ["TRIGGER_NOT_CONFIRMED"],
+      },
+    };
+    const limitPlan: ShadowTradePlan = {
+      ...plan,
+      entry: {
+        orderType: "limit",
+        referencePrice: 100,
+        limitPrice: 100,
+        earliestEligibleAt: 2_000,
+        expiresAt: 5_000,
+        penetrationBps: 5,
+      },
+    };
+    const result = await journalShadowOutcome(
+      limitPlan,
+      [candle(2_000, 100.5, 101, 99.8, 100.2)],
+      4_000,
+      new MemoryJournal(new Set([plan.decisionId]), waitingDecision),
+      testHasher,
+    );
+    expect(result.event.eventType).toBe("outcome_appended");
+    expect(result.outcome.status).toBe("pending");
+    expect(result.outcome.entryFilledQuantity).toBe(0);
   });
 
 });
