@@ -2,7 +2,7 @@ import { DecisionJournalStore } from "../adapters/decision-journal-store";
 import { PaperAccountStore } from "../adapters/paper-account-store";
 import type { DecisionJournalEvent, DecisionJournalRecord } from "../domain/decision-journal";
 import type { PaperAccount } from "../domain/paper-broker";
-import { validatePaperAccountSnapshot } from "../domain/paper-broker";
+import { isPristinePaperAccount, validatePaperAccountSnapshot } from "../domain/paper-broker";
 import {
   createLocalBackup,
   parseLocalBackup,
@@ -238,15 +238,15 @@ export function mountDecisionJournalConsole(root: HTMLElement): void {
       validatePaperAccountSnapshot(envelope.payload.account);
       pendingPaper = envelope as LocalBackupEnvelope<PaperBackupPayload>;
       const current = await paperStore.load();
-      if (current) {
-        paperPreview.textContent = "Verified backup, but this device already has a paper account. Restore is blocked to protect existing paper state. Export it first; no overwrite option is provided.";
+      if (current && !isPristinePaperAccount(current)) {
+        paperPreview.textContent = "Verified backup, but this device already has paper trading activity. Restore is blocked to protect existing state. Export the current account first; active accounts are never overwritten.";
         pendingPaper = null;
         return;
       }
       const account = pendingPaper.payload.account;
       paperPreview.textContent = "Verified " + file.name + " · cash " + account.cash.toFixed(2)
         + " · " + account.fills.length + " fills · " + Object.keys(account.positions).length
-        + " positions · checksum valid. Confirm to restore into an empty account.";
+        + " positions · checksum valid. Confirm to restore. Only an untouched starter account may be replaced.";
       paperConfirm.disabled = false;
     } catch (error) {
       paperPreview.textContent = error instanceof Error ? "Paper backup rejected: " + error.message : "Paper backup rejected";
