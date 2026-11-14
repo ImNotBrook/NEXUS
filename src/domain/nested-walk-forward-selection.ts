@@ -47,6 +47,16 @@ export interface NestedCandidateResult {
   meanOuterReturnPct: number;
   worstOuterFoldDrawdownPct: number;
   totalOuterCompletedTrades: number;
+  profitFactor: number | null;
+  expectancyPerTrade: number | null;
+  totalFees: number;
+  completedTurnover: number;
+  averageExposurePct: number;
+  stopLossExitCount: number;
+  takeProfitExitCount: number;
+  totalPendingQuantity: number;
+  totalFillEvents: number;
+  totalPartialFillEvents: number;
   parameterStability: Array<{
     stopLossPct?: number;
     takeProfitPct?: number;
@@ -226,6 +236,19 @@ export function runNestedWalkForwardSelection(
     const folds = candidateFolds.get(candidate.id)!;
     const returns = folds.map((fold) => fold.outerEvaluation.evaluation.compoundedReturnPct);
     const growth = returns.reduce((value, result) => value * (1 + result / 100), 1);
+    const outerFoldResults = folds.flatMap((fold) => fold.outerEvaluation.evaluation.folds.map((item) => item.result));
+    const trades = outerFoldResults.flatMap((result) => result.trades);
+    const grossProfit = trades.reduce((sum, trade) => sum + Math.max(0, trade.pnl), 0);
+    const grossLoss = trades.reduce((sum, trade) => sum + Math.max(0, -trade.pnl), 0);
+    const totalPnl = trades.reduce((sum, trade) => sum + trade.pnl, 0);
+    const equityPoints = outerFoldResults.flatMap((result) => result.equityCurve);
+    const averageExposurePct = equityPoints.length
+      ? equityPoints.reduce((sum, point) => sum + (point.equity > 0 ? point.positionValue / point.equity : 0), 0) /
+        equityPoints.length * 100
+      : 0;
+    const completedTurnover = outerFoldResults.reduce((sum, result) =>
+      sum + result.trades.reduce((tradeSum, trade) =>
+        tradeSum + trade.quantity * (trade.entryPrice + trade.exitPrice) / result.startingCapital, 0), 0);
     const stability = new Map<string, { stopLossPct?: number; takeProfitPct?: number; outerFoldCount: number }>();
     for (const fold of folds) {
       const key = scenarioKey(fold.selectedStopLossPct, fold.selectedTakeProfitPct);
@@ -244,7 +267,17 @@ export function runNestedWalkForwardSelection(
       compoundedOuterReturnPct: (growth - 1) * 100,
       meanOuterReturnPct: returns.length ? returns.reduce((sum, value) => sum + value, 0) / returns.length : 0,
       worstOuterFoldDrawdownPct: Math.max(...folds.map((fold) => fold.outerEvaluation.scorecard.worstFoldDrawdownPct ?? 0)),
-      totalOuterCompletedTrades: folds.reduce((sum, fold) => sum + fold.outerEvaluation.scorecard.completedTrades, 0),
+      totalOuterCompletedTrades: trades.length,
+      profitFactor: grossLoss > 0 ? grossProfit / grossLoss : null,
+      expectancyPerTrade: trades.length ? totalPnl / trades.length : null,
+      totalFees: outerFoldResults.reduce((sum, result) => sum + result.totalFees, 0),
+      completedTurnover,
+      averageExposurePct,
+      stopLossExitCount: trades.filter((trade) => trade.exitReason === "stop-loss").length,
+      takeProfitExitCount: trades.filter((trade) => trade.exitReason === "take-profit").length,
+      totalPendingQuantity: folds.reduce((sum, fold) => sum + fold.outerEvaluation.evaluation.totalPendingQuantity, 0),
+      totalFillEvents: folds.reduce((sum, fold) => sum + fold.outerEvaluation.evaluation.totalFillEvents, 0),
+      totalPartialFillEvents: folds.reduce((sum, fold) => sum + fold.outerEvaluation.evaluation.totalPartialFillEvents, 0),
       parameterStability: [...stability.values()],
     };
   });
