@@ -20,6 +20,7 @@ describe("workspace navigation", () => {
       ["overview", "Workspace"],
       ["markets", "Workspace"],
       ["paper", "Workspace"],
+      ["workbench", "Research"],
       ["decisions", "Research"],
       ["research", "Research"],
       ["skills", "Research"],
@@ -32,6 +33,12 @@ describe("workspace navigation", () => {
     const automation = WORKSPACE_PAGES.find((page) => page.id === "automation");
     expect(automation?.help).toContain("human approves");
     expect(automation?.help).toContain("Live trading remains disabled");
+  });
+
+  it("requires explicit human approval before the decision workbench can scan", () => {
+    const workbench = WORKSPACE_PAGES.find((page) => page.id === "workbench");
+    expect(workbench?.help).toContain("human must approve");
+    expect(workbench?.help).toContain("never sends an exchange order");
   });
 
   it("returns only known pages", () => {
