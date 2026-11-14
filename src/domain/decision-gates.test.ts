@@ -8,6 +8,7 @@ const candidate: DecisionCandidate = {
   plan: { entryPrice: 100, stopPrice: 98, targetPrices: [106], quantity: 0.5 },
 };
 const policy = {
+  instrumentCategory: "spot" as const,
   equity: 10_000, existingExposure: 0, maxRiskPerTrade: 25,
   maxRiskFraction: 0.005, maxNotional: 2_000, maxExposure: 2_000,
   candleVolume: 100, minimumNetRewardRisk: 1.4,
@@ -29,7 +30,7 @@ describe("assessCandidateGates", () => {
   it("blocks a candidate whose stop risk exceeds the equity-based risk budget", () => {
     const result = assessCandidateGates({
       ...candidate,
-      plan: { ...candidate.plan, quantity: 5 },
+      plan: { ...candidate.plan, quantity: 20 },
     }, policy);
     expect(result.riskGate.eligible).toBe(false);
     expect(result.riskGate.reasonCodes).toContain("MAX_RISK_PER_TRADE_EXCEEDED");
@@ -63,7 +64,7 @@ describe("assessCandidateGates", () => {
       ...candidate, id: "gate-test-short", side: "short",
       plan: { entryPrice: 100, stopPrice: 102, targetPrices: [94], quantity: 0.5 },
     };
-    const result = assessCandidateGates(short, policy);
+    const result = assessCandidateGates(short, { ...policy, instrumentCategory: "linear_perpetual" });
     expect(result.economicsGate.eligible).toBe(true);
     expect(result.metrics.netRewardRisk).toBeGreaterThan(1.4);
   });
