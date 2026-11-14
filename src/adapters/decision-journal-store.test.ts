@@ -34,7 +34,7 @@ function memoryIndexedDb(): IDBFactory {
               rows.set(key, structuredClone(value));
               request.result = key;
               (request.onsuccess as (() => void) | undefined)?.();
-              (transaction.oncomplete as (() => void) | undefined)?.();
+              if (!aborted) (transaction.oncomplete as (() => void) | undefined)?.();
             });
             return request;
           },
@@ -43,7 +43,7 @@ function memoryIndexedDb(): IDBFactory {
             queueMicrotask(() => {
               request.result = rows.get(key);
               (request.onsuccess as (() => void) | undefined)?.();
-              (transaction.oncomplete as (() => void) | undefined)?.();
+              if (!aborted) (transaction.oncomplete as (() => void) | undefined)?.();
             });
             return request;
           },
@@ -52,7 +52,7 @@ function memoryIndexedDb(): IDBFactory {
             queueMicrotask(() => {
               request.result = [...rows.values()].map((value) => structuredClone(value));
               (request.onsuccess as (() => void) | undefined)?.();
-              (transaction.oncomplete as (() => void) | undefined)?.();
+              if (!aborted) (transaction.oncomplete as (() => void) | undefined)?.();
             });
             return request;
           },
@@ -72,8 +72,12 @@ function memoryIndexedDb(): IDBFactory {
           }),
         };
       };
+      let aborted = false;
       transaction.objectStore = objectStore;
-      transaction.abort = () => queueMicrotask(() => (transaction.onabort as (() => void) | undefined)?.());
+      transaction.abort = () => {
+        aborted = true;
+        queueMicrotask(() => (transaction.onabort as (() => void) | undefined)?.());
+      };
       return transaction;
     },
     close: () => undefined,
