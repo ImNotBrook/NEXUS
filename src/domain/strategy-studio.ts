@@ -58,7 +58,7 @@ export interface StrategyTrialSet {
   manifest: StrategyTrialManifest;
 }
 
-const VERSION_PATTERN = /^(0|[1-9]\d*)\\.(0|[1-9]\d*)\\.(0|[1-9]\d*)$/;
+const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function finiteInteger(value: unknown, minimum: number, maximum: number): value is number {
