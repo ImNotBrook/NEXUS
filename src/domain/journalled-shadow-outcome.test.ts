@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { journalShadowOutcome, type ShadowOutcomeJournal } from "./journalled-shadow-outcome";
-import type { DecisionJournalEvent } from "./decision-journal";
+import type { DecisionJournalEvent, DecisionJournalRecord } from "./decision-journal";
 import type { ShadowTradePlan } from "./shadow-outcome-engine";
 import type { Candle } from "./candles";
 
@@ -10,6 +10,7 @@ const plan: ShadowTradePlan = {
   decisionId: "decision-shadow-1",
   candidateId: "candidate-1",
   symbol: "BTCUSDT",
+  timeframe: "4h",
   instrumentCategory: "spot",
   volumeUnit: "base",
   side: "long",
@@ -37,9 +38,49 @@ const plan: ShadowTradePlan = {
 const candle = (timestamp: number, open: number, high: number, low: number, close: number): Candle =>
   ({ timestamp, open, high, low, close, volume: 1_000 });
 
+const parentRecord: DecisionJournalRecord = {
+  schemaVersion: 1,
+  decisionId: plan.decisionId,
+  decisionAt: plan.decisionAt,
+  clockSource: "test-clock",
+  symbol: plan.symbol,
+  timeframe: plan.timeframe,
+  status: "WAIT",
+  reasonCodes: ["TRIGGER_NOT_CONFIRMED"],
+  candidate: {
+    id: plan.candidateId,
+    symbol: plan.symbol,
+    side: "long",
+    setupFamily: "structure-retest",
+    timeframe: plan.timeframe,
+    triggerConfirmed: false,
+    expiresAt: plan.entry.expiresAt,
+    plan: { entryPrice: 100, stopPrice: 95, targetPrices: [110], quantity: 1 },
+  },
+  marketSnapshotRefs: [{ snapshotId: "snapshot-1", contentHash: "sha256:decision" }],
+  evidence: [],
+  result: {
+    status: "WAIT", reasonCodes: ["TRIGGER_NOT_CONFIRMED"],
+    supportingFamilies: [], contradictingFamilies: [],
+    supportingEvidenceIds: [], contradictingEvidenceIds: [], invalidEvidence: [],
+    supportScore: 0, contradictionScore: 0, coverageScore: 0, uncertaintyScore: 1,
+    riskEligible: true,
+  },
+  thesis: { bullCase: ["Structure"], bearCase: ["No trigger"], alternatives: [], invalidation: ["Breakdown"] },
+  versions: { engine: "ede-1", score: "score-1", strategy: "strategy-1", riskPolicy: "risk-1" },
+};
+
 class MemoryJournal implements ShadowOutcomeJournal {
   events: DecisionJournalEvent[] = [];
-  constructor(private readonly decisionIds = new Set([plan.decisionId])) {}
+  constructor(
+    private readonly decisionIds = new Set([plan.decisionId]),
+    private readonly parent: DecisionJournalRecord | null = parentRecord,
+  ) {}
+  async get(decisionId: string): Promise<DecisionJournalRecord | null> {
+    return this.decisionIds.has(decisionId) && this.parent?.decisionId === decisionId
+      ? structuredClone(this.parent)
+      : null;
+  }
   async appendEvent(event: DecisionJournalEvent): Promise<DecisionJournalEvent> {
     if (!this.decisionIds.has(event.decisionId)) throw new Error("missing decision");
     if (this.events.some((item) => item.eventId === event.eventId)) throw new Error("duplicate event");
@@ -139,4 +180,24 @@ describe("journalShadowOutcome", () => {
     await expect(journalShadowOutcome(plan, candles, 8_000, new MemoryJournal(), testHasher))
       .rejects.toThrow(/5000/i);
   });
+  it("rejects a shadow plan that does not match its parent decision candidate", async () => {
+    await expect(journalShadowOutcome(
+      { ...plan, candidateId: "different-candidate" },
+      [],
+      4_000,
+      new MemoryJournal(),
+      testHasher,
+    )).rejects.toThrow(/candidate/i);
+  });
+
+  it("rejects altered entry, stop, target or quantity parameters", async () => {
+    await expect(journalShadowOutcome(
+      { ...plan, stopPrice: 94 },
+      [],
+      4_000,
+      new MemoryJournal(),
+      testHasher,
+    )).rejects.toThrow(/match/i);
+  });
+
 });
