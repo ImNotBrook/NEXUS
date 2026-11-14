@@ -336,11 +336,11 @@ describe("buildMarketIntelligenceSnapshot", () => {
 
   it("rejects unsupported instrument and volume-unit metadata", async () => {
     await expect(buildMarketIntelligenceSnapshot(
-      input(undefined, { instrumentCategory: "unknown" } as Partial<MarketIntelligenceInput>),
+      input(undefined, { instrumentCategory: "unknown" } as unknown as Partial<MarketIntelligenceInput>),
       testHasher,
     )).rejects.toThrow(/instrument/i);
     await expect(buildMarketIntelligenceSnapshot(
-      input(undefined, { volumeUnit: "contracts" } as Partial<MarketIntelligenceInput>),
+      input(undefined, { volumeUnit: "contracts" } as unknown as Partial<MarketIntelligenceInput>),
       testHasher,
     )).rejects.toThrow(/volume unit/i);
   });
