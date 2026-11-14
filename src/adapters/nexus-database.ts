@@ -45,7 +45,11 @@ export function openNexusDatabase(factory: IDBFactory = indexedDB): Promise<IDBD
         const nestedResearchStore = database.createObjectStore(NESTED_RESEARCH_RUN_STORE, { keyPath: "id" });
         nestedResearchStore.createIndex("createdAt", "createdAt", { unique: false });
       }
-      if (!database.objectStoreNames.contains(STRATEGY_LIBRARY_STORE)) {\n        const strategyLibrary = database.createObjectStore(STRATEGY_LIBRARY_STORE, { keyPath: "id" });\n        strategyLibrary.createIndex("createdAt", "createdAt", { unique: false });\n      }\n      if (!database.objectStoreNames.contains(STRATEGY_CONFIG_LEDGER_STORE)) {
+      if (!database.objectStoreNames.contains(STRATEGY_LIBRARY_STORE)) {
+        const strategyLibrary = database.createObjectStore(STRATEGY_LIBRARY_STORE, { keyPath: "id" });
+        strategyLibrary.createIndex("createdAt", "createdAt", { unique: false });
+      }
+      if (!database.objectStoreNames.contains(STRATEGY_CONFIG_LEDGER_STORE)) {
         const ledgerStore = database.createObjectStore(STRATEGY_CONFIG_LEDGER_STORE, { keyPath: "id" });
         ledgerStore.createIndex("createdAt", "createdAt", { unique: false });
       }
