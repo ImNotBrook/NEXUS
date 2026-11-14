@@ -26,8 +26,20 @@ export interface ShadowOutcomeFailure {
   reason: string;
 }
 
+export interface ShadowOutcomeRow {
+  decisionId: string;
+  symbol: string;
+  decisionStatus: DecisionJournalRecord["status"];
+  simulationVersion: string;
+  outcomeStatus: ShadowOutcome["status"];
+  horizonReached: boolean;
+  dataQuality: ShadowOutcomeDataQuality;
+  observedThrough: number | null;
+}
+
 export interface ShadowOutcomeServiceReport {
   decisionsScanned: number;
+  latestOutcomes: ShadowOutcomeRow[];
   plansEvaluated: number;
   outcomesRecorded: number;
   outcomesUnchanged: number;
@@ -198,16 +210,38 @@ export async function evaluateShadowOutcomes(
   }
 
   const observations: LearningObservation[] = [];
+  const latestOutcomes: ShadowOutcomeRow[] = [];
   for (const decision of decisions) {
     const events = await input.journal.listEvents(decision.decisionId);
-    for (const event of events) {
+    const outcomeEvents = events.filter((event) => event.eventType === "outcome_appended" && object(event.payload));
+    for (const event of outcomeEvents) {
       const observation = learningObservation(event, decision);
       if (observation) observations.push(observation);
+    }
+    const latest = [...outcomeEvents].sort((left, right) => {
+      const leftThrough = Number(left.payload.observedThrough ?? -1);
+      const rightThrough = Number(right.payload.observedThrough ?? -1);
+      return rightThrough - leftThrough || right.occurredAt - left.occurredAt || right.eventId.localeCompare(left.eventId);
+    })[0];
+    if (latest && object(latest.payload) && object(latest.payload.outcome)) {
+      const outcome = latest.payload.outcome as unknown as ShadowOutcome;
+      const plan = latest.payload.plan as unknown as ShadowTradePlan;
+      latestOutcomes.push({
+        decisionId: decision.decisionId,
+        symbol: decision.symbol,
+        decisionStatus: decision.status,
+        simulationVersion: plan.simulationVersion,
+        outcomeStatus: outcome.status,
+        horizonReached: outcome.horizonReached,
+        dataQuality: latest.payload.dataQuality as ShadowOutcomeDataQuality,
+        observedThrough: latest.payload.observedThrough as number | null,
+      });
     }
   }
 
   return {
     decisionsScanned: decisions.length,
+    latestOutcomes,
     plansEvaluated,
     outcomesRecorded,
     outcomesUnchanged,
