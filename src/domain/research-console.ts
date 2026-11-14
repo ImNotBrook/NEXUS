@@ -406,7 +406,14 @@ export function mountResearchConsole(container: HTMLElement): void {
         card.append(el("h4", "", candidate.name));
         card.append(el("p", "small", "Outer compounded return " + candidate.compoundedOuterReturnPct.toFixed(2) +
           "% · mean fold " + candidate.meanOuterReturnPct.toFixed(2) + "% · worst outer drawdown " +
-          candidate.worstOuterFoldDrawdownPct.toFixed(2) + "% · completed trades " + candidate.totalOuterCompletedTrades));
+          candidate.worstOuterFoldDrawdownPct.toFixed(2) + "% · completed trades " + candidate.totalOuterCompletedTrades +
+          " · PF " + (candidate.profitFactor === null ? "—" : candidate.profitFactor.toFixed(2)) +
+          " · expectancy " + (candidate.expectancyPerTrade === null ? "—" : candidate.expectancyPerTrade.toFixed(2)) +
+          " · fees " + candidate.totalFees.toFixed(2) + " · turnover " + candidate.completedTurnover.toFixed(2) + "x" +
+          " · exposure " + candidate.averageExposurePct.toFixed(1) + "% · stop/target exits " +
+          candidate.stopLossExitCount + "/" + candidate.takeProfitExitCount +
+          " · pending qty " + candidate.totalPendingQuantity.toFixed(6) +
+          " · fills " + candidate.totalFillEvents + " (" + candidate.totalPartialFillEvents + " partial)"));
         card.append(el("p", "small", "Parameter stability: " + candidate.parameterStability.map((item) =>
           "stop " + (item.stopLossPct === undefined ? "off" : item.stopLossPct + "%") +
           " / target " + (item.takeProfitPct === undefined ? "off" : item.takeProfitPct + "%") +
