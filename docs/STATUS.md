@@ -465,3 +465,12 @@ Updated: 2026-11-14
 - No scenario ranking, parameter selection, promotion, order placement or change to the qualification policy.
 - Limitations: candle-volume liquidity is a proxy; order-book depth, queue position, latency, outages and venue-specific execution effects are not modeled. Stress results reuse the same historical sample and are not independent validation.
 - Stage 8 automated verification: CI run https://github.com/ImNotBrook/NEXUS/actions/runs/43575364420 passed all tests, type checks, dependency audit and production build. Deployment verification is tracked separately.
+
+
+## Master roadmap established (2026-11-14)
+
+- Added `docs/MASTER_ROADMAP.md` as the canonical tracker for the complete NEXUS product, not only the research subsystem.
+- The roadmap explicitly tracks strategy creation, governed AI analyst/research agents, expanded market intelligence, unified portfolio risk, automated paper-trading orchestration, controlled strategy improvement, learning/attribution and platform reliability.
+- Stages 1–8 are recorded as delivered workstreams; existing AI, market intelligence and scheduled paper-agent foundations are marked PARTIAL where the complete end-to-end capability remains unfinished.
+- Stage 9 Global Research Leaderboard is the next active stage. Its acceptance criteria require compatibility-aware comparisons, no guessed metadata, deterministic ordering, local persistence and regression coverage.
+- Permanent constraints remain $0 cost, Android-first, human-governed AI and paper-only execution. Live trading is not in scope.
