@@ -323,13 +323,16 @@ export function mountStrategyStudioConsole(root: HTMLElement): void {
       for (const record of records) {
         const card = el("article", "research-result");
         const definition = record.definition;
+        const parameterSummary = definition.family === "composed-rule"
+          ? "Rule specification: " + JSON.stringify(definition.parameters)
+          : "Parameters: " + Object.entries(definition.parameters).map(([key, value]) => key + "=" + value).join(" · ");
         card.append(
           el("h4", "", definition.name + " · v" + definition.version),
           el("p", "small", definition.family + " · " + definition.id),
           el("p", "small", definition.description),
-          el("p", "small", "Parameters: " + Object.entries(definition.parameters).map(([key, value]) => key + "=" + value).join(" · ")),
+          el("p", "small", parameterSummary),
           el("p", "small", "Created " + new Date(record.createdAt).toLocaleString() + " · " + definition.origin),
-          el("p", "small", "Immutable version. Create a higher version to change parameters."),
+          el("p", "small", "Immutable version. Create a higher version to change rules or parameters."),
         );
         library.append(card);
       }
