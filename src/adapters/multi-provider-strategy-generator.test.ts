@@ -109,9 +109,7 @@ describe("multi-provider strategy generator", () => {
     await expect(generateAiStrategyProposalsWithFallback({
       ...context,
       symbol: "bad symbol",
-    }, { GROQ_API_KEY: "groq-test-key-12345" }, fetcher)).resolves.toMatchObject({
-      status: "fallback",
-    });
+    }, { GROQ_API_KEY: "groq-test-key-12345" }, fetcher)).rejects.toThrow("market context is invalid");
     expect(called).toBe(false);
   });
 });
