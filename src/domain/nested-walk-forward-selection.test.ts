@@ -45,8 +45,13 @@ describe("runNestedWalkForwardSelection", () => {
     }], pipeline, nestedConfig);
 
     expect(result.candidateResults[0].folds.length).toBeGreaterThan(0);
-    for (const fold of result.candidateResults[0].folds) {
+    for (const [index, fold] of result.candidateResults[0].folds.entries()) {
       expect(fold.trainEndTimestamp).toBeLessThan(fold.testStartTimestamp);
+      expect(fold.testStartTimestamp - fold.trainEndTimestamp).toBe(2 * 60_000);
+      if (index > 0) {
+        expect(result.candidateResults[0].folds[index - 1].testEndTimestamp)
+          .toBeLessThan(fold.testStartTimestamp);
+      }
     }
     expect(observedTrainingEndTimestamps.length).toBeGreaterThan(0);
     expect(observedTrainingEndTimestamps.every((timestamp) =>
