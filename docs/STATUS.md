@@ -454,3 +454,14 @@ Updated: 2026-11-14
 - PR #26 updated the Automation page help text to accurately describe optional Groq AI proposal generation, human approval for paper trading and disabled live trading.
 - CI passed 230 tests across 44 files, dependency audit, TypeScript checks for both scheduled runners and production build.
 - PR #26 merged as `e13e62c91a2c39719d3db8af0c2d01e11958ca86`; GitHub Pages deployment run #43538234649 completed successfully.
+
+
+## Stage 8 — Execution Stress Testing
+
+- Added deterministic execution stress replays over the exact same candle dataset, candidate factories and walk-forward test folds.
+- Scenarios: baseline, 1.5×/2×/3× fees + base slippage + half-spread + market impact, and 50% baseline maximum candle-volume participation capacity.
+- Fee and slippage assumptions remain synchronized between the backtest and execution-aware fill model. Legacy models, mismatched assumptions, invalid multipliers and impossible stressed execution costs fail closed.
+- Strategy Research displays OOS return, worst-fold drawdown, expectancy, completed trades, fees, partial fills and pending quantity for every scenario. Each scenario report is saved to local experiment history.
+- No scenario ranking, parameter selection, promotion, order placement or change to the qualification policy.
+- Limitations: candle-volume liquidity is a proxy; order-book depth, queue position, latency, outages and venue-specific execution effects are not modeled. Stress results reuse the same historical sample and are not independent validation.
+- Stage 8 automated verification: CI run https://github.com/ImNotBrook/NEXUS/actions/runs/43575364420 passed all tests, type checks, dependency audit and production build. Deployment verification is tracked separately.
