@@ -40,8 +40,8 @@ NEXUS is intended to become a mobile-first AI trading intelligence and automated
 | 6 | Sealed final holdout | DONE | Chronological final holdout, embargo and local overlap lock |
 | 7 | Statistical robustness | DONE | Confidence intervals, bootstrap, fold consistency and conservative statuses |
 | 8 | Execution stress testing and best-first ranking | DONE | Adverse execution scenarios and deterministic candidate ordering |
-| 9 | Global research leaderboard | PARTIAL | Ordinary and complete execution-stress family rankings are connected; nested/holdout ledgers remain separate; collective integration verification remains |
-| 10 | Strategy creation studio | PLANNED | Versioned strategy specifications, reusable templates, rule composer and safe candidate generation |
+| 9 | Global research leaderboard | DONE | Ordinary, complete execution-stress family, nested and sealed-holdout views remain distinct; phone workflow accepted |
+| 10 | Strategy creation studio | NEXT | Immutable versioned definitions, validated templates, local library, research integration and bounded parameter-trial generation |
 | 11 | AI analyst and research agents | PARTIAL | Governed provider adapters and proposal foundations exist; complete multi-agent workflow, evidence citations, structured outputs and evaluations |
 | 12 | Market intelligence expansion | PARTIAL | Core multi-timeframe technical evidence exists; complete resilient market coverage, liquidity/order-book and derivatives dimensions with source-quality controls |
 | 13 | Unified risk and portfolio engine | PARTIAL | Existing paper-broker and decision gates; unify portfolio exposure, correlated risk, limits and pre-trade/post-trade checks |
@@ -51,26 +51,30 @@ NEXUS is intended to become a mobile-first AI trading intelligence and automated
 | 17 | Platform operations and reliability | PARTIAL | Static PWA and CI/deployment exist; add health/status visibility, graceful degradation, migration/recovery tests and operational audit |
 | 18 | End-to-end acceptance and release hardening | PLANNED | Phone-first acceptance of market data → AI analysis → strategy research → decision → paper execution → outcomes → learning |
 
-## Active stage: 9 — Global Research Leaderboard
+## Completed stage: 9 — Global Research Leaderboard
 
-Implementation note: the ordinary leaderboard reads all `ResearchRunStore` records. Newly run execution-stress scenarios carry a versioned family manifest and are aggregated only when every expected scenario is present and consistent; legacy or interrupted families are excluded rather than inferred. Nested research and sealed holdout remain in their own ledgers and dedicated views. See [RESEARCH_LEADERBOARD.md](RESEARCH_LEADERBOARD.md).
+The ordinary and execution-stress family leaderboards are connected to persisted local research records. Nested walk-forward and sealed holdout remain separate research views/ledgers and are not mixed into unlike metric groups. The user confirmed the Strategy Research → Execution-stress survivors workflow on the Galaxy A55 after running a fresh stress experiment. Details and CI/deployment records are in [RESEARCH_LEADERBOARD.md](RESEARCH_LEADERBOARD.md) and [STATUS.md](STATUS.md).
 
-### Scope
-- Read existing locally persisted research runs; do not create a second source of truth.
-- Compare runs only when dataset identity/provenance, symbol, interval, date range, fold design, strategy identity/version and execution assumptions are compatible.
-- If key metadata is absent, mark a run non-comparable rather than guessing.
-- Show separate views for: best raw historical result, most robust research candidate, and strongest complete execution-stress survivor; keep nested research and sealed holdout in their own separate views.
-- Display sample size, fold count, worst-fold return/drawdown, expectancy, costs, unresolved exposure and statistical review state.
-- Preserve all runs. No automatic deletion, tuning, promotion or paper-order placement.
-- Keep rankings deterministic with explicit tie-breaks and explain why entries are grouped or excluded.
+## Active stage: 10 — Strategy Creation Studio
+
+### First increment
+- Define a strict, machine-readable strategy contract with schema version, semantic strategy version, stable ID, family, parameters, origin and creation timestamp.
+- Provide reusable deterministic templates for SMA crossover, RSI mean reversion and Donchian breakout.
+- Validate family-specific parameter keys/ranges and return detached immutable definitions.
+- Convert saved human-authored definitions into existing ResearchCandidate factories without execution side effects.
+- Generate deterministic Cartesian parameter trials with a 25-combination mobile cap, unique trial identities, a full trial manifest and explicit multiple-testing warning.
+- Persist strategy versions append-only in a new local IndexedDB store; duplicate ID/version writes must fail rather than overwrite.
+- Add a mobile-first Strategy Studio page. Saved human-authored definitions become eligible for historical walk-forward research; AI-origin proposals are excluded until human review.
+- No automatic selection, approval, paper execution, qualification changes or live routing.
 
 ### Acceptance criteria
-- Unit tests cover compatibility, missing metadata, config mismatches, candidate identity, stable ordering and empty history.
-- Integration tests load persisted ordinary and stress-family runs and produce the same rankings after refresh/reopen; incomplete or inconsistent stress families are excluded.
-- Mobile UI clearly separates incomparable groups and warns that historical ranking is not a profitability guarantee.
-- Existing research, stress, holdout and paper workflows remain unchanged.
+- Unit tests cover schema/version/parameter validation, immutability, stable candidate identity, deterministic grid order, trial caps and invalid combinations.
+- Adapter tests cover append-only persistence, reload, duplicate-version rejection and migration from existing IndexedDB state.
+- Integration test proves a saved strategy can be reloaded, converted to a candidate and evaluated by the existing walk-forward research pipeline.
+- Mobile UI supports template selection, parameter entry, immutable save and library reload.
+- Trial count and selection-bias manifest are retained with any future parameter-search experiment; no unrecorded tuning.
+- Existing strategy, research, holdout, stress, decision and paper workflows remain unchanged.
 - CI, dependency audit, TypeScript and production build pass before deployment.
-
 ## Remaining platform work — definition of done
 
 ### Strategy creation
