@@ -110,7 +110,22 @@ function isFiniteNumber(value: number): boolean {
   return Number.isFinite(value);
 }
 
+function validCandidate(candidate: DecisionCandidate): boolean {
+  return Boolean(
+    candidate &&
+    typeof candidate.id === "string" && candidate.id.trim() &&
+    typeof candidate.symbol === "string" && candidate.symbol.trim() &&
+    typeof candidate.setupFamily === "string" && candidate.setupFamily.trim() &&
+    typeof candidate.timeframe === "string" && candidate.timeframe.trim() &&
+    (candidate.side === "long" || candidate.side === "short") &&
+    typeof candidate.triggerConfirmed === "boolean" &&
+    Number.isFinite(candidate.expiresAt) &&
+    candidate.plan && typeof candidate.plan === "object"
+  );
+}
+
 function validPlan(candidate: DecisionCandidate): boolean {
+  if (!candidate.plan || typeof candidate.plan !== "object") return false;
   const { entryPrice, stopPrice, targetPrices, quantity } = candidate.plan;
   if (
     !isFiniteNumber(entryPrice) ||
@@ -130,6 +145,30 @@ function validPlan(candidate: DecisionCandidate): boolean {
     return stopPrice < entryPrice && targetPrices.every((target) => target > entryPrice);
   }
   return stopPrice > entryPrice && targetPrices.every((target) => target < entryPrice);
+}
+
+function independentFamilies(items: EvidenceItem[]): EvidenceFamily[] {
+  const families = unique(items.map((item) => item.family)).sort();
+  const familiesByCorrelation = new Map<string, Set<EvidenceFamily>>();
+
+  for (const item of items) {
+    const key = item.correlationKey?.trim();
+    if (!key) continue;
+    const associated = familiesByCorrelation.get(key) ?? new Set<EvidenceFamily>();
+    associated.add(item.family);
+    familiesByCorrelation.set(key, associated);
+  }
+
+  return families.filter((family) => {
+    const familyItems = items.filter((item) => item.family === family);
+    if (familyItems.some((item) => !item.correlationKey?.trim())) return true;
+    return familyItems.some((item) => {
+      const key = item.correlationKey?.trim();
+      if (!key) return true;
+      const associated = [...(familiesByCorrelation.get(key) ?? [])].sort();
+      return associated[0] === family;
+    });
+  });
 }
 
 function validateEvidence(
@@ -209,6 +248,27 @@ export function evaluateDecision(input: DecisionInput): DecisionResult {
   }
 
   const candidate = input.candidate;
+  if (!validCandidate(candidate)) {
+    result.status = "REJECT";
+    result.reasonCodes.push("INVALID_CANDIDATE");
+    return result;
+  }
+
+  if (
+    !Number.isInteger(input.minimumSupportingFamilies) ||
+    input.minimumSupportingFamilies < 1 ||
+    !Array.isArray(input.evidence) ||
+    !input.riskGate ||
+    !Array.isArray(input.riskGate.reasonCodes) ||
+    !input.economicsGate ||
+    !Array.isArray(input.economicsGate.reasonCodes) ||
+    !["pass", "degraded", "fail"].includes(input.marketDataStatus)
+  ) {
+    result.status = "REJECT";
+    result.reasonCodes.push("INVALID_DECISION_CONFIGURATION");
+    return result;
+  }
+
   if (!Number.isFinite(candidate.expiresAt) || candidate.expiresAt <= input.evaluationTime) {
     result.status = "REJECT";
     result.reasonCodes.push("CANDIDATE_EXPIRED");
@@ -255,8 +315,8 @@ export function evaluateDecision(input: DecisionInput): DecisionResult {
   const supporting = accepted.filter((item) => item.polarity === "supports" && item.quality > 0);
   const contradicting = accepted.filter((item) => item.polarity === "contradicts" && item.quality > 0);
 
-  result.supportingFamilies = unique(supporting.map((item) => item.family)).sort();
-  result.contradictingFamilies = unique(contradicting.map((item) => item.family)).sort();
+  result.supportingFamilies = independentFamilies(supporting);
+  result.contradictingFamilies = independentFamilies(contradicting);
   result.supportingEvidenceIds = supporting.map((item) => item.id).sort();
   result.contradictingEvidenceIds = contradicting.map((item) => item.id).sort();
 
