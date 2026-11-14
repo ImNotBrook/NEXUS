@@ -177,7 +177,8 @@ export function runNestedWalkForwardSelection(
       const selected = eligible[0];
       const baseline = inner.scenarios[0];
       const chosenScenario = selected?.scenario ?? baseline;
-      const chosenScorecard = selected?.result.scorecard ?? baseline.report.candidateResults.find((item) => item.id === candidate.id)!.scorecard;
+      const chosenInnerResult = selected?.result ?? baseline.report.candidateResults.find((item) => item.id === candidate.id)!;
+      const chosenScorecard = chosenInnerResult.scorecard;
       const protectiveOrders = chosenScenario.stopLossPct === undefined && chosenScenario.takeProfitPct === undefined
         ? undefined
         : {
@@ -214,7 +215,7 @@ export function runNestedWalkForwardSelection(
           : "No inner scenario met the minimum trade requirement; disabled protective-exit baseline retained.",
         innerSelection: {
           ...summarizeInner(chosenScorecard),
-          compoundedReturnPct: selected?.result.evaluation.compoundedReturnPct ?? 0,
+          compoundedReturnPct: chosenInnerResult.evaluation.compoundedReturnPct,
         },
         outerEvaluation,
       });
