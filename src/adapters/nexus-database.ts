@@ -1,5 +1,5 @@
 export const NEXUS_DATABASE_NAME = "nexus-local";
-export const NEXUS_DATABASE_VERSION = 8;
+export const NEXUS_DATABASE_VERSION = 9;
 export const PAPER_ACCOUNT_STORE = "paperAccounts";
 export const MARKET_SNAPSHOT_STORE = "marketSnapshots";
 export const HISTORICAL_CANDLE_STORE = "historicalCandles";
@@ -8,6 +8,7 @@ export const NESTED_RESEARCH_RUN_STORE = "nestedResearchRuns";
 export const STRATEGY_CONFIG_LEDGER_STORE = "strategyConfigLedger";
 export const RESEARCH_HYPOTHESIS_STORE = "researchHypotheses";
 export const SKILL_REGISTRY_STORE = "skillRegistry";
+export const DERIVATIVES_OBSERVATION_STORE = "derivativesObservations";
 
 /**
  * One schema owner for every local adapter. A single versioned upgrade creates
@@ -47,6 +48,11 @@ export function openNexusDatabase(factory: IDBFactory = indexedDB): Promise<IDBD
       if (!database.objectStoreNames.contains(HISTORICAL_CANDLE_STORE)) {
         const historyStore = database.createObjectStore(HISTORICAL_CANDLE_STORE, { keyPath: "key" });
         historyStore.createIndex("series", "series", { unique: false });
+      }
+      if (!database.objectStoreNames.contains(DERIVATIVES_OBSERVATION_STORE)) {
+        const derivativesStore = database.createObjectStore(DERIVATIVES_OBSERVATION_STORE, { keyPath: "key" });
+        derivativesStore.createIndex("series", "series", { unique: false });
+        derivativesStore.createIndex("timestamp", "timestamp", { unique: false });
       }
     };
     request.onsuccess = () => {

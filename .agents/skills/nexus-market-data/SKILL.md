@@ -1,6 +1,6 @@
 ---
 name: nexus-market-data
-description: Validate, reconcile and maintain multi-provider OHLCV data for reproducible trading research.
+description: Validate, reconcile and maintain multi-provider OHLCV and derivatives observations for reproducible trading research.
 ---
 
 # NEXUS Market Data
@@ -28,6 +28,17 @@ description: Validate, reconcile and maintain multi-provider OHLCV data for repr
 - Do not retry indefinitely on HTTP 429 or provider outages.
 - Keep each provider series separate. Preserve raw provenance and do not silently fill gaps.
 - Record data retention, licensing, rate limits and timezone assumptions.
+
+## Derivatives observations
+
+- Keep funding rates, open interest and long/short account ratios as distinct typed metrics; never collapse them into OHLCV fields.
+- Preserve provider, symbol, contract category, timestamp, metric and unit semantics.
+- Funding rate is a rate per settlement; record the instrument's actual funding interval before annualizing or comparing venues.
+- Linear and inverse open-interest units differ; never compare raw values across categories without an explicit conversion.
+- Bybit long/short ratio is an account-holder share, not notional long/short exposure.
+- Deduplicate only within the same provider, instrument, category, metric and timestamp. Do not merge unrelated venue observations.
+- Record ingestion time separately from the provider observation timestamp.
+- Historical collection must be bounded, resumable and retention-aware; never retry indefinitely.
 
 ## Fail-closed behavior
 

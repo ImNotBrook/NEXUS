@@ -1,6 +1,15 @@
+import type {
+  AccountRatioObservation,
+  DerivativesCategory,
+  FundingRateObservation,
+  OpenInterestObservation,
+} from "../domain/derivatives-data";
+
+export type { AccountRatioObservation, FundingRateObservation, OpenInterestObservation } from "../domain/derivatives-data";
+
 export const BYBIT_PUBLIC_API_BASE = "https://api.bybit.com";
 
-export type BybitCategory = "linear" | "inverse";
+export type BybitCategory = DerivativesCategory;
 export type BybitMarketInterval = "5min" | "15min" | "30min" | "1h" | "4h" | "1d";
 
 interface BaseRequest {
@@ -21,30 +30,6 @@ export interface BybitOpenInterestRequest extends BaseRequest {
 export interface BybitAccountRatioRequest extends BaseRequest {
   period: BybitMarketInterval;
   cursor?: string;
-}
-
-interface BybitObservationBase {
-  provider: "bybit";
-  symbol: string;
-  category: BybitCategory;
-  timestamp: number;
-}
-
-export interface FundingRateObservation extends BybitObservationBase {
-  fundingRate: number;
-  unit: "rate_per_settlement";
-}
-
-export interface OpenInterestObservation extends BybitObservationBase {
-  openInterest: number;
-  /** Bybit documents linear OI in base asset and inverse OI in quote currency (USD). */
-  unit: "base_asset" | "quote_currency";
-}
-
-export interface AccountRatioObservation extends BybitObservationBase {
-  longAccountRatio: number;
-  shortAccountRatio: number;
-  measurement: "account_share";
 }
 
 export interface BybitOpenInterestPage {
@@ -154,7 +139,7 @@ export async function fetchBybitFundingHistory(
     if (item.symbol !== normalized.symbol) throw new TypeError("Bybit funding symbol did not match request");
     return {
       provider: "bybit", symbol: normalized.symbol, category: normalized.category,
-      timestamp: timestamp(item.fundingRateTimestamp),
+      metric: "funding_rate", timestamp: timestamp(item.fundingRateTimestamp),
       fundingRate: numeric(item.fundingRate, "fundingRate"),
       unit: "rate_per_settlement",
     };
@@ -184,7 +169,7 @@ export async function fetchBybitOpenInterest(
     const item = row as Record<string, unknown>;
     return {
       provider: "bybit", symbol: normalized.symbol, category: normalized.category,
-      timestamp: timestamp(item.timestamp),
+      metric: "open_interest", timestamp: timestamp(item.timestamp),
       openInterest: numeric(item.openInterest, "openInterest"),
       unit,
     };
@@ -220,7 +205,7 @@ export async function fetchBybitAccountRatio(
     }
     return {
       provider: "bybit", symbol: normalized.symbol, category: normalized.category,
-      timestamp: timestamp(item.timestamp),
+      metric: "account_ratio", timestamp: timestamp(item.timestamp),
       longAccountRatio, shortAccountRatio, measurement: "account_share",
     };
   }));
