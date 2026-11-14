@@ -116,6 +116,8 @@ describe("buildMarketIntelligenceSnapshot", () => {
     expect(snapshot.frames["1d"].volatilityRankPct).toBeGreaterThan(0);
     expect(snapshot.missingDimensions).toContain("order_book_depth");
     expect(snapshot.missingDimensions).toContain("derivatives_positioning");
+    expect(snapshot.missingDimensions).toContain("market_structure_events");
+    expect(snapshot.missingDimensions).toContain("elliott_wave_scenarios");
   });
 
   it("marks opposing 1D and 4H trends as a transition instead of averaging them", async () => {
@@ -400,6 +402,29 @@ describe("buildMarketIntelligenceSnapshot", () => {
     expect(snapshot.macroTrend).toBe("unknown");
     expect(snapshot.phase).toBe("unknown");
     expect(snapshot.dataQuality).toBe("degraded");
+  });
+
+  it("fails a timeframe with an untraceable candle timestamp instead of silently dropping it", async () => {
+    const frame = makeFrame("1d", "up");
+    const malformed = {
+      ...frame,
+      candles: [...frame.candles, {
+        timestamp: Number.NaN,
+        open: 100,
+        high: 101,
+        low: 99,
+        close: 100,
+        volume: 10,
+      }],
+    };
+    const snapshot = await buildMarketIntelligenceSnapshot(input({
+      "1d": malformed,
+      "4h": makeFrame("4h", "up"),
+      "1h": makeFrame("1h", "up"),
+      "15m": makeFrame("15m", "up"),
+    }), testHasher);
+    expect(snapshot.frames["1d"].status).toBe("failed");
+    expect(snapshot.macroTrend).toBe("unknown");
   });
 
 });
