@@ -63,10 +63,14 @@ export function buildShadowTradePlan(
   if (!Number.isSafeInteger(earliestEligibleAt) || earliestEligibleAt >= candidate.expiresAt) {
     return blocked("ENTRY_WINDOW_CLOSED", "The candidate expires before a full post-decision hourly candle can become eligible");
   }
-  const horizonEnd = Math.max(
+  const desiredHorizon = Math.max(
     decision.decisionAt + SHADOW_OUTCOME_HORIZON_MS,
-    candidate.expiresAt + SHADOW_OUTCOME_INTERVAL_MS,
+    candidate.expiresAt + 1,
   );
+  // The first candle opening at/after this boundary proves maturity but is
+  // excluded from OHLC evaluation. horizonEnd is the final included millisecond.
+  const horizonEnd = Math.ceil(desiredHorizon / SHADOW_OUTCOME_INTERVAL_MS) *
+    SHADOW_OUTCOME_INTERVAL_MS - 1;
   if (!Number.isSafeInteger(horizonEnd)) {
     return blocked("INVALID_OUTCOME_HORIZON", "The fixed 24-hour outcome horizon exceeds safe timestamp bounds");
   }
