@@ -138,8 +138,7 @@ function validateState(state: PaperTradingAgentState): void {
       !Number.isFinite(state.initialCapital) || state.initialCapital <= 0 ||
       !finiteNonNegative(state.cash) || !Number.isFinite(state.dailyStartEquity) || state.dailyStartEquity <= 0 ||
       !finiteNonNegative(state.lastEquity) || !finiteNonNegative(state.peakEquity) ||
-      !finiteNonNegative(state.maxDrawdownPct) || !finiteNonNegative(state.realizedPnl) &&
-        !Number.isFinite(state.realizedPnl) ||
+      !finiteNonNegative(state.maxDrawdownPct) || !Number.isFinite(state.realizedPnl) ||
       !finiteNonNegative(state.totalFees) ||
       !Number.isSafeInteger(state.completedTrades) || state.completedTrades < 0 ||
       !Number.isSafeInteger(state.totalFillEvents) || state.totalFillEvents < 0 ||
@@ -152,7 +151,9 @@ function validateState(state: PaperTradingAgentState): void {
   if (state.position && (
     !finiteNonNegative(state.position.quantity) || state.position.quantity <= 0 ||
     !Number.isFinite(state.position.entryPrice) || state.position.entryPrice <= 0 ||
+    !finiteNonNegative(state.position.entryFee) ||
     !finiteNonNegative(state.position.entryCost) ||
+    !finiteNonNegative(state.position.originalEntryFee) ||
     !finiteNonNegative(state.position.originalEntryCost) ||
     !finiteNonNegative(state.position.originalQuantity) ||
     !finiteNonNegative(state.position.exitNotional) ||
@@ -163,7 +164,8 @@ function validateState(state: PaperTradingAgentState): void {
     (state.pendingOrder.side !== "buy" && state.pendingOrder.side !== "sell") ||
     !finiteNonNegative(state.pendingOrder.remainingQuantity) || state.pendingOrder.remainingQuantity <= 0 ||
     !Number.isSafeInteger(state.pendingOrder.submittedAt) ||
-    !["signal", "stop-loss", "take-profit"].includes(state.pendingOrder.reason)
+    !["signal", "stop-loss", "take-profit"].includes(state.pendingOrder.reason) ||
+    state.pendingOrder.submittedAt > state.lastProcessedTimestamp
   )) throw new TypeError("Persisted paper order failed validation");
   if (state.fills.length > 500 || state.trades.length > 500 || state.equityCurve.length > 500) {
     throw new RangeError("Persisted paper ledger exceeds its bounded history limit");
