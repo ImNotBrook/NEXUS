@@ -234,7 +234,7 @@ export function simulateShadowOutcome(
     decisionId: plan.decisionId,
     candidateId: plan.candidateId,
     status: "pending",
-    horizonReached: false,
+    horizonReached: candles.some((candle) => candle.timestamp >= plan.horizonEnd),
     invalidationReason: null,
     pendingExitReason: null,
     entryOrderStatus: "pending",
@@ -462,7 +462,6 @@ export function simulateShadowOutcome(
     }
   }
 
-  outcome.horizonReached = candles.some((candle) => candle.timestamp >= plan.horizonEnd);
   if (outcome.entryOrderStatus === "pending" &&
       candles.some((candle) => candle.timestamp >= plan.entry.expiresAt && candle.timestamp <= plan.horizonEnd)) {
     outcome.entryOrderStatus = "expired";
