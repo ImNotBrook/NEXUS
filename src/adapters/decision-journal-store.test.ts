@@ -169,4 +169,10 @@ describe("DecisionJournalStore", () => {
     await store.append(record);
     await expect(store.appendEvent({ ...event, payload: { value: Number.NaN } })).rejects.toThrow();
   });
+  it("rejects events timestamped before their decision", async () => {
+    const store = new DecisionJournalStore(memoryIndexedDb());
+    await store.append(record);
+    await expect(store.appendEvent({ ...event, occurredAt: record.decisionAt - 1 })).rejects.toThrow(/before/i);
+  });
+
 });
