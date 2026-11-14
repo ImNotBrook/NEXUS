@@ -26,6 +26,11 @@ export interface JournalledShadowOutcomeResult {
   alreadyRecorded: boolean;
 }
 
+export interface JournalledShadowPlanResult {
+  event: DecisionJournalEvent;
+  alreadyRecorded: boolean;
+}
+
 function jsonSnapshot<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -73,6 +78,54 @@ function assertPlanMatchesDecision(plan: ShadowTradePlan, decision: DecisionJour
     plan.entry.expiresAt > candidate.expiresAt
   ) {
     throw new Error("Shadow plan execution parameters do not match the immutable decision candidate plan");
+  }
+}
+
+/**
+ * Registers the complete plan at the original decision timestamp, before any
+ * outcome candles are observed. The event is content-addressed and immutable.
+ */
+export async function registerShadowPlan(
+  plan: ShadowTradePlan,
+  journal: ShadowOutcomeJournal,
+  hasher: ShadowOutcomeHasher = sha256,
+): Promise<JournalledShadowPlanResult> {
+  const decision = await journal.get(plan.decisionId);
+  assertPlanMatchesDecision(plan, decision);
+  const hash = await hasher({ decisionId: plan.decisionId, plan: jsonSnapshot(plan) });
+  if (typeof hash !== "string" || !/^[A-Za-z0-9_-]{1,256}$/.test(hash)) {
+    throw new TypeError("Shadow plan hasher must return a non-empty URL-safe identifier");
+  }
+  const event: DecisionJournalEvent = {
+    schemaVersion: 1,
+    eventId: "shadow-plan:" + hash,
+    decisionId: plan.decisionId,
+    eventType: "shadow_plan_registered",
+    occurredAt: plan.decisionAt,
+    payload: {
+      candidateId: plan.candidateId,
+      simulationVersion: plan.simulationVersion,
+      plan: jsonSnapshot(plan),
+    },
+  };
+  validateDecisionJournalEvent(event);
+  const existing = (await journal.listEvents(plan.decisionId)).find((item) => item.eventId === event.eventId);
+  if (existing) {
+    if (existing.eventType === event.eventType && JSON.stringify(existing.payload) === JSON.stringify(event.payload)) {
+      return { event: existing, alreadyRecorded: true };
+    }
+    throw new Error("Content-addressed shadow plan event ID conflicts with different immutable content");
+  }
+  try {
+    const persisted = await journal.appendEvent(event);
+    return { event: persisted, alreadyRecorded: false };
+  } catch (error) {
+    const match = (await journal.listEvents(plan.decisionId)).find((item) => item.eventId === event.eventId);
+    if (match && match.eventType === event.eventType &&
+        JSON.stringify(match.payload) === JSON.stringify(event.payload)) {
+      return { event: match, alreadyRecorded: true };
+    }
+    throw error;
   }
 }
 
