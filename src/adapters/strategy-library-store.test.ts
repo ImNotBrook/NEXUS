@@ -72,7 +72,7 @@ describe("StrategyLibraryStore", () => {
     const records = await store.list();
     expect(records.map((record) => record.id)).toEqual([second.id, first.id]);
     expect(records[0].definition.family).toBe("rsi-mean-reversion");
-    records[0].definition.parameters.period = 99;
+    (records[0].definition.parameters as { period: number }).period = 99;
     expect((await store.list())[0].definition.parameters).toEqual({ period: 14, oversold: 30, overbought: 70 });
   });
 
