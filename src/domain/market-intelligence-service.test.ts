@@ -56,6 +56,7 @@ function provider(
     failIntervals?: string[];
     priceOffsetByInterval?: Record<string, number>;
     candleCountByInterval?: Record<string, number>;
+    timestampShiftByInterval?: Record<string, number>;
     addIncompleteCandle?: boolean;
   } = {},
 ): MarketDataProvider {
@@ -67,7 +68,10 @@ function provider(
         request.interval,
         options.priceOffsetByInterval?.[request.interval] ?? 0,
         options.candleCountByInterval?.[request.interval] ?? 60,
-      );
+      ).map((candle) => ({
+        ...candle,
+        timestamp: candle.timestamp + (options.timestampShiftByInterval?.[request.interval] ?? 0),
+      }));
       if (options.addIncompleteCandle) {
         const intervalMs = INTERVALS[request.interval];
         const boundary = Math.floor(NOW / intervalMs) * intervalMs;
@@ -155,7 +159,7 @@ describe("loadMarketIntelligence", () => {
     const result = await loadMarketIntelligence(serviceInput({
       providers: [
         provider("binance"),
-        provider("kraken", { candleCountByInterval: { "1h": 2 } }),
+        provider("kraken", { timestampShiftByInterval: { "1h": INTERVALS["1h"] } }),
       ],
     }));
     expect(result.crossFeedStatus).toBe("insufficient_overlap");
