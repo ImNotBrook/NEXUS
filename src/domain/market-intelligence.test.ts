@@ -74,6 +74,8 @@ function input(
 ): MarketIntelligenceInput {
   return {
     symbol: "BTCUSDT",
+    instrumentCategory: "spot",
+    volumeUnit: "base",
     evaluationTime: NOW,
     config: CONFIG,
     frames,
@@ -319,6 +321,26 @@ describe("buildMarketIntelligenceSnapshot", () => {
     await expect(buildMarketIntelligenceSnapshot(input({
       "1d": oversized,
     }), testHasher)).rejects.toThrow(/5000 candles/i);
+  });
+
+  it("preserves instrument and candle-volume units in the canonical snapshot", async () => {
+    const snapshot = await buildMarketIntelligenceSnapshot(
+      input(undefined, { volumeUnit: "quote" }),
+      testHasher,
+    );
+    expect(snapshot.instrumentCategory).toBe("spot");
+    expect(snapshot.volumeUnit).toBe("quote");
+  });
+
+  it("rejects unsupported instrument and volume-unit metadata", async () => {
+    await expect(buildMarketIntelligenceSnapshot(
+      input(undefined, { instrumentCategory: "unknown" } as Partial<MarketIntelligenceInput>),
+      testHasher,
+    )).rejects.toThrow(/instrument/i);
+    await expect(buildMarketIntelligenceSnapshot(
+      input(undefined, { volumeUnit: "contracts" } as Partial<MarketIntelligenceInput>),
+      testHasher,
+    )).rejects.toThrow(/volume unit/i);
   });
 
 });
