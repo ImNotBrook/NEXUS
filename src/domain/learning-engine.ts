@@ -131,12 +131,22 @@ function completedNetR(plan: ShadowTradePlan, outcome: ShadowOutcome): number | 
     !closeEnough(outcome.exitFilledQuantity, outcome.entryFilledQuantity) ||
     !Number.isFinite(outcome.positionRemainingQuantity) ||
     outcome.positionRemainingQuantity > EPSILON ||
+    !Number.isSafeInteger(outcome.entryTimestamp) ||
+    !Number.isSafeInteger(outcome.exitTimestamp) ||
+    (outcome.exitTimestamp as number) < (outcome.entryTimestamp as number) ||
     !Number.isFinite(outcome.entryAveragePrice) ||
     (outcome.entryAveragePrice ?? 0) <= plan.stopPrice ||
     !Number.isFinite(outcome.exitAveragePrice) ||
+    (outcome.exitAveragePrice ?? 0) <= 0 ||
     !Number.isFinite(outcome.netPnl) ||
+    !Number.isFinite(outcome.entryFees) || outcome.entryFees < 0 ||
+    !Number.isFinite(outcome.exitFees) || outcome.exitFees < 0 ||
+    !Number.isFinite(outcome.totalFees) ||
+    !closeEnough(outcome.totalFees, outcome.entryFees + outcome.exitFees) ||
     !Number.isFinite(outcome.mfeBps) ||
-    !Number.isFinite(outcome.maeBps)
+    !Number.isFinite(outcome.maeBps) ||
+    !["filled", "cancelled"].includes(outcome.entryOrderStatus) ||
+    (outcome.exitReason !== "stop-loss" && outcome.exitReason !== "take-profit")
   ) {
     return null;
   }
@@ -253,10 +263,18 @@ export function evaluateLearningCohorts(
     }
 
     if (
-      (observation.outcome.status === "expired" || observation.outcome.status === "invalidated") &&
+      ((observation.outcome.status === "expired" &&
+        observation.outcome.entryOrderStatus === "expired" &&
+        observation.outcome.invalidationReason === null) ||
+       (observation.outcome.status === "invalidated" &&
+        observation.outcome.entryOrderStatus === "cancelled" &&
+        observation.outcome.invalidationReason === "ENTRY_GAPPED_OUT_OF_PLAN")) &&
       observation.outcome.entryFilledQuantity === 0 &&
       observation.outcome.exitFilledQuantity === 0 &&
       observation.outcome.positionRemainingQuantity === 0 &&
+      observation.outcome.entryFees === 0 &&
+      observation.outcome.exitFees === 0 &&
+      observation.outcome.totalFees === 0 &&
       observation.outcome.netPnl === 0
     ) {
       eligible.push({ observation, netR: null });
@@ -270,11 +288,11 @@ export function evaluateLearningCohorts(
   // snapshot for a decision/candidate/simulation version enters a cohort.
   const latestByPlan = new Map<string, EligibleSample>();
   for (const sample of eligible) {
-    const key = [
+    const key = JSON.stringify([
       sample.observation.plan.decisionId,
       sample.observation.plan.candidateId,
       sample.observation.plan.simulationVersion,
-    ].join("|");
+    ]);
     const current = latestByPlan.get(key);
     if (!current ||
         sample.observation.recordedAt > current.observation.recordedAt ||
@@ -308,8 +326,14 @@ export function evaluateLearningCohorts(
         decisionStatus: samples[0].observation.decision.status,
         setupFamily: samples[0].observation.decision.candidate!.setupFamily,
         maturedCandidates: samples.length,
-        firstDecisionAt: Math.min(...samples.map((sample) => sample.observation.decision.decisionAt)),
-        lastDecisionAt: Math.max(...samples.map((sample) => sample.observation.decision.decisionAt)),
+        firstDecisionAt: samples.reduce(
+          (minimum, sample) => Math.min(minimum, sample.observation.decision.decisionAt),
+          Number.POSITIVE_INFINITY,
+        ),
+        lastDecisionAt: samples.reduce(
+          (maximum, sample) => Math.max(maximum, sample.observation.decision.decisionAt),
+          Number.NEGATIVE_INFINITY,
+        ),
         completedTrades: completed.length,
         noFillCandidates: samples.length - completed.length,
         meanNetR: mean(netRs),
