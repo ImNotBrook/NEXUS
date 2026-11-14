@@ -8,8 +8,10 @@ import { rsi } from "./domain/indicators";
 import { fetchBinanceCandles, type BinanceInterval } from "./adapters/binance-public";
 import { fetchKrakenCandles } from "./adapters/kraken-public";
 import { IndexedDbMarketSnapshotCache } from "./adapters/market-snapshot-cache";
-import { resolveMarketSnapshot, type MarketDataProvider, type MarketSnapshot } from "./domain/market-data";
-import { compareMarketSnapshots, validateSnapshotQuality } from "./domain/market-data-quality";
+import type { MarketDataProvider } from "./domain/market-data";
+import { loadMarketIntelligence } from "./domain/market-intelligence-service";
+import { buildMarketIntelligencePresentation, type MarketIntelligencePresentation } from "./domain/market-intelligence-presentation";
+import type { MarketRegimeConfig } from "./domain/market-regimes";
 import { PaperAccountStore } from "./adapters/paper-account-store";
 import {
   createPaperAccount, executePaperMarketOrder, getPaperAccountSummary, markPaperAccount,
@@ -17,6 +19,14 @@ import {
 } from "./domain/paper-broker";
 
 const result = evaluateQualification({ qualifyingDays: 0, completedTrades: 0 });
+const MARKET_REGIME_CONFIG: MarketRegimeConfig = {
+  fastEmaPeriod: 5,
+  slowEmaPeriod: 13,
+  atrPeriod: 14,
+  trendThresholdPct: 0.1,
+  lowVolatilityAtrPct: 0.3,
+  highVolatilityAtrPct: 1.5,
+};
 const root = document.querySelector<HTMLDivElement>("#root");
 
 if (!root) throw new Error("Root element #root was not found");
@@ -45,6 +55,27 @@ root.innerHTML = `
         <p id="market-quality" class="small" role="status">Data quality not checked</p>
         <div class="market-metrics"><span>RSI (14)</span><strong id="btc-rsi">—</strong></div>
         <div class="market-footer"><span id="market-updated">No snapshot loaded</span><button id="refresh-market" class="refresh-button" type="button">Refresh</button></div>
+      </article>
+      <article class="panel intelligence-panel">
+        <span class="panel-label">MULTI-TIMEFRAME CONTEXT · NON-PREDICTIVE</span>
+        <div class="market-heading"><h2 id="market-phase">UNKNOWN</h2><span id="intelligence-quality" class="tag">NOT CHECKED</span></div>
+        <p id="market-phase-rationale" class="small">Waiting for four-timeframe market context</p>
+        <div class="intelligence-grid">
+          <span>1D macro<strong id="market-macro">UNKNOWN</strong></span>
+          <span>4H primary<strong id="market-primary">UNKNOWN</strong></span>
+          <span>1H tactical<strong id="market-tactical">UNKNOWN</strong></span>
+          <span>15M micro<strong id="market-micro">UNKNOWN</strong></span>
+          <span>Volatility<strong id="market-volatility">UNKNOWN</strong></span>
+          <span>Alignment<strong id="market-alignment">UNKNOWN</strong></span>
+          <span>Uncertainty<strong id="market-uncertainty">UNKNOWN</strong></span>
+          <span>Coverage<strong id="market-coverage">0 / 4 timeframes</strong></span>
+        </div>
+        <p id="market-divergence" class="small">No lower-timeframe assessment</p>
+        <p id="market-crossfeed" class="small">Cross-feed unavailable</p>
+        <p id="market-liquidity" class="small">Liquidity: unknown</p>
+        <p id="market-positioning" class="small">Positioning: unknown</p>
+        <p id="market-missing" class="small">Missing dimensions not checked</p>
+        <p id="market-paper-gate" class="paper-status" role="status">LOCKED · DATA NOT TRUSTED</p>
       </article>
       <article class="panel paper-panel">
         <span class="panel-label">PAPER EXECUTION</span>
@@ -101,6 +132,25 @@ const paperFillsElement = document.querySelector<HTMLElement>("#paper-fills");
 const paperQuantityInput = document.querySelector<HTMLInputElement>("#paper-quantity");
 const paperBuyButton = document.querySelector<HTMLButtonElement>("#paper-buy");
 const paperSellButton = document.querySelector<HTMLButtonElement>("#paper-sell");
+const intelligenceElements: Array<[keyof MarketIntelligencePresentation, HTMLElement | null]> = [
+  ["phase", document.querySelector("#market-phase")],
+  ["phaseRationale", document.querySelector("#market-phase-rationale")],
+  ["macroTrend", document.querySelector("#market-macro")],
+  ["primaryTrend", document.querySelector("#market-primary")],
+  ["tacticalTrend", document.querySelector("#market-tactical")],
+  ["microTrend", document.querySelector("#market-micro")],
+  ["volatility", document.querySelector("#market-volatility")],
+  ["alignment", document.querySelector("#market-alignment")],
+  ["uncertainty", document.querySelector("#market-uncertainty")],
+  ["lowerTimeframeDivergence", document.querySelector("#market-divergence")],
+  ["coverage", document.querySelector("#market-coverage")],
+  ["quality", document.querySelector("#intelligence-quality")],
+  ["crossFeed", document.querySelector("#market-crossfeed")],
+  ["liquidity", document.querySelector("#market-liquidity")],
+  ["positioning", document.querySelector("#market-positioning")],
+  ["missingDimensions", document.querySelector("#market-missing")],
+  ["paperEligibility", document.querySelector("#market-paper-gate")],
+];
 const paperStore = new PaperAccountStore();
 const marketCache = new IndexedDbMarketSnapshotCache();
 const marketProviders: MarketDataProvider[] = [
@@ -195,45 +245,36 @@ async function loadMarketSnapshot(): Promise<void> {
   marketDataTrusted = false;
   renderPaperAccount();
   try {
-    const snapshot = await resolveMarketSnapshot(marketProviders, marketCache, {
-      symbol: "BTCUSDT", interval: "1h", limit: 25, minCandles: 15, maxCacheAgeMs: 24 * 60 * 60 * 1000,
+    const intelligence = await loadMarketIntelligence({
+      symbol: "BTCUSDT",
+      instrumentCategory: "spot",
+      volumeUnit: "base",
+      evaluationTime: Date.now(),
+      config: MARKET_REGIME_CONFIG,
+      providers: marketProviders,
+      cache: marketCache,
+      historyLimit: 60,
+      minimumCandles: 25,
+      crossFeedToleranceBps: 50,
     });
+    const snapshot = intelligence.snapshots["1h"];
+    if (!snapshot) throw new Error("No usable completed 1H market snapshot is available");
     const candles = snapshot.candles;
     if (candles.length < 15) throw new Error("Not enough completed candles to calculate RSI");
-    const quality = validateSnapshotQuality(snapshot, {
-      now: Date.now(), intervalMs: 60 * 60 * 1000, maxAgeMs: 5 * 60 * 1000,
+    const presentation = buildMarketIntelligencePresentation({
+      snapshot: intelligence.snapshot,
+      crossFeedStatus: intelligence.crossFeedStatus,
+      marketDataTrusted: intelligence.marketDataTrusted &&
+        intelligence.snapshot.dataQuality === "pass",
     });
-    let crossFeedStatus = "Cross-feed check unavailable";
-    let crossFeedDiscrepancy = false;
-    let crossFeedConfirmed = false;
-    const secondaryProvider = marketProviders.find((provider) => provider.name !== snapshot.provider);
-    if (secondaryProvider) {
-      try {
-        const secondaryCandles = await secondaryProvider.fetchCandles({
-          symbol: "BTCUSDT", interval: "1h", limit: 25,
-        });
-        const secondarySnapshot: MarketSnapshot = {
-          symbol: "BTCUSDT", interval: "1h", provider: secondaryProvider.name,
-          fetchedAt: Date.now(), stale: false, candles: secondaryCandles,
-        };
-        const comparison = compareMarketSnapshots(snapshot, secondarySnapshot, 50);
-        crossFeedDiscrepancy = comparison.status === "discrepancy";
-        crossFeedConfirmed = comparison.status === "within_tolerance";
-        crossFeedStatus = comparison.status === "within_tolerance"
-          ? "Cross-feed within 50 bps · " + comparison.comparedCandles + " candles"
-          : comparison.status === "discrepancy"
-            ? "CROSS-FEED PRICE DISCREPANCY · max " + (comparison.maxDeviationBps ?? 0).toFixed(1) + " bps"
-            : "Cross-feed overlap insufficient";
-      } catch {
-        crossFeedStatus = "Cross-feed check unavailable";
-      }
+    for (const [field, element] of intelligenceElements) {
+      if (element) element.textContent = presentation[field];
     }
-    marketDataTrusted = quality.status !== "fail" && crossFeedConfirmed && !crossFeedDiscrepancy && !snapshot.stale;
+    marketDataTrusted = presentation.paperEligibility === "PAPER DATA GATE PASSED";
     if (qualityElement) {
-      qualityElement.textContent = "Data quality: " + quality.status.toUpperCase() + " · " +
-        quality.issues.map((issue) => issue.code).join(", ") + (quality.issues.length ? " · " : "") + crossFeedStatus;
-      qualityElement.dataset.quality = quality.status === "fail" || crossFeedDiscrepancy
-        ? "fail" : quality.status;
+      qualityElement.textContent = "Data quality: " + presentation.quality +
+        " · Cross-feed: " + presentation.crossFeed;
+      qualityElement.dataset.quality = presentation.quality === "FAIL" ? "fail" : presentation.quality;
     }
     const firstClose = candles[0].close;
     if (firstClose <= 0) throw new Error("Invalid reference price in market data");
