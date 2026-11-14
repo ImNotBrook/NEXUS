@@ -48,7 +48,7 @@ function validateEvidencePacket(evidence: readonly MarketAnalystEvidence[]): Set
     if (!isRecord(item) || typeof item.id !== "string" ||
         !/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,79}$/.test(item.id) ||
         ids.has(item.id) || !boundedText(item.source, 2, 120) ||
-        !Number.isSafeInteger(item.observedAt) || item.observedAt < 0 ||
+        typeof item.observedAt !== "number" || !Number.isSafeInteger(item.observedAt) || item.observedAt < 0 ||
         !boundedText(item.statement, 8, 500)) {
       throw new TypeError("Evidence packet contains invalid or non-unique evidence");
     }
