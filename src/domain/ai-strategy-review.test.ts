@@ -11,8 +11,6 @@ const proposal: AiStrategyProposal = {
   rationale: "Tests a faster trend trigger against a slower baseline.",
 };
 
-const source = { provider: "groq", model: "openai/gpt-oss-120b", generatedAt: "2026-11-14T00:00:00.000Z", symbol: "BTCUSDT", interval: "1h" as const };
-
 const artifact = {
   schemaVersion: 1,
   createdAt: "2026-11-14T00:00:00.000Z",
