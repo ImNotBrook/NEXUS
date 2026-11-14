@@ -106,7 +106,7 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     redundancyGroup: "band_volatility", defaultParameters: { period: 20, deviations: 2 },
   },
   {
-    id: "adx", name: "Average Directional Index", category: "trend", implementation: "planned",
+    id: "adx", name: "Average Directional Index", category: "trend", implementation: "implemented",
     purpose: "Estimate trend strength without specifying direction.",
     inputs: ["high", "low", "close"], bestIn: ["uptrend", "downtrend", "range"],
     usefulWhen: ["Distinguishing trend-following from range strategies", "Filtering weak directional moves"],
@@ -116,7 +116,7 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     redundancyGroup: "trend_strength", defaultParameters: { period: 14 },
   },
   {
-    id: "stochastic", name: "Stochastic Oscillator", category: "momentum", implementation: "planned",
+    id: "stochastic", name: "Stochastic Oscillator", category: "momentum", implementation: "implemented",
     purpose: "Locate the close within its recent high-low range.",
     inputs: ["high", "low", "close"], bestIn: ["range"],
     usefulWhen: ["Range rotation and momentum turning-point research"],
@@ -126,7 +126,7 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     redundancyGroup: "bounded_momentum", defaultParameters: { period: 14, smoothK: 3, smoothD: 3 },
   },
   {
-    id: "cci", name: "Commodity Channel Index", category: "momentum", implementation: "planned",
+    id: "cci", name: "Commodity Channel Index", category: "momentum", implementation: "implemented",
     purpose: "Measure deviation from a rolling typical-price mean.",
     inputs: ["high", "low", "close"], bestIn: ["range", "uptrend", "downtrend"],
     usefulWhen: ["Cyclical deviations and momentum regime research"],
@@ -136,7 +136,7 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     redundancyGroup: "unbounded_momentum", defaultParameters: { period: 20 },
   },
   {
-    id: "roc", name: "Rate of Change", category: "momentum", implementation: "planned",
+    id: "roc", name: "Rate of Change", category: "momentum", implementation: "implemented",
     purpose: "Measure percentage price change over a fixed lookback.",
     inputs: ["close"], bestIn: ["uptrend", "downtrend"],
     usefulWhen: ["Momentum ranking", "Acceleration and relative-strength research"],
@@ -146,7 +146,7 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     redundancyGroup: "price_momentum", defaultParameters: { period: 12 },
   },
   {
-    id: "obv", name: "On-Balance Volume", category: "volume", implementation: "planned",
+    id: "obv", name: "On-Balance Volume", category: "volume", implementation: "implemented",
     purpose: "Accumulate volume signed by close-to-close direction as a crude participation proxy.",
     inputs: ["close", "volume"], bestIn: ["uptrend", "downtrend", "range"],
     usefulWhen: ["Price/volume confirmation", "Accumulation/distribution divergence research"],
@@ -156,7 +156,7 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     redundancyGroup: "volume_flow", defaultParameters: {},
   },
   {
-    id: "vwap", name: "Volume Weighted Average Price", category: "volume", implementation: "planned",
+    id: "vwap", name: "Volume Weighted Average Price", category: "volume", implementation: "implemented",
     purpose: "Estimate volume-weighted traded price over a defined session or anchor.",
     inputs: ["high", "low", "close", "volume"], bestIn: ["uptrend", "downtrend", "range"],
     usefulWhen: ["Intraday execution context", "Anchored fair-value and mean-reversion research"],
@@ -166,7 +166,7 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     redundancyGroup: "volume_price", defaultParameters: {},
   },
   {
-    id: "mfi", name: "Money Flow Index", category: "volume", implementation: "planned",
+    id: "mfi", name: "Money Flow Index", category: "volume", implementation: "implemented",
     purpose: "Combine typical-price direction and volume into a bounded money-flow oscillator.",
     inputs: ["high", "low", "close", "volume"], bestIn: ["range"],
     usefulWhen: ["Volume-confirmed range momentum research"],
@@ -176,7 +176,7 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     redundancyGroup: "bounded_momentum", defaultParameters: { period: 14 },
   },
   {
-    id: "donchian_channels", name: "Donchian Channels", category: "market_structure", implementation: "planned",
+    id: "donchian_channels", name: "Donchian Channels", category: "market_structure", implementation: "implemented",
     purpose: "Track the highest high and lowest low over a prior rolling window.",
     inputs: ["high", "low"], bestIn: ["uptrend", "downtrend", "low_volatility"],
     usefulWhen: ["Breakout and range-expansion hypotheses", "Mechanical trailing-channel research"],
@@ -186,7 +186,7 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     redundancyGroup: "price_channels", defaultParameters: { period: 20 },
   },
   {
-    id: "keltner_channels", name: "Keltner Channels", category: "volatility", implementation: "planned",
+    id: "keltner_channels", name: "Keltner Channels", category: "volatility", implementation: "implemented",
     purpose: "Create an EMA-centred channel scaled by ATR.",
     inputs: ["high", "low", "close"], bestIn: ["uptrend", "downtrend", "low_volatility"],
     usefulWhen: ["Volatility-adjusted trend channels", "Squeeze comparisons with Bollinger Bands"],
@@ -274,11 +274,13 @@ export function recommendIndicators(
 
   if (context.trend === "uptrend" || context.trend === "downtrend") {
     add("ema", "primary", "Trend regime: use EMA alignment to describe direction and pullback context.");
-    add("macd", "supporting", "Trend regime: MACD can describe momentum confirmation, but overlaps with moving averages.");
+    add("adx", "supporting", "ADX describes trend strength without direction; use it alongside directional context.");
+    add("donchian_channels", "supporting", "Prior-window Donchian channels frame breakout levels without including the current candle.");
     add("atr", "supporting", "Measure realized range so trend signals are interpreted alongside volatility.");
   } else if (context.trend === "range") {
     add("rsi", "primary", "Range regime: RSI can frame stretched momentum; test mean reversion rather than assuming reversal.");
     add("bollinger_bands", "supporting", "Range regime: bands describe dispersion and relative price location.");
+    add("adx", "supporting", "Low ADX can support a range hypothesis; confirm it remains stable rather than assuming mean reversion.");
     add("atr", "supporting", "Track realized range to detect when the range regime is breaking down.");
   } else {
     add("sma", "supporting", "Unknown regime: use a slow baseline for descriptive context, not a directional conclusion.");
@@ -290,6 +292,7 @@ export function recommendIndicators(
     add("bollinger_bands", "supporting", "High volatility: monitor dispersion expansion and avoid assuming band touches reverse.");
   } else if (context.volatility === "low") {
     add("bollinger_bands", "primary", "Low volatility: monitor compression and possible expansion; a squeeze is not a direction forecast.");
+    add("donchian_channels", "supporting", "Prior-window channel levels can frame a breakout test without forecasting its direction.");
     add("atr", "supporting", "Track whether realized range remains compressed or begins expanding.");
   }
 
