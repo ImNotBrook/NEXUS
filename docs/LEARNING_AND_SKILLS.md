@@ -6,6 +6,10 @@ NEXUS currently contains repository-level agent skill documents and a domain-lev
 
 This distinction is deliberate: no paid model API, hosted inference service, private exchange key or always-on compute is required in the first phase.
 
+## Universal model governance
+
+Every inference adapter must include the shared runtime contract in `src/domain/ai-governance-policy.ts`; see [AI_GOVERNANCE.md](./AI_GOVERNANCE.md). Provider selection changes capacity, not authority. Prompts are behavioural constraints, not a security boundary; schema parsers, deterministic risk controls, private secrets and human approval enforce the actual permissions. No provider may bypass the governed adapter.
+
 ## Skill layout
 
 - .agents/skills/ contains active, project-authored agent instructions.
@@ -67,4 +71,4 @@ Any supervised model must be trained on chronological windows, fitted only on tr
 - Reuse and licence assessment: skills/knowledge/open-source-reuse-audit.md
 - Adaptive training design notes: skills/knowledge/adaptive-model-training.md
 
-No third-party skill code has been copied into NEXUS.
+No third-party skill code has been copied into NEXUS. See [the TraderMonty skill repository review](./EXTERNAL_SKILL_REVIEW_TRADERMONTY.md) for selective adoption decisions.
