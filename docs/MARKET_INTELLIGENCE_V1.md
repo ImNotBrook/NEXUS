@@ -39,7 +39,7 @@ Each frame is limited to 5,000 candles to bound mobile memory and hashing cost. 
 - **Volatility rank:** current ATR percentage's empirical rank within up to 100 trailing eligible observations.
 - **Participation proxy:** latest 1H volume relative to the median of the previous 20 closed 1H bars.
 
-The volume ratio is not order-book liquidity. Depth, spread, breadth and derivatives positioning remain explicitly unknown until their own validated sources are joined.
+The volume ratio is not order-book liquidity. Depth, spread, breadth, confirmed market-structure events, Elliott Wave scenarios and derivatives positioning remain explicitly unknown until their own validated sources and causal engines are joined.
 
 ## Phase hypothesis
 
