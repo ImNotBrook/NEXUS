@@ -130,7 +130,6 @@ export async function journalShadowOutcome(
       candidateId: plan.candidateId,
       simulationVersion: plan.simulationVersion,
       inputHash,
-      recordedAt,
       horizonReached: outcome.horizonReached,
       observedThrough: relevantCandles.length
         ? relevantCandles[relevantCandles.length - 1].timestamp
