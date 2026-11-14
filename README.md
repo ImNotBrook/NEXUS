@@ -14,7 +14,7 @@ NEXUS is a mobile-first, research-led trading intelligence platform. The initial
 
 ## Development
 
-See the [NEXUS Master Roadmap](docs/MASTER_ROADMAP.md) for the canonical stage tracker, dependencies, acceptance criteria and remaining platform work. See [Global Research Leaderboard](docs/RESEARCH_LEADERBOARD.md) for compatibility-safe experiment ranking and [AI-led Strategy Factory and Creation Studio](docs/STRATEGY_STUDIO.md) for AI-generated strategy proposals, human review, versioned definitions and reproducible research.
+See the [NEXUS Master Roadmap](docs/MASTER_ROADMAP.md) for the canonical stage tracker, dependencies, acceptance criteria and remaining platform work. See [Global Research Leaderboard](docs/RESEARCH_LEADERBOARD.md) for compatibility-safe experiment ranking and [AI-led Strategy Factory and Creation Studio](docs/STRATEGY_STUDIO.md) for AI-generated strategy proposals, complete structured rule composition, human review, versioned definitions and reproducible research. See [AI Strategy Composition](docs/AI_STRATEGY_COMPOSITION.md) for the supported rule DSL and limitations.
 
 See [AGENTS.md](AGENTS.md) for engineering rules, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system boundaries, [docs/PAPER_TRADING.md](docs/PAPER_TRADING.md) for simulation assumptions, [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the free Android deployment path, [docs/LEARNING_AND_SKILLS.md](docs/LEARNING_AND_SKILLS.md) for skill governance, [docs/MARKET_REGIMES.md](docs/MARKET_REGIMES.md) for regime diagnostics, [docs/STRATEGY_LIBRARY.md](docs/STRATEGY_LIBRARY.md) for baseline strategies and [docs/FREE_AI_PROVIDERS.md](docs/FREE_AI_PROVIDERS.md) for the free AI provider registry.
 
