@@ -50,7 +50,7 @@ describe("runNestedWalkForwardSelection", () => {
     }
     expect(observedTrainingEndTimestamps.length).toBeGreaterThan(0);
     expect(observedTrainingEndTimestamps.every((timestamp) =>
-      timestamp < result.candidateResults[0].folds[0].testStartTimestamp)).toBe(true);
+      timestamp < Math.max(...result.candidateResults[0].folds.map((fold) => fold.testStartTimestamp)))).toBe(true);
   });
 
   it("does not let changes to an outer test window change its selected parameters", () => {
