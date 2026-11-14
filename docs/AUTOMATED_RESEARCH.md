@@ -8,7 +8,7 @@ NEXUS can run a bounded daily candidate-search and walk-forward backtest on GitH
 - Generated output is parsed as strict JSON and compiled only into the reviewed SMA, RSI and Donchian strategy factories. Arbitrary code, new strategy implementations, orders and execution settings are rejected.
 - Without the secret, the workflow uses the deterministic candidate set and remains fully operational.
 - Fetches up to 1,500 completed BTCUSDT 1-hour public spot candles from Binance.
-- Generates 16 transparent, deterministic candidates across SMA crossover, RSI mean-reversion and Donchian breakout templates.
+- Starts with 16 transparent, deterministic candidates across SMA crossover, RSI mean-reversion and Donchian breakout templates, with up to four unique AI-generated parameter variants when Groq is configured (20 candidates maximum).
 - Evaluates every candidate on the same expanding walk-forward folds.
 - Includes configured fees, adverse slippage, half-spread, participation caps and market impact.
 - Uploads a versioned JSON report as a GitHub Actions artifact for 30 days.
