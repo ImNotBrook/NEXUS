@@ -15,6 +15,17 @@ describe("workspace navigation", () => {
     }
   });
 
+  it("exposes every required workspace destination in its intended group", () => {
+    expect(WORKSPACE_PAGES.map(({ id, group }) => [id, group])).toEqual([
+      ["overview", "Workspace"],
+      ["markets", "Workspace"],
+      ["paper", "Workspace"],
+      ["research", "Research"],
+      ["skills", "Research"],
+      ["system", "Controls"],
+    ]);
+  });
+
   it("returns only known pages", () => {
     expect(getWorkspacePage("research")?.label).toBe("Strategy research");
     expect(getWorkspacePage("missing")).toBeUndefined();
