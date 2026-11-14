@@ -51,7 +51,7 @@ The runtime policy is currently applied to the multi-provider strategy generator
 
 ## Skill loading
 
-For coding, research, strategy design, backtest audit, risk review, market-data work or skill evolution, the agent must read the relevant project skill before beginning. The runtime contract is a compact cross-provider minimum; it does not replace task-specific skills.
+For coding, research, strategy design, backtest audit, risk review, market-data work or skill evolution, the calling agent must read the relevant project skill before beginning and supply task-specific instructions to the model where needed. The runtime contract is a compact cross-provider minimum; it does not pretend that a provider can inspect repository files that were not supplied.
 
 ## Governance change control
 
