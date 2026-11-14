@@ -5,6 +5,7 @@ import {
 } from "./decision-journal";
 import {
   simulateShadowOutcome,
+  validateShadowTradePlan,
   type ShadowOutcome,
   type ShadowTradePlan,
 } from "./shadow-outcome-engine";
@@ -90,6 +91,7 @@ export async function registerShadowPlan(
   journal: ShadowOutcomeJournal,
   hasher: ShadowOutcomeHasher = sha256,
 ): Promise<JournalledShadowPlanResult> {
+  validateShadowTradePlan(plan);
   const decision = await journal.get(plan.decisionId);
   assertPlanMatchesDecision(plan, decision);
   const hash = await hasher({ decisionId: plan.decisionId, plan: jsonSnapshot(plan) });
