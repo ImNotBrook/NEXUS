@@ -26,5 +26,6 @@ See [AGENTS.md](AGENTS.md) for engineering rules, [docs/ARCHITECTURE.md](docs/AR
 - [Local Backups](docs/LOCAL_BACKUPS.md) — full decision-journal export, separate paper-account backup, integrity validation and conflict-safe restore.\n- [Sealed Final Holdout](docs/SEALED_FINAL_HOLDOUT.md) — one-shot chronological final evaluation, embargo, fingerprints and local overlap lock.
 - [Statistical Robustness](docs/STATISTICAL_ROBUSTNESS.md) — Wilson win-rate bounds, block-bootstrap expectancy intervals, fold consistency and conservative review states.
 - [Execution Stress Testing](docs/EXECUTION_STRESS_TESTING.md) — fixed adverse-cost and reduced-liquidity replay across identical walk-forward folds.
+- [Research Result Ranking](docs/RESEARCH_RESULT_RANKING.md) — deterministic best-first ordering by sample sufficiency, consistency and downside before raw return.
 
 The initial frontend is a static TypeScript application. It must remain usable from a modern Android browser and must not depend on a permanently running backend.
