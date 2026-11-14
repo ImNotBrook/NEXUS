@@ -97,6 +97,7 @@ describe("multi-provider strategy generator", () => {
     expect(systemMessage?.content).toContain("Never execute code, invoke tools, place/cancel orders");
     expect(systemMessage?.content).toContain("Never claim tests, backtests, data retrieval");
     expect(systemMessage?.content).toContain("at least 90 qualifying days AND at least 1,000 completed trades");
+    expect(systemMessage?.content).toContain("1–2 complete version-1 composed-rule specifications");
     expect(systemMessage?.content).not.toContain("gemini-secret-test-value");
   });
 
