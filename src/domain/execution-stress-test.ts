@@ -33,7 +33,7 @@ const DEFAULT_COST_MULTIPLIERS = [1, 1.5, 2, 3] as const;
 const DEFAULT_PARTICIPATION_MULTIPLIERS = [0.5] as const;
 const MAX_SCENARIOS = 8;
 const SELECTION_WARNING =
-  "Execution stress is a survivability diagnostic, not an optimisation grid. Do not select the best scenario or tune against these same out-of-sample results. " +
+  "Execution stress is a survivability diagnostic, not an optimisation grid. You must not select the best scenario or tune against these same out-of-sample results. " +
   "Real fills can be worse because candle-volume models omit order-book depth, latency, queue position and venue-specific liquidity.";
 
 function validateMultipliers(values: readonly number[], label: string, minimum: number): void {
@@ -82,7 +82,7 @@ export function runExecutionStressTest(
       participationMultiplier: 1,
     })),
     ...participationMultipliers.map((participationMultiplier) => ({
-      id: "capacity-" + String(participationMultiplier).replace(".", "_") + "x",
+      id: participationMultiplier === 0.5 ? "capacity-half" : "capacity-" + String(participationMultiplier).replace(".", "_") + "x",
       label: participationMultiplier * 100 + "% of baseline participation capacity",
       costMultiplier: 1,
       participationMultiplier,
