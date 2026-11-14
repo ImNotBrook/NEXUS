@@ -64,14 +64,13 @@ describe("sealed final holdout", () => {
       datasetFingerprint: plan.fullDatasetFingerprint,
       holdoutFingerprint: plan.holdoutFingerprint,
       developmentFingerprint: plan.developmentFingerprint,
-      holdoutStartTimestamp: 400 * 3_600_000,
-      holdoutEndTimestamp: 499 * 3_600_000,
+      identity: { startTimestamp: 400 * 3_600_000, endTimestamp: 499 * 3_600_000 },
       candidateIds: ["frozen-baseline-v1"],
     });
   });
 
   it("rejects insufficient history, invalid fractions, and invalid market identity", () => {
-    expect(() => prepareSealedHoldout(candles.slice(0, 150), metadata, 0.2, 2)).toThrow();
+    expect(() => prepareSealedHoldout(candles.slice(0, 120), metadata, 0.2, 2)).toThrow();
     expect(() => prepareSealedHoldout(candles, metadata, 0.05, 2)).toThrow();
     expect(() => prepareSealedHoldout(candles, { ...metadata, symbol: "" }, 0.2, 2)).toThrow();
   });
