@@ -51,6 +51,8 @@ function renderResult(result: DecisionWorkbenchResult): HTMLElement {
       metric("Quantity", candidate.plan.quantity.toFixed(6)),
       metric("Support score*", assessment.result.supportScore.toFixed(3)),
       metric("Contradiction score*", assessment.result.contradictionScore.toFixed(3)),
+      metric("Evidence coverage*", assessment.result.coverageScore.toFixed(3)),
+      metric("Uncertainty*", assessment.result.uncertaintyScore.toFixed(3)),
     );
     if (gateAssessment) {
       metrics.append(
@@ -68,6 +70,15 @@ function renderResult(result: DecisionWorkbenchResult): HTMLElement {
     panel.append(node("p", "small", "Bull case: " + (generation.thesis.bullCase.join("; ") || "Not established")));
     panel.append(node("p", "small", "Bear case: " + (generation.thesis.bearCase.join("; ") || "Not established")));
     panel.append(node("p", "small", "Alternatives: " + generation.thesis.alternatives.join("; ")));
+    const evidenceDetails = node("details", "journal-details");
+    evidenceDetails.append(node("summary", "", "Inspect decision evidence and provenance"));
+    for (const item of assessment.record.evidence) {
+      evidenceDetails.append(node("p", "small",
+        item.family.toUpperCase() + " · " + item.polarity.toUpperCase() + " · " +
+        item.claim + " · strength " + item.strength.toFixed(2) +
+        " · quality " + item.quality.toFixed(2) + " · " + item.timeframe.toUpperCase()));
+    }
+    panel.append(evidenceDetails);
   } else {
     panel.append(node("p", "small", "The detector did not create a trade plan. The status and reasons are journalled; no substitute entry is invented."));
   }
