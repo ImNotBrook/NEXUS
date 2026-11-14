@@ -59,6 +59,7 @@ function provider(
     timestampShiftByInterval?: Record<string, number>;
     addIncompleteCandle?: boolean;
     malformedIncompleteCandle?: boolean;
+    zeroVolumeInterval?: string;
   } = {},
 ): MarketDataProvider {
   return {
@@ -197,4 +198,18 @@ describe("loadMarketIntelligence", () => {
     await expect(loadMarketIntelligence(serviceInput({ evaluationTime: -1 })))
       .rejects.toThrow(/evaluation/i);
   });
+  it("retains price-derived regimes when quality reports only zero-volume warnings", async () => {
+    const result = await loadMarketIntelligence(serviceInput({
+      providers: [
+        provider("binance", { zeroVolumeInterval: "1h" }),
+        provider("kraken", { zeroVolumeInterval: "1h" }),
+      ],
+    }));
+    expect(result.qualityReports["1h"]?.status).toBe("warning");
+    expect(result.frameQuality["1h"]).toBe("pass");
+    expect(result.snapshot.frames["1h"].status).toBe("available");
+    expect(result.snapshot.frames["1h"].relativeVolume20).toBe(0);
+    expect(result.marketDataTrusted).toBe(true);
+  });
+
 });
