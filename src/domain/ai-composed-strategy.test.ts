@@ -54,6 +54,25 @@ describe("AI-composed strategy contract", () => {
     expect(typeof candidate.fit([])).toBe("function");
   });
 
+  it("emits a close-confirmed entry and opposite-cross exit without looking ahead", () => {
+    const specification = parseComposedStrategy({
+      ...valid,
+      entry: { trigger: { type: "sma_cross", fastPeriod: 2, slowPeriod: 5 }, confirmations: [] },
+      exit: { type: "opposite_sma_cross", fastPeriod: 2, slowPeriod: 5 },
+    });
+    const evaluator = compileComposedStrategy(specification).fit([]);
+    const closes = [10, 9, 8, 7, 6, 7, 8, 9, 10, 11, 10, 9, 8, 7, 6];
+    const signals = closes.map((close, index) => {
+      const history = closes.slice(0, index + 1).map((value, i) => ({
+        timestamp: i * 3_600_000, open: value, high: value + 1, low: value - 1, close: value, volume: 10,
+      }));
+      return evaluator(history);
+    });
+    expect(signals[5]).toBe("hold");
+    expect(signals[6]).toBe("buy");
+    expect(signals.slice(7).some(signal => signal === "sell")).toBe(true);
+  });
+
   it("uses completed history only and does not mutate caller candles", () => {
     const specification = parseComposedStrategy({
       ...valid,
