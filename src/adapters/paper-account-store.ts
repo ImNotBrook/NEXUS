@@ -65,6 +65,20 @@ export class PaperAccountStore {
     await done;
   }
 
+  /** Create the starter account only when no account exists; never replace a concurrent restore. */
+  async createIfAbsent(account: PaperAccount): Promise<void> {
+    validatePaperAccountSnapshot(account);
+    const database = await this.openDatabase();
+    const transaction = database.transaction(ACCOUNT_STORE, "readwrite");
+    const done = transactionComplete(transaction);
+    transaction.objectStore(ACCOUNT_STORE).add({
+      id: this.accountId,
+      account: structuredClone(account),
+      updatedAt: Date.now(),
+    } satisfies StoredPaperAccount);
+    await done;
+  }
+
   /**
    * Restore into an empty store, or replace only the untouched starter account
    * created automatically on first launch. Any account with trading activity
