@@ -73,6 +73,84 @@ export class StrategyLibraryStore {
       .map((record) => structuredClone(record));
   }
 
+  /** Exports every immutable strategy version, not just the visible recent list. */
+  async exportAll(): Promise<StoredStrategyDefinition[]> {
+    const database = await this.openDatabase();
+    const transaction = database.transaction(STRATEGY_LIBRARY_STORE, "readonly");
+    const done = transactionComplete(transaction);
+    const request = requestResult(
+      transaction.objectStore(STRATEGY_LIBRARY_STORE).getAll() as IDBRequest<StoredStrategyDefinition[]>,
+    );
+    const [records] = await Promise.all([request, done]);
+    return records
+      .sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))
+      .map((record) => structuredClone(record));
+  }
+
+  private validateBackupRecords(snapshot: unknown): Map<string, StoredStrategyDefinition> {
+    if (!Array.isArray(snapshot)) throw new TypeError("Strategy backup must contain a record array");
+    const records = new Map<string, StoredStrategyDefinition>();
+    for (const input of snapshot) {
+      if (!input || typeof input !== "object" || Array.isArray(input)) {
+        throw new TypeError("Strategy backup contains an invalid record");
+      }
+      const record = input as StoredStrategyDefinition;
+      const assessment = validateStrategyDefinition(record.definition);
+      if (!assessment.valid) throw new TypeError("Strategy backup contains an invalid definition: " + assessment.reasons.join("; "));
+      const expectedId = record.definition.id + "@" + record.definition.version;
+      if (record.id !== expectedId || record.createdAt !== record.definition.createdAt ||
+          !Number.isSafeInteger(record.createdAt) || record.createdAt < 0) {
+        throw new TypeError("Strategy backup record identity or timestamp is invalid");
+      }
+      if (records.has(record.id)) throw new Error("Strategy backup contains duplicate versions: " + record.id);
+      records.set(record.id, {
+        id: record.id,
+        createdAt: record.createdAt,
+        definition: structuredClone(createStrategyDefinition(record.definition)),
+      });
+    }
+    return records;
+  }
+
+  /** Read-only preview; identical versions are safe, conflicting content blocks restore. */
+  async previewRestore(snapshot: unknown): Promise<{ added: number; unchanged: number; conflicts: string[] }> {
+    const imported = this.validateBackupRecords(snapshot);
+    const existing = new Map((await this.exportAll()).map((record) => [record.id, record]));
+    let unchanged = 0;
+    const conflicts: string[] = [];
+    for (const [id, record] of imported) {
+      const current = existing.get(id);
+      if (!current) continue;
+      if (JSON.stringify(current) !== JSON.stringify(record)) conflicts.push("Strategy version has different content: " + id);
+      else unchanged += 1;
+    }
+    return { added: imported.size - unchanged - conflicts.length, unchanged, conflicts };
+  }
+
+  /** Imports missing immutable versions in one transaction; never overwrites existing content. */
+  async restoreAll(snapshot: unknown): Promise<{ added: number; unchanged: number }> {
+    const imported = this.validateBackupRecords(snapshot);
+    const existing = new Map((await this.exportAll()).map((record) => [record.id, record]));
+    let unchanged = 0;
+    const additions: StoredStrategyDefinition[] = [];
+    for (const [id, record] of imported) {
+      const current = existing.get(id);
+      if (!current) additions.push(record);
+      else if (JSON.stringify(current) !== JSON.stringify(record)) {
+        throw new Error("Restore conflict: strategy version has different content: " + id);
+      } else unchanged += 1;
+    }
+    if (!additions.length) return { added: 0, unchanged };
+    const database = await this.openDatabase();
+    const transaction = database.transaction(STRATEGY_LIBRARY_STORE, "readwrite");
+    const done = transactionComplete(transaction);
+    const requests = additions.map((record) =>
+      requestResult(transaction.objectStore(STRATEGY_LIBRARY_STORE).add(structuredClone(record))),
+    );
+    await Promise.all([...requests, done]);
+    return { added: additions.length, unchanged };
+  }
+
   async close(): Promise<void> {
     if (!this.databasePromise) return;
     const database = await this.databasePromise;
