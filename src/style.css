@@ -112,3 +112,14 @@
 .automation-actions{display:flex;gap:8px;flex-wrap:wrap}.automation-link{display:inline-block;padding:10px 13px;border:1px solid #31536a;border-radius:6px;background:#102b40;color:#5ee0c0;text-decoration:none;font-size:11px}
 .automation-details{margin-top:14px;color:#9fb0c2;font-size:11px}.automation-details summary{cursor:pointer;padding:8px 0}
 @media(max-width:420px){.automation-facts{grid-template-columns:1fr}}
+
+
+/* Multi-timeframe market intelligence */
+.intelligence-panel{grid-column:1/-1}
+.intelligence-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:14px 0}
+.intelligence-grid>span{display:grid;gap:5px;padding:10px;border:1px solid #29445b;border-radius:7px;background:#102235;color:#71869c;font-size:9px;text-transform:uppercase;letter-spacing:.06em;min-width:0}
+.intelligence-grid strong{color:#d0dce8;font-size:12px;overflow-wrap:anywhere;letter-spacing:0}
+.intelligence-panel .small{line-height:1.55;overflow-wrap:anywhere}
+#market-paper-gate{border-left:2px solid #c99d55;padding:9px 11px;background:#2a2418;color:#e4c98f}
+@media(max-width:720px){.intelligence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:360px){.intelligence-grid{grid-template-columns:1fr}}
