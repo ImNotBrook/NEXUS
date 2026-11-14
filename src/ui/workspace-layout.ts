@@ -42,8 +42,9 @@ export function mountWorkspaceLayout(root: HTMLElement): void {
   const grid = shell?.querySelector<HTMLElement>(".grid");
   const research = shell?.querySelector<HTMLElement>("#research-console-mount");
   const skills = shell?.querySelector<HTMLElement>("#skill-console-mount");
+  const automation = shell?.querySelector<HTMLElement>("#automation-console-mount");
   const footer = shell?.querySelector<HTMLElement>("footer");
-  if (!shell || !topbar || !hero || !grid || !research || !skills || !footer) return;
+  if (!shell || !topbar || !hero || !grid || !research || !skills || !automation || !footer) return;
 
   const panels = Array.from(grid.children) as HTMLElement[];
   if (panels.length < 5) return;
@@ -53,6 +54,7 @@ export function mountWorkspaceLayout(root: HTMLElement): void {
     paper: [panels[1]],
     research: [research],
     skills: [skills],
+    automation: [automation],
     system: panels.slice(2),
   };
 
