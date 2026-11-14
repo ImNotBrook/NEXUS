@@ -1,5 +1,6 @@
 import { StrategyLibraryStore, type StoredStrategyDefinition } from "../adapters/strategy-library-store";
 import { createLocalBackup, parseLocalBackup, type LocalBackupEnvelope } from "../domain/local-backup";
+import { createHumanReviewedStrategyDefinition, parseAutomatedResearchAiArtifact } from "../domain/ai-strategy-review";
 import {
   STRATEGY_TEMPLATE_CATALOG,
   createStrategyDefinition,
@@ -76,6 +77,68 @@ export function mountStrategyStudioConsole(root: HTMLElement): void {
   const library = el("div", "strategy-library");
   const libraryHeading = el("h3", "", "Saved strategy versions");
   section.append(form, libraryHeading, library);
+
+  const aiInbox = el("section", "research-result ai-strategy-inbox");
+  aiInbox.append(
+    el("h3", "", "AI Strategy Proposal Inbox"),
+    el("p", "small", "NEXUS generates strategy proposals in its scheduled AI research workflow. Download and extract the automated-research artifact from GitHub Actions, then import its JSON here. AI proposals are never saved or researched as approved strategies until you explicitly approve each one."),
+  );
+  const aiArtifactLabel = el("label", "strategy-field", "Import automated-research.json");
+  const aiArtifactFile = el("input");
+  aiArtifactFile.type = "file";
+  aiArtifactFile.accept = "application/json,.json";
+  aiArtifactLabel.append(aiArtifactFile);
+  const aiInboxStatus = el("p", "small", "No AI research artifact imported.");
+  aiInboxStatus.setAttribute("role", "status");
+  const aiProposalList = el("div", "strategy-library");
+  aiInbox.append(aiArtifactLabel, aiInboxStatus, aiProposalList);
+  section.append(aiInbox);
+
+  aiArtifactFile.addEventListener("change", async () => {
+    aiProposalList.replaceChildren();
+    const file = (aiArtifactFile as HTMLInputElement).files?.[0];
+    if (!file) {
+      aiInboxStatus.textContent = "No AI research artifact imported.";
+      return;
+    }
+    aiInboxStatus.textContent = "Validating AI research artifact and proposal schemas…";
+    try {
+      const parsed = parseAutomatedResearchAiArtifact(JSON.parse(await file.text()) as unknown);
+      aiInboxStatus.textContent = "Validated " + parsed.proposals.length + " AI proposal(s) · " +
+        parsed.provider + " / " + parsed.model + " · " + parsed.symbol + " " + parsed.interval +
+        " · generated " + new Date(parsed.createdAt).toLocaleString() +
+        ". Review each proposal before approving it into the strategy library.";
+      parsed.proposals.forEach((proposal, index) => {
+        const card = el("article", "research-result");
+        const parameters = Object.entries(proposal.parameters).map(([key, value]) => key + "=" + value).join(" · ");
+        const heading = el("h4", "", "AI proposal " + (index + 1) + " · " + proposal.family);
+        const detail = el("p", "small", parameters);
+        const rationale = el("p", "small", "AI rationale: " + proposal.rationale);
+        const approval = el("button", "primary-button", "Approve and save strategy");
+        approval.type = "button";
+        const result = el("p", "small", "Not approved · no strategy has been saved.");
+        result.setAttribute("role", "status");
+        approval.addEventListener("click", async () => {
+          approval.disabled = true;
+          try {
+            const definition = createHumanReviewedStrategyDefinition(proposal, Date.now());
+            const saved = await store.save(definition as import("../domain/strategy-studio").StrategyDefinition);
+            result.textContent = "Human-approved and saved as " + saved.id +
+              ". It is now eligible for historical research, but not approved for paper execution.";
+            approval.textContent = "Approved";
+            await refreshLibrary();
+          } catch (error) {
+            result.textContent = error instanceof Error ? "Approval/save refused: " + error.message : "Approval/save refused";
+            approval.disabled = false;
+          }
+        });
+        card.append(heading, detail, rationale, approval, result);
+        aiProposalList.append(card);
+      });
+    } catch (error) {
+      aiInboxStatus.textContent = error instanceof Error ? "AI artifact rejected: " + error.message : "AI artifact rejected";
+    }
+  });
 
   const backupPanel = el("section", "research-result strategy-backup");
   backupPanel.append(
