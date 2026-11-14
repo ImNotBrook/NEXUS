@@ -1,6 +1,7 @@
 import { parseAiStrategyProposals, type AiStrategyProposal } from "../domain/ai-strategy-proposals";
 import { NEXUS_AI_GOVERNANCE_POLICY } from "../domain/ai-governance-policy";
 import type { AiMarketContext } from "./groq-strategy-generator";
+import { parseComposedStrategy, type ComposedStrategySpecification } from "../strategies/composed-strategy-compiler";
 
 export type AiProviderId = "groq" | "gemini" | "zai" | "cloudflare" | "nvidia";
 
@@ -28,6 +29,7 @@ export type AiProviderGenerationResult =
       provider: AiProviderId;
       model: string;
       proposals: AiStrategyProposal[];
+      composedStrategies: Readonly<ComposedStrategySpecification>[];
       attempts: AiProviderAttempt[];
     }
   | {
@@ -35,6 +37,7 @@ export type AiProviderGenerationResult =
       provider: null;
       model: null;
       proposals: [];
+      composedStrategies: [];
       attempts: AiProviderAttempt[];
     };
 
@@ -168,7 +171,7 @@ function buildRequestBody(context: AiMarketContext, model: string): string {
     messages: [
       {
         role: "system",
-        content: NEXUS_AI_GOVERNANCE_POLICY + "\nTASK-SPECIFIC CONTRACT: You are a quantitative research hypothesis generator. Return only a JSON object with a candidates array containing 1 to 4 objects. Each object must have family (sma-crossover, rsi-mean-reversion, or donchian-breakout), parameters, and a falsifiable rationale of at least 12 characters. SMA parameters: integer fastPeriod 2..30 and slowPeriod 5..100 with fastPeriod < slowPeriod. RSI parameters: integer period 5..50, oversold 10..40, overbought 60..90 and oversold < overbought. Donchian parameters: integer period 5..100. Do not return code, formulas, tools, orders, credentials, execution instructions or claims of profitability. Historical results are unknown; do not pretend you have backtested them.",
+        content: NEXUS_AI_GOVERNANCE_POLICY + "\nTASK-SPECIFIC CONTRACT: You are a quantitative research hypothesis generator. Return only JSON with candidates (1–4 parameter proposals) AND composedStrategies (1–2 complete strategy specifications). Each object must have family (sma-crossover, rsi-mean-reversion, or donchian-breakout), parameters, and a falsifiable rationale of at least 12 characters. SMA parameters: integer fastPeriod 2..30 and slowPeriod 5..100 with fastPeriod < slowPeriod. RSI parameters: integer period 5..50, oversold 10..40, overbought 60..90 and oversold < overbought. Donchian parameters: integer period 5..100. Do not return code, formulas, tools, orders, credentials, execution instructions or claims of profitability. Each composed strategy must use schemaVersion 1, a kebab-case id, a concise name, a falsifiable marketHypothesis, regimeScope (uptrend/downtrend/range/any), timeframe 1h, entry.trigger (sma_cross, rsi_recovery or donchian_breakout), zero to two ema_alignment confirmations, one exit (opposite_sma_cross, rsi_overbought or close_below_sma), and a falsifiable invalidation. Use only exact schema fields and bounded parameters. Entry is long-only. Risk and protective exits are external deterministic controls. Historical results are unknown; do not pretend you have backtested them.",
       },
       { role: "user", content: JSON.stringify(context) },
     ],
@@ -212,13 +215,19 @@ export async function generateAiStrategyProposalsWithFallback(
         continue;
       }
       const payload: unknown = await response.json();
-      const proposals = parseAiStrategyProposals(JSON.parse(extractContent(payload)));
+      const decoded = JSON.parse(extractContent(payload)) as unknown;
+      if (!decoded || typeof decoded !== "object" || Array.isArray(decoded)) throw new TypeError("invalid strategy response");
+      const response = decoded as Record<string, unknown>;
+      const proposals = parseAiStrategyProposals(response);
+      if (!Array.isArray(response.composedStrategies) || response.composedStrategies.length < 1 || response.composedStrategies.length > 2) throw new TypeError("AI must return one or two composed strategy specifications");
+      const composedStrategies = response.composedStrategies.map(parseComposedStrategy);
       attempts.push({ provider: provider.id, status: "generated" });
       return {
         status: "generated",
         provider: provider.id,
         model: provider.model,
         proposals,
+        composedStrategies,
         attempts,
       };
     } catch (error) {
@@ -229,5 +238,5 @@ export async function generateAiStrategyProposalsWithFallback(
     }
   }
 
-  return { status: "fallback", provider: null, model: null, proposals: [], attempts };
+  return { status: "fallback", provider: null, model: null, proposals: [], composedStrategies: [], attempts };
 }
