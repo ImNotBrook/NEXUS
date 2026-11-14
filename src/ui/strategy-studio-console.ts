@@ -1,4 +1,5 @@
-import { StrategyLibraryStore } from "../adapters/strategy-library-store";
+import { StrategyLibraryStore, type StoredStrategyDefinition } from "../adapters/strategy-library-store";
+import { createLocalBackup, parseLocalBackup, type LocalBackupEnvelope } from "../domain/local-backup";
 import {
   STRATEGY_TEMPLATE_CATALOG,
   createStrategyDefinition,
@@ -15,6 +16,16 @@ function el<K extends keyof HTMLElementTagNameMap>(
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+
+function downloadJson(filename: string, value: unknown): void {
+  const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = el("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 function field(labelText: string, name: string, value: string, type = "text"): HTMLLabelElement {
@@ -65,7 +76,81 @@ export function mountStrategyStudioConsole(root: HTMLElement): void {
   const library = el("div", "strategy-library");
   const libraryHeading = el("h3", "", "Saved strategy versions");
   section.append(form, libraryHeading, library);
+
+  const backupPanel = el("section", "research-result strategy-backup");
+  backupPanel.append(
+    el("h3", "", "Strategy library backup"),
+    el("p", "small", "Export every saved immutable strategy version to a JSON file on your device. Restore is append-only: identical versions are skipped and conflicting content is blocked."),
+  );
+  const exportBackup = el("button", "primary-button", "Download strategy library backup");
+  exportBackup.type = "button";
+  const backupFileLabel = el("label", "strategy-field", "Select strategy library backup");
+  const backupFile = el("input");
+  backupFile.type = "file";
+  backupFile.accept = "application/json,.json";
+  backupFileLabel.append(backupFile);
+  const backupPreview = el("p", "small", "No strategy backup selected");
+  backupPreview.setAttribute("role", "status");
+  const restoreBackup = el("button", "primary-button", "Confirm strategy restore");
+  restoreBackup.type = "button";
+  restoreBackup.disabled = true;
+  backupPanel.append(exportBackup, backupFileLabel, backupPreview, restoreBackup);
+  section.append(backupPanel);
   root.append(section);
+
+  let pendingBackup: LocalBackupEnvelope<StoredStrategyDefinition[]> | null = null;
+  exportBackup.addEventListener("click", async () => {
+    exportBackup.disabled = true;
+    try {
+      const records = await store.exportAll();
+      if (!records.length) throw new Error("There are no saved strategy versions to back up");
+      const backup = await createLocalBackup("strategy-library", records);
+      downloadJson("nexus-strategy-library-backup-" + new Date().toISOString().slice(0, 10) + ".json", backup);
+      backupPreview.textContent = "Full strategy library backup downloaded · " + records.length + " immutable version(s).";
+    } catch (error) {
+      backupPreview.textContent = error instanceof Error ? "Strategy backup failed: " + error.message : "Strategy backup failed";
+    } finally {
+      exportBackup.disabled = false;
+    }
+  });
+  backupFile.addEventListener("change", async () => {
+    pendingBackup = null;
+    restoreBackup.disabled = true;
+    const file = (backupFile as HTMLInputElement).files?.[0];
+    if (!file) {
+      backupPreview.textContent = "No strategy backup selected";
+      return;
+    }
+    backupPreview.textContent = "Verifying strategy backup checksum and records…";
+    try {
+      const envelope = await parseLocalBackup(await file.text(), "strategy-library");
+      if (!Array.isArray(envelope.payload)) throw new Error("Strategy backup must contain a record array");
+      const preview = await store.previewRestore(envelope.payload);
+      pendingBackup = envelope as unknown as LocalBackupEnvelope<StoredStrategyDefinition[]>;
+      backupPreview.textContent = "Verified " + file.name + " · " + envelope.payload.length +
+        " version(s) · " + preview.added + " new · " + preview.unchanged + " identical · " +
+        preview.conflicts.length + " conflict(s). " +
+        (preview.conflicts.length ? preview.conflicts.join("; ") : "Confirm to import without overwriting existing versions.");
+      restoreBackup.disabled = preview.conflicts.length > 0;
+    } catch (error) {
+      backupPreview.textContent = error instanceof Error ? "Strategy backup rejected: " + error.message : "Strategy backup rejected";
+    }
+  });
+  restoreBackup.addEventListener("click", async () => {
+    if (!pendingBackup) return;
+    restoreBackup.disabled = true;
+    try {
+      const result = await store.restoreAll(pendingBackup.payload);
+      backupPreview.textContent = "Restore complete · added " + result.added +
+        " version(s) · skipped identical " + result.unchanged + ". Existing definitions were not overwritten.";
+      pendingBackup = null;
+      (backupFile as HTMLInputElement).value = "";
+      await refreshLibrary();
+    } catch (error) {
+      backupPreview.textContent = error instanceof Error ? "Strategy restore refused: " + error.message : "Strategy restore refused";
+      restoreBackup.disabled = false;
+    }
+  });
 
   const selectedTemplate = (): typeof STRATEGY_TEMPLATE_CATALOG[number] => {
     const match = STRATEGY_TEMPLATE_CATALOG.find((item) => item.id === templateSelect.value);
