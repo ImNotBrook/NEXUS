@@ -84,6 +84,12 @@ function renderResult(result: DecisionWorkbenchResult): HTMLElement {
   }
 
   panel.append(node("p", "workbench-safety", "PAPER RESEARCH ONLY · No order was sent · Scores are diagnostics, not probabilities"));
+  panel.append(node("p", "small", "Shadow outcome plan: " +
+    (result.shadowPlanRegistered && result.shadowPlan.status === "ready"
+      ? "registered at decision time · 24-hour evaluation horizon"
+      : result.shadowPlan.status === "not_simulatable"
+        ? result.shadowPlan.reasonCode + " · " + result.shadowPlan.explanation
+        : "not registered")));
   panel.append(node("p", "small", "Journal record: " + assessment.record.decisionId));
   panel.append(node("p", "small", "* Diagnostic score and net reward/risk are not probabilities or guarantees."));
   return panel;
