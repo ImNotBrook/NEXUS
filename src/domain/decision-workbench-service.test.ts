@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { runDecisionWorkbench, type DecisionWorkbenchJournal } from "./decision-workbench-service";
-import type { DecisionJournalRecord } from "./decision-journal";
+import type { DecisionJournalRecord, DecisionJournalEvent } from "./decision-journal";
 import type { MarketIntelligenceSnapshot } from "./market-intelligence";
 import type { Candle } from "./candles";
 
@@ -44,7 +44,17 @@ const noBreak: Candle[] = [100, 101, 102, 102.5].map((close, index) => ({
 }));
 const versions = { engine: "decision-1", score: "diagnostic-1", strategy: "donchian-1.0.0", riskPolicy: "paper-1" };
 function journal(records: DecisionJournalRecord[] = []): DecisionWorkbenchJournal {
-  return { append: async (record) => { records.push(structuredClone(record)); return structuredClone(record); } };
+  const events: DecisionJournalEvent[] = [];
+  return {
+    append: async (record) => { records.push(structuredClone(record)); return structuredClone(record); },
+    get: async (decisionId) => records.find((record) => record.decisionId === decisionId) ?? null,
+    appendEvent: async (event) => {
+      if (events.some((item) => item.eventId === event.eventId)) throw new Error("duplicate event");
+      events.push(structuredClone(event));
+      return structuredClone(event);
+    },
+    listEvents: async (decisionId) => events.filter((event) => event.decisionId === decisionId).map((event) => structuredClone(event)),
+  };
 }
 function base(overrides: Record<string, unknown> = {}) {
   return {
@@ -75,6 +85,8 @@ describe("runDecisionWorkbench integration", () => {
     expect(result.assessment.record.candidate?.side).toBe("long");
     expect(result.assessment.record.evidence.length).toBeGreaterThanOrEqual(4);
     expect(records).toHaveLength(1);
+    expect(result.shadowPlan.status).toBe("ready");
+    expect(result.shadowPlanRegistered).toBe(true);
   });
 
   it("journals NO_SETUP with the actual detector reason when no breakout exists", async () => {
@@ -83,6 +95,8 @@ describe("runDecisionWorkbench integration", () => {
     expect(result.assessment.result.status).toBe("NO_SETUP");
     expect(result.assessment.result.reasonCodes).toContain("DONCHIAN_TRIGGER_ABSENT");
     expect(result.assessment.record.candidate).toBeNull();
+    expect(result.shadowPlan).toMatchObject({ status: "not_simulatable", reasonCode: "NO_CANDIDATE" });
+    expect(result.shadowPlanRegistered).toBe(false);
   });
 
   it("lets the deterministic risk gate reject a generated candidate and journals it", async () => {
