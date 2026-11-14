@@ -41,6 +41,7 @@ export interface DecisionJournalRecord {
 }
 
 export type DecisionJournalEventType =
+  | "shadow_plan_registered"
   | "paper_execution_linked"
   | "outcome_appended"
   | "correction_appended";
