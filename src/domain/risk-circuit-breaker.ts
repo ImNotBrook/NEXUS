@@ -16,6 +16,10 @@ export interface RiskCircuitBreakerState {
   weekPeakEquity: number;
   monthStartEquity: number;
   monthPeakEquity: number;
+  weeklyLossHalted: boolean;
+  weeklyDrawdownHalted: boolean;
+  monthlyLossHalted: boolean;
+  monthlyDrawdownHalted: boolean;
   consecutiveLosses: number;
   cooldownUntilTimestamp: number | null;
 }
@@ -86,6 +90,10 @@ function validateState(state: RiskCircuitBreakerState): void {
       !Number.isFinite(state.weekPeakEquity) || state.weekPeakEquity < state.weekStartEquity ||
       !Number.isFinite(state.monthStartEquity) || state.monthStartEquity <= 0 ||
       !Number.isFinite(state.monthPeakEquity) || state.monthPeakEquity < state.monthStartEquity ||
+      typeof state.weeklyLossHalted !== "boolean" ||
+      typeof state.weeklyDrawdownHalted !== "boolean" ||
+      typeof state.monthlyLossHalted !== "boolean" ||
+      typeof state.monthlyDrawdownHalted !== "boolean" ||
       !Number.isSafeInteger(state.consecutiveLosses) || state.consecutiveLosses < 0 ||
       (state.cooldownUntilTimestamp !== null &&
         (!Number.isSafeInteger(state.cooldownUntilTimestamp) ||
@@ -111,6 +119,10 @@ export function createRiskCircuitBreakerState(
     weekPeakEquity: equity,
     monthStartEquity: equity,
     monthPeakEquity: equity,
+    weeklyLossHalted: false,
+    weeklyDrawdownHalted: false,
+    monthlyLossHalted: false,
+    monthlyDrawdownHalted: false,
     consecutiveLosses: 0,
     cooldownUntilTimestamp: null,
   };
@@ -155,6 +167,10 @@ export function advanceRiskCircuitBreaker(
     weekPeakEquity: weekKey === previousState.weekKey ? Math.max(previousState.weekPeakEquity, equity) : equity,
     monthStartEquity: monthKey === previousState.monthKey ? previousState.monthStartEquity : equity,
     monthPeakEquity: monthKey === previousState.monthKey ? Math.max(previousState.monthPeakEquity, equity) : equity,
+    weeklyLossHalted: weekKey === previousState.weekKey ? previousState.weeklyLossHalted : false,
+    weeklyDrawdownHalted: weekKey === previousState.weekKey ? previousState.weeklyDrawdownHalted : false,
+    monthlyLossHalted: monthKey === previousState.monthKey ? previousState.monthlyLossHalted : false,
+    monthlyDrawdownHalted: monthKey === previousState.monthKey ? previousState.monthlyDrawdownHalted : false,
     cooldownUntilTimestamp:
       previousState.cooldownUntilTimestamp !== null && timestamp < previousState.cooldownUntilTimestamp
         ? previousState.cooldownUntilTimestamp
@@ -178,11 +194,16 @@ export function advanceRiskCircuitBreaker(
   const weeklyDrawdown = Math.max(0, (state.weekPeakEquity - equity) / state.weekPeakEquity);
   const monthlyLoss = Math.max(0, (state.monthStartEquity - equity) / state.monthStartEquity);
   const monthlyDrawdown = Math.max(0, (state.monthPeakEquity - equity) / state.monthPeakEquity);
+  if (weeklyLoss >= config.maxWeeklyLossFraction) state.weeklyLossHalted = true;
+  if (weeklyDrawdown >= config.maxWeeklyDrawdownFraction) state.weeklyDrawdownHalted = true;
+  if (monthlyLoss >= config.maxMonthlyLossFraction) state.monthlyLossHalted = true;
+  if (monthlyDrawdown >= config.maxMonthlyDrawdownFraction) state.monthlyDrawdownHalted = true;
+
   const reasons: RiskCircuitBreakerDecision["reasons"] = [];
-  if (weeklyLoss >= config.maxWeeklyLossFraction) reasons.push("weekly-loss-limit");
-  if (weeklyDrawdown >= config.maxWeeklyDrawdownFraction) reasons.push("weekly-drawdown-limit");
-  if (monthlyLoss >= config.maxMonthlyLossFraction) reasons.push("monthly-loss-limit");
-  if (monthlyDrawdown >= config.maxMonthlyDrawdownFraction) reasons.push("monthly-drawdown-limit");
+  if (state.weeklyLossHalted) reasons.push("weekly-loss-limit");
+  if (state.weeklyDrawdownHalted) reasons.push("weekly-drawdown-limit");
+  if (state.monthlyLossHalted) reasons.push("monthly-loss-limit");
+  if (state.monthlyDrawdownHalted) reasons.push("monthly-drawdown-limit");
   if (state.cooldownUntilTimestamp !== null && timestamp < state.cooldownUntilTimestamp) {
     reasons.push("consecutive-loss-cooldown");
   }
