@@ -47,6 +47,8 @@ export interface LearningCohort {
   decisionStatus: DecisionStatus;
   setupFamily: string;
   maturedCandidates: number;
+  firstDecisionAt: number;
+  lastDecisionAt: number;
   completedTrades: number;
   noFillCandidates: number;
   /** Mean net P&L divided by gross price risk (entry-to-stop); null with no completed trades. */
@@ -303,6 +305,8 @@ export function evaluateLearningCohorts(
         decisionStatus: samples[0].observation.decision.status,
         setupFamily: samples[0].observation.decision.candidate!.setupFamily,
         maturedCandidates: samples.length,
+        firstDecisionAt: Math.min(...samples.map((sample) => sample.observation.decision.decisionAt)),
+        lastDecisionAt: Math.max(...samples.map((sample) => sample.observation.decision.decisionAt)),
         completedTrades: completed.length,
         noFillCandidates: samples.length - completed.length,
         meanNetR: mean(netRs),
