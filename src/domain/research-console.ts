@@ -697,6 +697,17 @@ export function mountResearchConsole(container: HTMLElement): void {
       const panel = el("div", "research-result");
       panel.append(el("h4", "", report.scenarioCount + " execution scenarios"));
       panel.append(el("p", "small", report.selectionWarning));
+      const ranked = rankExecutionStressCandidates(report);
+      const ranking = el("div", "research-result");
+      ranking.append(el("h4", "", "Best overall under execution stress"));
+      ranking.append(el("p", "small", "Ordered by sample sufficiency, then worst-case return across all scenarios, median return, worst drawdown and worst expectancy. This is a research shortlist only; it does not promote or execute a strategy."));
+      for (const item of ranked) {
+        const row = el("div", "research-result");
+        row.append(el("h4", "", "#" + item.rank + " · " + item.name + (item.sampleSufficient ? "" : " · INSUFFICIENT SAMPLE")));
+        row.append(el("p", "small", "Worst-case OOS return " + item.worstCaseReturnPct.toFixed(2) + "% · median scenario return " + item.medianReturnPct.toFixed(2) + "% · worst drawdown " + (item.worstDrawdownPct === null ? "—" : item.worstDrawdownPct.toFixed(2) + "%") + " · worst expectancy " + (item.worstExpectancyPerTrade === null ? "—" : item.worstExpectancyPerTrade.toFixed(2) + " USDT") + " · minimum " + item.minimumCompletedTrades + " trades / " + item.minimumFoldCount + " folds"));
+        ranking.append(row);
+      }
+      panel.append(ranking);
       const table = el("div", "regime-table");
       const header = el("div", "regime-row regime-header");
       ["SCENARIO", "STRATEGY", "OOS RETURN", "WORST DD", "EXPECTANCY", "TRADES", "FEES", "PARTIAL FILLS", "PENDING QTY"].forEach((value) => header.append(el("span", "", value)));
