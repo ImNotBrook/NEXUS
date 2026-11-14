@@ -29,7 +29,7 @@ The current forming candle is excluded. Future candles, including malformed futu
 
 Each timeframe is independently checked for provider, fetch time, quality status, freshness and sufficient indicator warm-up. Missing, stale, future, failed, degraded or insufficient frames remain unknown. The snapshot never forward-fills missing candles or invents prices.
 
-Each frame is limited to 5,000 candles to bound mobile memory and hashing cost. The content hash includes the engine version, fixed configuration, timeframe provenance and eligible candle prefix. Snapshot IDs change when relevant source data, configuration or evaluation time changes.
+Each frame is limited to 5,000 candles to bound mobile memory and hashing cost. The snapshot also preserves instrument category and candle-volume units; all timeframes in one snapshot share those units. The content hash includes the engine version, fixed configuration, instrument/volume units, timeframe provenance and eligible candle prefix. Snapshot IDs change when relevant source data, configuration or evaluation time changes.
 
 ## Dimensions
 
