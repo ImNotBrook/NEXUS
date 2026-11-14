@@ -8,6 +8,7 @@ import {
 export interface CandidateGatePolicy {
   instrumentCategory: "spot" | "linear_perpetual" | "inverse_perpetual";
   equity: number;
+  availableCapital: number;
   existingExposure: number;
   maxRiskPerTrade: number;
   maxRiskFraction: number;
@@ -41,6 +42,7 @@ function validatePolicy(policy: CandidateGatePolicy): void {
   }
   for (const [name, value] of Object.entries({
     equity: policy.equity,
+    availableCapital: policy.availableCapital,
     maxRiskPerTrade: policy.maxRiskPerTrade,
     maxRiskFraction: policy.maxRiskFraction,
     maxNotional: policy.maxNotional,
@@ -50,7 +52,7 @@ function validatePolicy(policy: CandidateGatePolicy): void {
   })) {
     if (!Number.isFinite(value) || value < 0) throw new RangeError(name + " must be finite and non-negative");
   }
-  if (policy.equity <= 0 || policy.maxRiskPerTrade <= 0 || policy.maxRiskFraction <= 0 ||
+  if (policy.equity <= 0 || policy.availableCapital < 0 || policy.maxRiskPerTrade <= 0 ||
       policy.maxRiskFraction >= 1 || policy.maxNotional <= 0 || policy.maxExposure <= 0 ||
       policy.minimumNetRewardRisk <= 0) {
     throw new RangeError("Equity, risk limits, exposure limits and minimum net reward/risk must be positive");
@@ -97,6 +99,7 @@ export function assessCandidateGates(
   const riskReasons: string[] = [];
   if (grossRisk > maximumRisk + 1e-9) riskReasons.push("MAX_RISK_PER_TRADE_EXCEEDED");
   if (notional > policy.maxNotional + 1e-9) riskReasons.push("MAX_NOTIONAL_EXCEEDED");
+  if (notional > policy.availableCapital + 1e-9) riskReasons.push("INSUFFICIENT_AVAILABLE_CAPITAL");
   if (policy.existingExposure + notional > policy.maxExposure + 1e-9) {
     riskReasons.push("MAX_EXPOSURE_EXCEEDED");
   }
