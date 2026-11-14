@@ -20,6 +20,7 @@ export interface ShadowOutcomeJournal {
 }
 
 export type ShadowOutcomeHasher = (value: unknown) => Promise<string>;
+export type ShadowOutcomeDataQuality = "pass" | "degraded" | "fail";
 
 export interface JournalledShadowOutcomeResult {
   outcome: ShadowOutcome;
@@ -141,12 +142,16 @@ export async function journalShadowOutcome(
   recordedAt: number,
   journal: ShadowOutcomeJournal,
   hasher: ShadowOutcomeHasher = sha256,
+  dataQuality: ShadowOutcomeDataQuality = "degraded",
 ): Promise<JournalledShadowOutcomeResult> {
   if (!Number.isSafeInteger(recordedAt) || recordedAt < plan.decisionAt) {
     throw new RangeError("A valid recording timestamp at or after the decision time is required");
   }
   assertPlanMatchesDecision(plan, await journal.get(plan.decisionId));
 
+  if (!["pass", "degraded", "fail"].includes(dataQuality)) {
+    throw new TypeError("Shadow outcome data quality is invalid");
+  }
   const outcome = simulateShadowOutcome(plan, inputCandles);
   const relevantCandles = inputCandles
     .filter((candle) => candle.timestamp > plan.decisionAt && candle.timestamp <= plan.horizonEnd)
@@ -172,6 +177,7 @@ export async function journalShadowOutcome(
     candles: relevantCandles,
     horizonReached: outcome.horizonReached,
     observedThrough,
+    dataQuality,
   };
   const inputHash = await hasher(hashInput);
   if (typeof inputHash !== "string" || !/^[A-Za-z0-9_-]{1,256}$/.test(inputHash)) {
@@ -191,6 +197,7 @@ export async function journalShadowOutcome(
       horizonReached: outcome.horizonReached,
       // Timestamp-only maturity proof; post-horizon OHLC remains excluded.
       observedThrough,
+      dataQuality,
       candleCount: relevantCandles.length,
       plan: planSnapshot,
       candles: relevantCandles,
