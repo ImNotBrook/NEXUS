@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "enabled": false,
+  "symbol": "BTCUSDT",
+  "interval": "1h",
+  "approvedAt": null,
+  "approvedBy": null,
+  "approvalRationale": null,
+  "strategy": null,
+  "risk": {
+    "initialCapitalUsdt": 10000,
+    "allocationFraction": 0.25,
+    "maxDailyLossFraction": 0.03,
+    "feeRate": 0.001,
+    "baseSlippageBps": 8,
+    "halfSpreadBps": 5,
+    "maxParticipationRate": 0.02,
+    "marketImpactBpsAtMaxParticipation": 25
+  }
+}
