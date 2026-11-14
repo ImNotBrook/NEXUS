@@ -83,6 +83,25 @@ describe("runNestedWalkForwardSelection", () => {
     expect(result.candidateResults[0].folds[0].selectionReason).toMatch(/minimum trade/i);
   });
 
+  it("selects the strongest eligible protective settings from inner OOS trades", () => {
+    const candles = makeCandles().map((candle, index) => {
+      if (index === 8 || index === 11) {
+        return { ...candle, high: candle.open + 4, low: candle.open - 4, close: candle.open + 1 };
+      }
+      return candle;
+    });
+    const result = runNestedWalkForwardSelection(candles, [{
+      id: "buy-and-protect",
+      name: "Buy and protect",
+      fit: (training) => (history) =>
+        history.length === training.length + 2 ? "buy" : "hold",
+    }], pipeline, nestedConfig);
+
+    expect(result.candidateResults[0].folds[0].selectedStopLossPct).toBe(4);
+    expect(result.candidateResults[0].folds[0].selectedTakeProfitPct).toBe(3);
+    expect(result.candidateResults[0].folds[0].innerSelection.completedTrades).toBeGreaterThanOrEqual(1);
+  });
+
   it("rejects invalid fold geometry and selection thresholds", () => {
     const candidates = [{ id: "hold", name: "Hold", fit: () => () => "hold" as const }];
     expect(() => runNestedWalkForwardSelection(makeCandles(), candidates, pipeline, {
