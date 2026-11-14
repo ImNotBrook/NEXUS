@@ -1,6 +1,7 @@
 import {
   validateDecisionJournalEvent,
   type DecisionJournalEvent,
+  type DecisionJournalRecord,
 } from "./decision-journal";
 import {
   simulateShadowOutcome,
@@ -12,6 +13,7 @@ import type { Candle } from "./candles";
 export const MAX_SHADOW_OUTCOME_CANDLES = 5_000;
 
 export interface ShadowOutcomeJournal {
+  get(decisionId: string): Promise<DecisionJournalRecord | null>;
   appendEvent(event: DecisionJournalEvent): Promise<DecisionJournalEvent>;
   listEvents(decisionId: string): Promise<DecisionJournalEvent[]>;
 }
@@ -36,6 +38,41 @@ async function sha256(value: unknown): Promise<string> {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+
+function approximatelyEqual(left: number, right: number): boolean {
+  return Math.abs(left - right) <= Math.max(1e-9, Math.max(Math.abs(left), Math.abs(right)) * 1e-9);
+}
+
+function assertPlanMatchesDecision(plan: ShadowTradePlan, decision: DecisionJournalRecord | null): void {
+  if (!decision) throw new Error("Parent decision does not exist in the Decision Journal");
+  const candidate = decision.candidate;
+  if (!candidate) throw new Error("A shadow outcome requires a journalled candidate; NO_SETUP has no candidate");
+  if (
+    decision.decisionAt !== plan.decisionAt ||
+    decision.symbol !== plan.symbol ||
+    decision.timeframe !== plan.timeframe ||
+    candidate.id !== plan.candidateId ||
+    candidate.symbol !== plan.symbol ||
+    candidate.timeframe !== plan.timeframe ||
+    candidate.side !== plan.side
+  ) {
+    throw new Error("Shadow plan identity and scope do not match the parent decision candidate");
+  }
+  const candidatePlan = candidate.plan;
+  if (
+    candidatePlan.targetPrices.length !== 1 ||
+    !approximatelyEqual(candidatePlan.entryPrice, plan.entry.referencePrice) ||
+    !approximatelyEqual(candidatePlan.stopPrice, plan.stopPrice) ||
+    !approximatelyEqual(candidatePlan.targetPrices[0], plan.targetPrice) ||
+    !approximatelyEqual(candidatePlan.quantity, plan.quantity) ||
+    (plan.entry.orderType === "limit" &&
+      !approximatelyEqual(candidatePlan.entryPrice, plan.entry.limitPrice ?? Number.NaN)) ||
+    plan.entry.expiresAt > candidate.expiresAt
+  ) {
+    throw new Error("Shadow plan execution parameters do not match the immutable decision candidate plan");
+  }
+}
+
 /**
  * Simulates a fixed shadow plan and appends an immutable, content-addressed
  * outcome event. Re-running the same input at the same recordedAt is idempotent.
@@ -50,6 +87,7 @@ export async function journalShadowOutcome(
   if (!Number.isSafeInteger(recordedAt) || recordedAt < plan.decisionAt) {
     throw new RangeError("A valid recording timestamp at or after the decision time is required");
   }
+  assertPlanMatchesDecision(plan, await journal.get(plan.decisionId));
 
   const outcome = simulateShadowOutcome(plan, inputCandles);
   const relevantCandles = inputCandles
