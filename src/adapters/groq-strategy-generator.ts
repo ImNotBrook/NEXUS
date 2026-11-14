@@ -71,8 +71,6 @@ export async function generateAiStrategyProposals(
             properties: {
               candidates: {
                 type: "array",
-                minItems: 1,
-                maxItems: 4,
                 items: {
                   type: "object",
                   properties: {
@@ -82,8 +80,8 @@ export async function generateAiStrategyProposals(
                         {
                           type: "object",
                           properties: {
-                            fastPeriod: { type: "integer", minimum: 2, maximum: 30 },
-                            slowPeriod: { type: "integer", minimum: 5, maximum: 100 },
+                            fastPeriod: { type: "integer" },
+                            slowPeriod: { type: "integer" },
                           },
                           required: ["fastPeriod", "slowPeriod"],
                           additionalProperties: false,
@@ -91,16 +89,16 @@ export async function generateAiStrategyProposals(
                         {
                           type: "object",
                           properties: {
-                            period: { type: "integer", minimum: 5, maximum: 50 },
-                            oversold: { type: "integer", minimum: 10, maximum: 40 },
-                            overbought: { type: "integer", minimum: 60, maximum: 90 },
+                            period: { type: "integer" },
+                            oversold: { type: "integer" },
+                            overbought: { type: "integer" },
                           },
                           required: ["period", "oversold", "overbought"],
                           additionalProperties: false,
                         },
                         {
                           type: "object",
-                          properties: { period: { type: "integer", minimum: 5, maximum: 100 } },
+                          properties: { period: { type: "integer" } },
                           required: ["period"],
                           additionalProperties: false,
                         },
