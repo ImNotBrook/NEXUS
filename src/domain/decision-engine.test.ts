@@ -169,4 +169,43 @@ describe("evaluateDecision", () => {
     expect(result.invalidEvidence).toHaveLength(2);
     expect(result.reasonCodes).toContain("INSUFFICIENT_INDEPENDENT_SUPPORT");
   });
+
+  it("rejects candidates with missing identity or scope fields", () => {
+    const result = evaluateDecision(input({
+      candidate: { ...candidate, id: " ", symbol: " ", setupFamily: "", timeframe: "" },
+    }));
+    expect(result.status).toBe("REJECT");
+    expect(result.reasonCodes).toContain("INVALID_CANDIDATE");
+  });
+
+  it("rejects invalid minimum independent-family thresholds", () => {
+    const result = evaluateDecision(input({ minimumSupportingFamilies: Number.NaN }));
+    expect(result.status).toBe("REJECT");
+    expect(result.reasonCodes).toContain("INVALID_DECISION_CONFIGURATION");
+  });
+
+  it("does not count cross-family evidence sharing one dependency key as independent", () => {
+    const result = evaluateDecision(input({
+      evidence: [
+        evidence("structure-derived", "market_structure", "supports", { correlationKey: "same-underlying-event" }),
+        evidence("timeframe-derived", "timeframe_alignment", "supports", { correlationKey: "same-underlying-event" }),
+      ],
+    }));
+    expect(result.status).toBe("WAIT");
+    expect(result.supportingFamilies).toHaveLength(1);
+    expect(result.reasonCodes).toContain("INSUFFICIENT_INDEPENDENT_SUPPORT");
+  });
+
+  it("produces the same independent-family result regardless of evidence ordering", () => {
+    const items = [
+      evidence("structure-derived", "market_structure", "supports", { correlationKey: "same-underlying-event" }),
+      evidence("timeframe-derived", "timeframe_alignment", "supports", { correlationKey: "same-underlying-event" }),
+      evidence("momentum", "momentum_volume"),
+    ];
+    const forward = evaluateDecision(input({ evidence: items }));
+    const reverse = evaluateDecision(input({ evidence: [...items].reverse() }));
+    expect(reverse.supportingFamilies).toEqual(forward.supportingFamilies);
+    expect(reverse.status).toBe(forward.status);
+  });
+
 });
