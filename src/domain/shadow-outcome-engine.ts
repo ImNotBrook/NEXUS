@@ -272,30 +272,32 @@ export function simulateShadowOutcome(
             outcome.status = "invalidated";
             break;
           }
-        }
-        const execution = resolveMarketFill({
-          side: plan.side === "long" ? "buy" : "sell",
-          requestedQuantity: outcome.entryRemainingQuantity,
-          referencePrice: candle.open,
-          candleVolume: availableVolume,
-        }, plan.executionModel);
-        if (execution.filledQuantity > EPSILON) {
-          const executionWithinPlan = plan.side === "long"
-            ? execution.executionPrice > plan.stopPrice && execution.executionPrice < plan.targetPrice
-            : execution.executionPrice < plan.stopPrice && execution.executionPrice > plan.targetPrice;
-          if (!executionWithinPlan) {
-            outcome.entryOrderStatus = "cancelled";
-            outcome.invalidationReason = "ENTRY_GAPPED_OUT_OF_PLAN";
-            if (outcome.positionRemainingQuantity <= EPSILON) {
-              outcome.status = "invalidated";
-              break;
+        } else {
+          const execution = resolveMarketFill({
+            side: plan.side === "long" ? "buy" : "sell",
+            requestedQuantity: outcome.entryRemainingQuantity,
+            referencePrice: candle.open,
+            candleVolume: availableVolume,
+          }, plan.executionModel);
+          if (execution.filledQuantity > EPSILON) {
+            const executionWithinPlan = plan.side === "long"
+              ? execution.executionPrice > plan.stopPrice && execution.executionPrice < plan.targetPrice
+              : execution.executionPrice < plan.stopPrice && execution.executionPrice > plan.targetPrice;
+            if (!executionWithinPlan) {
+              outcome.entryOrderStatus = "cancelled";
+              outcome.invalidationReason = "ENTRY_GAPPED_OUT_OF_PLAN";
+              if (outcome.positionRemainingQuantity <= EPSILON) {
+                outcome.status = "invalidated";
+                break;
+              }
+            } else {
+              fill = {
+                quantity: execution.filledQuantity,
+                price: execution.executionPrice,
+                fee: execution.fee,
+              };
             }
           }
-          fill = {
-            quantity: execution.filledQuantity,
-            price: execution.executionPrice,
-            fee: execution.fee,
-          };
         }
       } else {
         fill = limitEntryFill(plan, candle, outcome.entryRemainingQuantity, availableVolume);
@@ -305,9 +307,12 @@ export function simulateShadowOutcome(
             : fill.price < plan.stopPrice && fill.price > plan.targetPrice;
           if (!fillWithinPlan) {
             outcome.entryOrderStatus = "cancelled";
-            outcome.status = "invalidated";
             outcome.invalidationReason = "ENTRY_GAPPED_OUT_OF_PLAN";
-            break;
+            if (outcome.positionRemainingQuantity <= EPSILON) {
+              outcome.status = "invalidated";
+              break;
+            }
+            fill = null;
           }
         }
       }
