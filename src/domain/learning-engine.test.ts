@@ -268,15 +268,15 @@ describe("evaluateLearningCohorts", () => {
 
   it("rejects mismatched decision, candidate, symbol and simulation identities", () => {
     const base = makeObservation();
-    const wrongDecision = makePlan({ decisionId: "wrong-decision" });
-    const wrongCandidate = makePlan({ candidateId: "wrong-candidate" });
-    const wrongSymbol = makePlan({ symbol: "ETHUSDT" });
+    const wrongDecision = makeDecision(makePlan({ decisionId: "other-decision" }));
+    const wrongCandidate = makeDecision(makePlan({ candidateId: "other-candidate" }));
+    const wrongSymbol = makeDecision(makePlan({ symbol: "ETHUSDT" }));
     const wrongVersion = makeOutcome(base.plan, "completed", { simulationVersion: "other-version" });
     const report = evaluateLearningCohorts([
       base,
-      makeObservation({ plan: wrongDecision }),
-      makeObservation({ plan: wrongCandidate }),
-      makeObservation({ plan: wrongSymbol }),
+      makeObservation({ decision: wrongDecision }),
+      makeObservation({ decision: wrongCandidate }),
+      makeObservation({ decision: wrongSymbol }),
       makeObservation({ outcome: wrongVersion }),
     ]);
     expect(report.eligibleObservations).toBe(1);
