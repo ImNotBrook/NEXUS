@@ -16,6 +16,7 @@ const plan = (overrides: Partial<ShadowTradePlan> = {}): ShadowTradePlan => ({
   candidateId: "candidate-1",
   symbol: "BTCUSDT",
   instrumentCategory: "spot",
+  volumeUnit: "base",
   side: "long",
   decisionAt: 1_000,
   entry: {
@@ -246,6 +247,12 @@ describe("simulateShadowOutcome", () => {
     expect(result.exitFilledQuantity).toBe(0);
     expect(result.positionRemainingQuantity).toBeCloseTo(1);
     expect(result.pendingExitReason).toBe("take-profit");
+  });
+
+  it("rejects quote-denominated candle volume for base-asset participation calculations", () => {
+    expect(() => simulateShadowOutcome(plan({
+      volumeUnit: "quote",
+    }), [])).toThrow(/base/i);
   });
 
 });
