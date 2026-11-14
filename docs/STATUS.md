@@ -528,3 +528,14 @@ Updated: 2026-11-14
 - Adapter tests verify exact manifest round-trip and reject inconsistent trial counts/IDs. The complete CI suite passed 83 test files / 532 tests, dependency audit (0 vulnerabilities), scheduled-runner checks, derivatives checks and production build on commit `4a055dff5713534ee50f75adb15941b19b60f082` (CI [43581981951](https://github.com/ImNotBrook/NEXUS/actions/runs/43581981951)).
 - A follow-up UI correction prefills the correct parameter names for SMA, RSI or Donchian when the selected family changes; this is in commit `d5312c9ef6e78c2d143bac900ebe5910205a0bca` and CI [43582070135](https://github.com/ImNotBrook/NEXUS/actions/runs/43582070135) has now passed all 83 test files / 532 tests, scheduled-runner checks, derivatives checks, dependency audit and production build. Deployment was superseded by documentation commits and will be verified on the final documentation commit.
 - Limitations: strategy definitions and research reports remain device-local; neither strategy-library records nor research-run manifests are currently included in the local backup envelope. Parameter trials are exploratory; selecting the best on the same OOS data is biased. No promotion, paper approval or live trading is introduced.
+
+
+
+## Stage 10 — Strategy library backup and restore
+
+- Added a third local backup envelope type, `strategy-library`, and Strategy Studio controls to download/restore all saved immutable strategy versions.
+- Export reads the complete IndexedDB library, not only the visible subset. Restore validates definition schema, record identity and timestamps; duplicate IDs in the file are rejected; identical local versions are skipped; conflicting same-version content blocks the entire restore.
+- Missing versions are added in one IndexedDB read-write transaction using append-only semantics. No existing version is overwritten or deleted.
+- Tests cover full export, empty-store restore, idempotent repeat restore, conflict handling, malformed/duplicate records and backup checksum/type round-trip.
+- CI [43582449928](https://github.com/ImNotBrook/NEXUS/actions/runs/43582449928) passed 83 test files / 536 tests, dependency audit (0 vulnerabilities), scheduled-runner checks, derivatives checks and production build. Final deployment is tracked on the subsequent documentation commit.
+- Research-run reports and parameter-trial manifests are still not included in backup files. Full NEXUS device-local data backup remains incomplete.
