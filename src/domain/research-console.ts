@@ -5,7 +5,8 @@ import { createBaselineResearchCandidates } from "../strategies/baseline-researc
 import { ResearchRunStore, type StoredResearchRun } from "../adapters/research-run-store";
 import { compareResearchRuns } from "./research-comparison";
 import { runProtectiveExitSensitivity } from "./protective-exit-sensitivity";
-import { runNestedWalkForwardSelection } from "./nested-walk-forward-selection";
+import { runNestedWalkForwardSelection, type NestedWalkForwardResult, type NestedWalkForwardConfig } from "./nested-walk-forward-selection";
+import { NestedResearchRunStore } from "../adapters/nested-research-run-store";
 
 const INTERVAL_MS: Partial<Record<BinanceInterval, number>> = {
   "1m": 60_000, "3m": 180_000, "5m": 300_000, "15m": 900_000,
@@ -213,6 +214,53 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
   }
 }
 
+function renderNestedReport(target: HTMLElement, report: NestedWalkForwardResult): void {
+  target.replaceChildren();
+  const panel = el("div", "research-result");
+  panel.append(el("h4", "", report.outerFoldCount + " outer folds · " + report.candidateResults.length + " strategies"));
+  panel.append(el("p", "small", report.selectionWarning));
+  for (const candidate of report.candidateResults) {
+    const card = el("section", "research-result");
+    card.append(el("h4", "", candidate.name));
+    card.append(el("p", "small", "Outer compounded return " + candidate.compoundedOuterReturnPct.toFixed(2) +
+      "% · mean fold " + candidate.meanOuterReturnPct.toFixed(2) + "% · worst outer drawdown " +
+      candidate.worstOuterFoldDrawdownPct.toFixed(2) + "% · completed trades " + candidate.totalOuterCompletedTrades +
+      " · PF " + (candidate.profitFactor === null ? "—" : candidate.profitFactor.toFixed(2)) +
+      " · expectancy " + (candidate.expectancyPerTrade === null ? "—" : candidate.expectancyPerTrade.toFixed(2)) +
+      " · fees " + candidate.totalFees.toFixed(2) + " · turnover " + candidate.completedTurnover.toFixed(2) + "x" +
+      " · exposure " + candidate.averageExposurePct.toFixed(1) + "% · stop/target exits " +
+      candidate.stopLossExitCount + "/" + candidate.takeProfitExitCount +
+      " · pending qty " + candidate.totalPendingQuantity.toFixed(6) +
+      " · fills " + candidate.totalFillEvents + " (" + candidate.totalPartialFillEvents + " partial)"));
+    card.append(el("p", "small", "Parameter stability: " + candidate.parameterStability.map((item) =>
+      "stop " + (item.stopLossPct === undefined ? "off" : item.stopLossPct + "%") +
+      " / target " + (item.takeProfitPct === undefined ? "off" : item.takeProfitPct + "%") +
+      " in " + item.outerFoldCount + " folds").join(" · ")));
+    const table = el("div", "regime-table");
+    const header = el("div", "regime-row regime-header");
+    ["OUTER FOLD", "SELECTED STOP", "SELECTED TARGET", "INNER OOS RETURN", "OUTER OOS RETURN", "OUTER WORST DD", "OUTER TRADES", "FEES"].forEach((value) => header.append(el("span", "", value)));
+    table.append(header);
+    for (const fold of candidate.folds) {
+      const row = el("div", "regime-row");
+      [
+        String(fold.outerFoldIndex + 1),
+        fold.selectedStopLossPct === undefined ? "Off" : fold.selectedStopLossPct + "%",
+        fold.selectedTakeProfitPct === undefined ? "Off" : fold.selectedTakeProfitPct + "%",
+        fold.innerSelection.compoundedReturnPct.toFixed(2) + "%",
+        fold.outerEvaluation.evaluation.compoundedReturnPct.toFixed(2) + "%",
+        (fold.outerEvaluation.scorecard.worstFoldDrawdownPct ?? 0).toFixed(2) + "%",
+        String(fold.outerEvaluation.scorecard.completedTrades),
+        fold.outerEvaluation.scorecard.totalFees.toFixed(2),
+      ].forEach((value) => row.append(el("span", "", value)));
+      table.append(row);
+      row.title = fold.selectionReason;
+    }
+    card.append(table);
+    panel.append(card);
+  }
+  target.append(panel);
+}
+
 export function mountResearchConsole(container: HTMLElement): void {
   container.innerHTML = `
     <section class="panel research-console" aria-labelledby="research-title">
@@ -248,6 +296,7 @@ export function mountResearchConsole(container: HTMLElement): void {
         <label>Minimum inner completed trades<input id="nested-min-trades" type="number" min="0" max="1000" step="1" value="3" /></label>
         <button id="run-nested-selection" type="button" disabled>Run nested walk-forward</button>
         <div id="nested-selection-results" aria-live="polite"></div>
+        <div class="saved-research"><h4>Saved nested experiments</h4><p class="small">Full nested reports, selected parameters and fold metrics are stored locally on this device.</p><div id="nested-research-history" aria-live="polite">Loading nested experiments…</div></div>
       </section>
       <p id="research-status" class="paper-status" role="status">Ready · public Binance spot data · no API key required</p>
       <div id="research-results" aria-live="polite"></div>
@@ -270,10 +319,12 @@ export function mountResearchConsole(container: HTMLElement): void {
   const nestedButton = container.querySelector<HTMLButtonElement>("#run-nested-selection");
   const nestedMinTrades = container.querySelector<HTMLInputElement>("#nested-min-trades");
   const nestedResults = container.querySelector<HTMLElement>("#nested-selection-results");
+  const nestedHistory = container.querySelector<HTMLElement>("#nested-research-history");
   if (!form || !button || !status || !results || !history || !compareButton || !comparisonTarget ||
       !sensitivityButton || !sensitivityStops || !sensitivityTargets || !sensitivityResults ||
-      !nestedButton || !nestedMinTrades || !nestedResults) return;
+      !nestedButton || !nestedMinTrades || !nestedResults || !nestedHistory) return;
   const runStore = new ResearchRunStore();
+  const nestedRunStore = new NestedResearchRunStore();
   let sensitivityContext: { candles: Candle[]; candidates: ReturnType<typeof createBaselineResearchCandidates>; pipeline: ResearchPipelineConfig; metadata: { symbol: string; interval: string; provider: string } } | null = null;
   const selectedRunIds = new Set<string>();
   let cachedRuns: StoredResearchRun[] = [];
@@ -363,7 +414,51 @@ export function mountResearchConsole(container: HTMLElement): void {
   void refreshHistory();
 
 
-  nestedButton.addEventListener("click", () => {
+  const refreshNestedHistory = async (): Promise<void> => {
+    try {
+      const records = await nestedRunStore.list(50);
+      nestedHistory.replaceChildren();
+      if (records.length === 0) {
+        nestedHistory.append(el("p", "small", "No saved nested experiments yet."));
+        return;
+      }
+      for (const record of records) {
+        const item = el("div", "saved-run");
+        const info = el("div", "saved-run-info");
+        info.append(
+          el("strong", "", record.metadata.symbol + " · " + record.metadata.interval +
+            " · " + record.report.outerFoldCount + " outer folds · " +
+            record.report.candidateResults.length + " strategies"),
+          el("span", "small", new Date(record.createdAt).toLocaleString() +
+            " · " + record.report.datasetFingerprint),
+        );
+        const actions = el("div", "saved-run-actions");
+        const open = el("button", "saved-run-open", "Open");
+        open.type = "button";
+        open.addEventListener("click", () => {
+          renderNestedReport(nestedResults, record.report);
+          status.textContent = "Loaded saved nested experiment · " + record.id;
+        });
+        const remove = el("button", "saved-run-delete", "Delete");
+        remove.type = "button";
+        remove.addEventListener("click", () => {
+          remove.disabled = true;
+          void nestedRunStore.delete(record.id).then(refreshNestedHistory).catch((error: unknown) => {
+            status.textContent = error instanceof Error ? error.message : "Could not delete nested experiment";
+            remove.disabled = false;
+          });
+        });
+        actions.append(open, remove);
+        item.append(info, actions);
+        nestedHistory.append(item);
+      }
+    } catch (error) {
+      nestedHistory.textContent = error instanceof Error ? error.message : "Nested experiment history unavailable";
+    }
+  };
+  void refreshNestedHistory();
+
+  nestedButton.addEventListener("click", async () => {
     if (!sensitivityContext || nestedButton.disabled) return;
     try {
       const grid = {
@@ -386,7 +481,7 @@ export function mountResearchConsole(container: HTMLElement): void {
       nestedButton.textContent = "Running nested selection…";
       nestedResults.replaceChildren();
       status.textContent = "Selecting parameters inside outer training windows; outer tests remain untouched…";
-      const report = runNestedWalkForwardSelection(candles, candidates, pipeline, {
+      const nestedConfig: NestedWalkForwardConfig = {
         outerFolds: { ...pipeline.folds, stepBars: outerStepBars },
         innerFolds: {
           trainBars: innerTrainBars,
@@ -397,51 +492,14 @@ export function mountResearchConsole(container: HTMLElement): void {
         },
         grid,
         minimumInnerTrades,
-      }, metadata);
-      const panel = el("div", "research-result");
-      panel.append(el("h4", "", report.outerFoldCount + " outer folds · " + report.candidateResults.length + " strategies"));
-      panel.append(el("p", "small", report.selectionWarning));
-      for (const candidate of report.candidateResults) {
-        const card = el("section", "research-result");
-        card.append(el("h4", "", candidate.name));
-        card.append(el("p", "small", "Outer compounded return " + candidate.compoundedOuterReturnPct.toFixed(2) +
-          "% · mean fold " + candidate.meanOuterReturnPct.toFixed(2) + "% · worst outer drawdown " +
-          candidate.worstOuterFoldDrawdownPct.toFixed(2) + "% · completed trades " + candidate.totalOuterCompletedTrades +
-          " · PF " + (candidate.profitFactor === null ? "—" : candidate.profitFactor.toFixed(2)) +
-          " · expectancy " + (candidate.expectancyPerTrade === null ? "—" : candidate.expectancyPerTrade.toFixed(2)) +
-          " · fees " + candidate.totalFees.toFixed(2) + " · turnover " + candidate.completedTurnover.toFixed(2) + "x" +
-          " · exposure " + candidate.averageExposurePct.toFixed(1) + "% · stop/target exits " +
-          candidate.stopLossExitCount + "/" + candidate.takeProfitExitCount +
-          " · pending qty " + candidate.totalPendingQuantity.toFixed(6) +
-          " · fills " + candidate.totalFillEvents + " (" + candidate.totalPartialFillEvents + " partial)"));
-        card.append(el("p", "small", "Parameter stability: " + candidate.parameterStability.map((item) =>
-          "stop " + (item.stopLossPct === undefined ? "off" : item.stopLossPct + "%") +
-          " / target " + (item.takeProfitPct === undefined ? "off" : item.takeProfitPct + "%") +
-          " in " + item.outerFoldCount + " folds").join(" · ")));
-        const table = el("div", "regime-table");
-        const header = el("div", "regime-row regime-header");
-        ["OUTER FOLD", "SELECTED STOP", "SELECTED TARGET", "INNER OOS RETURN", "OUTER OOS RETURN", "OUTER WORST DD", "OUTER TRADES", "FEES"].forEach((value) => header.append(el("span", "", value)));
-        table.append(header);
-        for (const fold of candidate.folds) {
-          const row = el("div", "regime-row");
-          [
-            String(fold.outerFoldIndex + 1),
-            fold.selectedStopLossPct === undefined ? "Off" : fold.selectedStopLossPct + "%",
-            fold.selectedTakeProfitPct === undefined ? "Off" : fold.selectedTakeProfitPct + "%",
-            fold.innerSelection.compoundedReturnPct.toFixed(2) + "%",
-            fold.outerEvaluation.evaluation.compoundedReturnPct.toFixed(2) + "%",
-            (fold.outerEvaluation.scorecard.worstFoldDrawdownPct ?? 0).toFixed(2) + "%",
-            String(fold.outerEvaluation.scorecard.completedTrades),
-            fold.outerEvaluation.scorecard.totalFees.toFixed(2),
-          ].forEach((value) => row.append(el("span", "", value)));
-          table.append(row);
-          row.title = fold.selectionReason;
-        }
-        card.append(table);
-        panel.append(card);
-      }
-      nestedResults.append(panel);
-      status.textContent = "Nested walk-forward complete · " + report.outerFoldCount + " outer folds · results displayed separately from inner selection";
+      };
+      const report = runNestedWalkForwardSelection(candles, candidates, pipeline, nestedConfig, metadata);
+      renderNestedReport(nestedResults, report);
+      const saved = await nestedRunStore.save(report, metadata, nestedConfig);
+      await refreshNestedHistory();
+      status.textContent = "Nested walk-forward complete · " + report.outerFoldCount +
+        " outer folds · saved locally as " + saved.id;
+
     } catch (error) {
       status.textContent = error instanceof Error ? error.message : "Nested walk-forward selection failed";
     } finally {

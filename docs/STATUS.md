@@ -360,3 +360,14 @@ Updated: 2026-11-14
 - Added regression specifications for training/test separation, invariance of a fold's selection to changes in that fold's outer test data, baseline fallback, invalid fold geometry and separation of inner/outer metrics.
 - See `docs/NESTED_WALK_FORWARD_SELECTION.md` for the protocol and limits.
 - GitHub Actions run #104 passed on commit `d6c1ca6563545997571d9ceb3864d35cf558e55b`: 198 tests across 37 files, dependency audit with 0 vulnerabilities, strict TypeScript compilation and Vite production build. PR #16 is ready for merge. No live trading, exchange credentials, paid services or billing changes introduced.
+
+
+## Nested research report persistence (2026-11-14)
+
+- Added a dedicated IndexedDB object store `nestedResearchRuns` under schema version 8; existing research batch history remains isolated and unchanged.
+- Nested runs now persist the complete outer-fold report, selected settings, parameter-stability data, inner/outer metrics, market metadata and exact nested configuration.
+- The mobile research console saves successful nested runs automatically, lists the newest 50, supports reopening a full report after reload and allows individual deletion.
+- Records remain local to the device/browser profile. Clearing site data or browser storage can remove them; this is not cloud backup or cross-device sync.
+- Added adapter tests for complete round-trip persistence, newest-first ordering, immutable read copies, deletion isolation and invalid payload rejection, plus database schema tests.
+- Feature branch: `feature/persist-nested-research-runs`; CI verification pending.
+- No paid services, billing changes, exchange credentials or live execution introduced.
