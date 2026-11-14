@@ -9,7 +9,7 @@ const candidate: DecisionCandidate = {
 };
 const policy = {
   instrumentCategory: "spot" as const,
-  equity: 10_000, existingExposure: 0, maxRiskPerTrade: 25,
+  equity: 10_000, availableCapital: 10_000, existingExposure: 0, maxRiskPerTrade: 25,
   maxRiskFraction: 0.005, maxNotional: 2_000, maxExposure: 2_000,
   candleVolume: 100, minimumNetRewardRisk: 1.4,
   execution: {
@@ -42,6 +42,12 @@ describe("assessCandidateGates", () => {
     });
     expect(result.riskGate.reasonCodes).toContain("MAX_NOTIONAL_EXCEEDED");
     expect(result.riskGate.reasonCodes).toContain("MAX_EXPOSURE_EXCEEDED");
+  });
+
+  it("blocks a spot allocation that exceeds available paper cash", () => {
+    const result = assessCandidateGates(candidate, { ...policy, availableCapital: 25 });
+    expect(result.riskGate.eligible).toBe(false);
+    expect(result.riskGate.reasonCodes).toContain("INSUFFICIENT_AVAILABLE_CAPITAL");
   });
 
   it("blocks orders that exceed the conservative candle participation cap", () => {
