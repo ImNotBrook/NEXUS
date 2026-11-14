@@ -23,7 +23,7 @@ describe("indicator catalogue", () => {
 
   it("distinguishes implemented calculations from research roadmap entries", () => {
     expect(getImplementedIndicators().map((item) => item.id).sort()).toEqual([
-      "adx", "atr", "bollinger_bands", "cci", "donchian_channels", "ema", "keltner_channels", "macd", "mfi", "obv", "rate_of_change", "rsi", "sma", "stochastic", "vwap", "wma",
+      "adx", "atr", "bollinger_bands", "cci", "donchian_channels", "ema", "keltner_channels", "macd", "mfi", "obv", "roc", "rsi", "sma", "stochastic", "vwap", "wma",
     ]);
     expect(getIndicatorById("funding_rate")?.implementation).toBe("planned");
     expect(getIndicatorById("not-real")).toBeUndefined();
