@@ -235,4 +235,17 @@ describe("simulateShadowOutcome", () => {
     expect(result.status).toBe("completed");
   });
 
+  it("enforces one aggregate participation cap across entry and exit fills in a candle", () => {
+    const result = simulateShadowOutcome(plan({
+      executionModel: { ...executionModel, maxParticipationRate: 0.1 },
+    }), [
+      candle(2_000, 100, 101, 99, 100, 5),
+      candle(3_000, 100, 112, 99, 111, 5),
+    ]);
+    expect(result.entryFilledQuantity).toBeCloseTo(1);
+    expect(result.exitFilledQuantity).toBe(0);
+    expect(result.positionRemainingQuantity).toBeCloseTo(1);
+    expect(result.pendingExitReason).toBe("take-profit");
+  });
+
 });
