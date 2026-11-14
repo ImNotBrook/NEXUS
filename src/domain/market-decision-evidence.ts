@@ -95,11 +95,14 @@ export function buildDecisionEvidenceFromMarketSnapshot(
         id: snapshot.snapshotId + ":alignment",
         family: "timeframe_alignment",
         claim: "Higher-timeframe alignment is " + snapshot.alignment,
-        polarity: snapshot.alignment === "aligned"
-          ? "supports"
-          : snapshot.alignment === "conflict"
-            ? "contradicts"
-            : "neutral",
+        polarity: snapshot.alignment === "conflict"
+          ? "contradicts"
+          : snapshot.alignment === "partial"
+            ? "neutral"
+            : ((candidate.side === "long" && snapshot.primaryTrend === "uptrend") ||
+                (candidate.side === "short" && snapshot.primaryTrend === "downtrend"))
+              ? "supports"
+              : "contradicts",
         strength: snapshot.alignment === "aligned" || snapshot.alignment === "conflict" ? 1 : 0.25,
         quality: snapshot.dataQuality === "pass" && crossFeedStatus === "within_tolerance" ? 1 : 0.5,
         symbol: snapshot.symbol,
