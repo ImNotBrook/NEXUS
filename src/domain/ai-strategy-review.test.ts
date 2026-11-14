@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AiStrategyProposal } from "./ai-strategy-proposals";
 import {
+  createHumanReviewedComposedStrategyDefinition,
   createHumanReviewedStrategyDefinition,
   parseAutomatedResearchAiArtifact,
 } from "./ai-strategy-review";
@@ -21,6 +22,17 @@ const artifact = {
     provider: "groq",
     model: "openai/gpt-oss-120b",
     proposals: [proposal],
+    composedStrategies: [{
+      schemaVersion: 1,
+      id: "trend-pullback-confirmed",
+      name: "Trend pullback confirmation",
+      marketHypothesis: "Momentum recovery after a pullback may resume an established trend.",
+      regimeScope: "uptrend",
+      timeframe: "1h",
+      entry: { trigger: { type: "rsi_recovery", period: 14, oversold: 30 }, confirmations: [{ type: "ema_alignment", fastPeriod: 10, slowPeriod: 30 }] },
+      exit: { type: "rsi_overbought", period: 14, threshold: 70 },
+      invalidation: "A loss of bullish EMA alignment invalidates the trend continuation hypothesis.",
+    }],
     attempts: [{ provider: "groq", status: "generated" }],
   },
 };
@@ -32,6 +44,7 @@ describe("AI strategy review boundary", () => {
     expect(parsed.model).toBe("openai/gpt-oss-120b");
     expect(parsed.symbol).toBe("BTCUSDT");
     expect(parsed.proposals).toEqual([proposal]);
+    expect(parsed.composedStrategies).toHaveLength(1);
   });
 
   it("rejects deterministic fallback artifacts and malformed proposals", () => {
@@ -55,6 +68,15 @@ describe("AI strategy review boundary", () => {
     expect(first.parameters).toEqual(proposal.parameters);
     expect(first.description).toContain(proposal.rationale);
     expect(first.aiProvenance).toEqual({ provider: "groq", model: "openai/gpt-oss-120b", generatedAt: "2026-11-14T00:00:00.000Z", symbol: "BTCUSDT", interval: "1h" });
+  });
+
+  it("creates a human-approved immutable composed strategy with original AI provenance", () => {
+    const parsed = parseAutomatedResearchAiArtifact(artifact);
+    const definition = createHumanReviewedComposedStrategyDefinition(parsed.composedStrategies[0], 1_800_000_000_000, parsed);
+    expect(definition.family).toBe("composed-rule");
+    expect(definition.origin).toBe("human");
+    expect(definition.aiProvenance?.provider).toBe("groq");
+    expect(Object.isFrozen(definition.parameters)).toBe(true);
   });
 
   it("rejects invalid approval timestamps", () => {
