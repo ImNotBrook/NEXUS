@@ -22,6 +22,14 @@ describe("local backup envelope", () => {
     await expect(parseLocalBackup(JSON.stringify({ ...backup, schemaVersion: 99 }), "paper-account")).rejects.toThrow(/version/i);
   });
 
+  it("creates and verifies a strategy library backup envelope", async () => {
+    const payload = [{ id: "btc-sma@1.0.0", createdAt: 1000, definition: { id: "btc-sma", version: "1.0.0" } }];
+    const backup = await createLocalBackup("strategy-library", payload, 1_800_000_000_000);
+    const parsed = await parseLocalBackup(JSON.stringify(backup), "strategy-library");
+    expect(parsed.kind).toBe("strategy-library");
+    expect(parsed.payload).toEqual(payload);
+  });
+
   it("rejects malformed JSON and non-object payloads", async () => {
     await expect(parseLocalBackup("{broken", "decision-journal")).rejects.toThrow(/JSON/i);
     await expect(createLocalBackup("decision-journal", null, 1_800_000_000_000)).rejects.toThrow(/object/i);
