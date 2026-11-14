@@ -15,10 +15,10 @@ export function mountAutomationConsole(container: HTMLElement): void {
   const panel = el("section", "panel automation-panel");
   panel.append(el("span", "panel-label", "RESEARCH AUTOMATION"));
   panel.append(el("h2", "", "Scheduled candidate research"));
-  panel.append(el("p", "small", "Daily at 00:15 UTC, GitHub Actions fetches completed BTC/USDT hourly candles, generates a bounded candidate set and runs execution-aware walk-forward backtests."));
+  panel.append(el("p", "small", "Daily at 00:15 UTC, GitHub Actions fetches completed BTC/USDT hourly candles, generates a bounded candidate set and runs execution-aware walk-forward backtests. If the GROQ_API_KEY repository secret is configured, Groq can propose up to four parameter variants; otherwise the deterministic set runs."));
   const stats = el("div", "automation-facts");
   for (const [label, value] of [
-    ["Candidate set", "16 deterministic variants"],
+    ["Candidate set", "16 deterministic + up to 4 AI proposals"],
     ["Strategy families", "SMA · RSI · Donchian"],
     ["Market history", "Up to 1,500 closed 1h candles"],
     ["Validation", "Expanding walk-forward · 2-bar embargo"],
@@ -30,7 +30,7 @@ export function mountAutomationConsole(container: HTMLElement): void {
     stats.append(item);
   }
   panel.append(stats);
-  const notice = el("p", "automation-notice", "Important: this first automation is deterministic parameterized research, not an LLM. It does not promote a winner, place paper orders or trade live. No exchange credentials or paid AI services are used.");
+  const notice = el("p", "automation-notice", "AI proposals are optional and constrained to three reviewed strategy templates. Generated code is never executed. NEXUS does not promote a winner, place paper orders or trade live. No exchange credentials or paid AI services are required.");
   panel.append(notice);
   const actions = el("div", "automation-actions");
   const open = el("a", "automation-link", "Open automation runs");
