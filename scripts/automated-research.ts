@@ -5,6 +5,7 @@ import { runResearchBatch } from "../src/domain/research-pipeline";
 import { createAutomatedResearchCandidates, AUTOMATED_CANDIDATE_GENERATOR_VERSION } from "../src/strategies/automated-strategy-search";
 import { generateAiStrategyProposalsWithFallback } from "../src/adapters/multi-provider-strategy-generator";
 import { compileAiStrategyProposals } from "../src/strategies/ai-candidate-compiler";
+import { compileComposedStrategy } from "../src/strategies/composed-strategy-compiler";
 
 const SYMBOL = "BTCUSDT";
 const INTERVAL = "1h" as const;
@@ -33,12 +34,14 @@ async function main(): Promise<void> {
     provider: string | null;
     model: string | null;
     proposals: Array<{ family: string; parameters: Record<string, number>; rationale: string }>;
+    composedStrategies: Array<unknown>;
     attempts: Array<{ provider: string; status: string; reason?: string }>;
   } = {
     status: "not_configured",
     provider: null,
     model: null,
     proposals: [],
+    composedStrategies: [],
     attempts: [],
   };
 
@@ -75,9 +78,11 @@ async function main(): Promise<void> {
 
   if (aiResult.status === "generated") {
     const aiCandidates = compileAiStrategyProposals(aiResult.proposals);
+    const composedCandidates = aiResult.composedStrategies.map(compileComposedStrategy);
     const merged = new Map(deterministicCandidates.map((candidate) => [candidate.id, candidate]));
     for (const candidate of aiCandidates) merged.set(candidate.id, candidate);
-    candidates = [...merged.values()].slice(0, 20);
+    for (const candidate of composedCandidates) merged.set(candidate.id, candidate);
+    candidates = [...merged.values()].slice(0, 25);
     aiGeneration = {
       status: "generated",
       provider: aiResult.provider,
@@ -87,6 +92,7 @@ async function main(): Promise<void> {
         parameters: proposal.parameters,
         rationale: proposal.rationale,
       })),
+      composedStrategies: aiResult.composedStrategies,
       attempts: aiResult.attempts,
     };
   } else {
@@ -95,6 +101,7 @@ async function main(): Promise<void> {
       provider: null,
       model: null,
       proposals: [],
+      composedStrategies: [],
       attempts: aiResult.attempts,
     };
     if (aiResult.status === "fallback") {
