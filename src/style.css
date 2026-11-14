@@ -183,3 +183,12 @@
 .sensitivity-controls textarea{min-height:112px;resize:vertical;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px}
 .sensitivity-controls button{min-height:42px;margin:8px 0;padding:9px 13px;border:1px solid #31536a;border-radius:7px;background:#102b40;color:#c5d7e8;font:inherit;font-size:11px;font-weight:700}
 .sensitivity-controls button:disabled{opacity:.5}
+
+/* AI-led strategy proposal inbox */
+.ai-strategy-inbox{margin-top:18px;padding:14px;border:1px solid #31536a;border-radius:9px;background:#0a1a29}
+.ai-strategy-inbox>h3{margin:0 0 7px;color:#d4e0ec;font-size:14px}
+.ai-strategy-inbox>.small{font-size:10px;line-height:1.6;color:#91a5ba}
+.ai-strategy-inbox input[type=file]{display:block;width:100%;max-width:100%;min-height:42px;margin-top:7px;color:#b8c9d8;font-size:11px}
+.ai-strategy-inbox button{width:100%;min-height:42px;padding:9px 12px;border:1px solid #286456;border-radius:7px;background:#12372f;color:#70e0c2;font:inherit;font-size:11px;font-weight:700}
+.ai-strategy-inbox button:disabled{opacity:.5}
+.ai-strategy-inbox .research-result{overflow-wrap:anywhere}
