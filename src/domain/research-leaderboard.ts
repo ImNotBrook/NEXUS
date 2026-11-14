@@ -31,7 +31,7 @@ export interface ResearchLeaderboard {
 }
 
 function stableSerialize(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "undefined";
   if (Array.isArray(value)) return "[" + value.map(stableSerialize).join(",") + "]";
   const record = value as Record<string, unknown>;
   return "{" + Object.keys(record).sort().map((key) =>
@@ -103,6 +103,11 @@ export function buildResearchLeaderboard(records: readonly StoredResearchRun[]):
         }
         candidateIds.add(candidate.id);
         const robustness = buildStatisticalRobustnessReport(candidate.evaluation, candidates.length);
+        if (!Number.isFinite(candidate.evaluation.compoundedReturnPct) ||
+            !Number.isFinite(candidate.scorecard.completedTrades) ||
+            !Number.isFinite(candidate.evaluation.foldCount)) {
+          throw new TypeError("Research leaderboard metrics must be finite");
+        }
         entries.push({
           runId: record.id,
           createdAt: record.createdAt,
