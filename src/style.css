@@ -102,3 +102,13 @@
 .help-popover{position:absolute;z-index:12;right:12px;top:46px;max-width:min(290px,calc(100% - 24px));padding:11px 12px;border:1px solid #42627b;border-radius:8px;background:#102235;color:#d0dce8;font-size:11px;line-height:1.6;box-shadow:0 12px 30px #0008}
 .help-popover[hidden]{display:none}
 .help-button[aria-expanded="true"],.panel-help[aria-expanded="true"]{background:#1b4650;color:#fff}
+
+/* Automated research console */
+.automation-panel{margin:0}.automation-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0}
+.automation-fact{display:grid;gap:5px;padding:11px;border:1px solid #29445b;border-radius:7px;background:#102235;min-width:0}
+.automation-fact span{color:#71869c;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.automation-fact strong{color:#cbd9e6;font-size:11px;overflow-wrap:anywhere}
+.automation-notice{padding:12px;border-left:2px solid #c99d55;background:#2a2418;color:#e4c98f;font-size:10px;line-height:1.6}
+.automation-actions{display:flex;gap:8px;flex-wrap:wrap}.automation-link{display:inline-block;padding:10px 13px;border:1px solid #31536a;border-radius:6px;background:#102b40;color:#5ee0c0;text-decoration:none;font-size:11px}
+.automation-details{margin-top:14px;color:#9fb0c2;font-size:11px}.automation-details summary{cursor:pointer;padding:8px 0}
+@media(max-width:420px){.automation-facts{grid-template-columns:1fr}}
