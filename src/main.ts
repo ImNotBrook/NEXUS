@@ -4,6 +4,13 @@ import { mountResearchConsole } from "./domain/research-console";
 import { mountSkillConsole } from "./domain/skill-console";
 import { mountAutomationConsole } from "./ui/automation-console";
 import { mountDecisionJournalConsole } from "./ui/decision-journal-console";
+import { mountDecisionWorkbenchConsole } from "./ui/decision-workbench-console";
+import { DecisionJournalStore } from "./adapters/decision-journal-store";
+import { runDecisionWorkbench } from "./domain/decision-workbench-service";
+import type { ApprovedDonchianStrategy } from "./domain/strategy-candidate-generator";
+import type { MarketIntelligenceSnapshot } from "./domain/market-intelligence";
+import type { Candle } from "./domain/candles";
+import type { CrossFeedStatus } from "./domain/market-intelligence-service";
 import { evaluateQualification } from "./domain/qualification";
 import { rsi } from "./domain/indicators";
 import { fetchBinanceCandles, type BinanceInterval } from "./adapters/binance-public";
@@ -103,6 +110,7 @@ root.innerHTML = `
       <article class="panel"><span class="panel-label">SYSTEM STATUS</span><h2>Core safeguards</h2><ul><li>Paper trading only</li><li>AI changes require approval</li><li>Backtest integrity enforced</li></ul></article>
     </section>
     <div id="research-console-mount"></div>
+    <div id="decision-workbench-mount"></div>
     <div id="decision-journal-mount"></div>
     <div id="skill-console-mount"></div>
     <div id="automation-console-mount"></div>
@@ -119,6 +127,46 @@ const skillConsoleMount = document.querySelector<HTMLElement>("#skill-console-mo
 if (skillConsoleMount) mountSkillConsole(skillConsoleMount);
 const automationConsoleMount = document.querySelector<HTMLElement>("#automation-console-mount");
 if (automationConsoleMount) mountAutomationConsole(automationConsoleMount);
+const decisionWorkbenchMount = document.querySelector<HTMLElement>("#decision-workbench-mount");
+if (decisionWorkbenchMount) mountDecisionWorkbenchConsole(decisionWorkbenchMount, async (strategy: ApprovedDonchianStrategy) => {
+  await loadMarketSnapshot();
+  if (!latestDecisionContext) throw new Error("Market data is not ready for a decision scan");
+  const context = latestDecisionContext;
+  const existingExposure = (paperAccount?.positions.BTCUSDT?.quantity ?? 0) * (latestBtcPrice ?? 0);
+  return runDecisionWorkbench({
+    snapshot: context.snapshot,
+    candles: context.candles,
+    crossFeedStatus: context.crossFeedStatus,
+    strategy,
+    evaluationTime: context.snapshot.evaluationTime,
+    gatePolicy: {
+      instrumentCategory: context.snapshot.instrumentCategory,
+      equity: paperAccount ? getPaperAccountSummary(paperAccount).equity : 10_000,
+      existingExposure,
+      maxRiskPerTrade: 20,
+      maxRiskFraction: 0.002,
+      maxNotional: 2_000,
+      maxExposure: 2_000,
+      minimumNetRewardRisk: 1.4,
+      execution: {
+        feeRate: 0.001,
+        baseSlippageBps: 10,
+        halfSpreadBps: 0,
+        maxParticipationRate: 0.05,
+        marketImpactBpsAtMaxParticipation: 5,
+      },
+    },
+    minimumSupportingFamilies: 2,
+    versions: {
+      engine: "decision-engine-v1",
+      score: "diagnostic-score-v1",
+      strategy: strategy.id + "@" + strategy.version,
+      riskPolicy: "paper-risk-policy-v1",
+    },
+    clockSource: "browser Date.now() · UTC epoch milliseconds",
+    journal: decisionJournalStore,
+  });
+});
 mountWorkspaceLayout(root);
 
 const priceElement = document.querySelector<HTMLElement>("#btc-price");
@@ -156,6 +204,7 @@ const intelligenceElements: Array<[keyof MarketIntelligencePresentation, HTMLEle
   ["paperEligibility", document.querySelector("#market-paper-gate")],
 ];
 const paperStore = new PaperAccountStore();
+const decisionJournalStore = new DecisionJournalStore();
 const marketCache = new IndexedDbMarketSnapshotCache();
 const marketProviders: MarketDataProvider[] = [
   {
@@ -170,6 +219,11 @@ const marketProviders: MarketDataProvider[] = [
   },
 ];
 let paperAccount: PaperAccount | null = null;
+let latestDecisionContext: {
+  snapshot: MarketIntelligenceSnapshot;
+  candles: Candle[];
+  crossFeedStatus: CrossFeedStatus;
+} | null = null;
 let latestBtcPrice: number | null = null;
 let latestBtcFetchedAt: number | null = null;
 let marketDataTrusted = false;
@@ -265,6 +319,11 @@ async function loadMarketSnapshot(): Promise<void> {
     if (!snapshot) throw new Error("No usable completed 1H market snapshot is available");
     const candles = snapshot.candles;
     if (candles.length < 15) throw new Error("Not enough completed candles to calculate RSI");
+    latestDecisionContext = {
+      snapshot: intelligence.snapshot,
+      candles,
+      crossFeedStatus: intelligence.crossFeedStatus,
+    };
     const presentation = buildMarketIntelligencePresentation({
       snapshot: intelligence.snapshot,
       crossFeedStatus: intelligence.crossFeedStatus,
@@ -304,6 +363,7 @@ async function loadMarketSnapshot(): Promise<void> {
     updatedElement.textContent = (snapshot.stale ? "STALE LOCAL CACHE · " : snapshot.provider + " · ") +
       "Last closed candle · " + new Date(last.timestamp).toLocaleString();
   } catch (error) {
+    latestDecisionContext = null;
     latestBtcPrice = null;
     latestBtcFetchedAt = null;
     marketDataTrusted = false;
