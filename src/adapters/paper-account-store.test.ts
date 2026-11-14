@@ -16,6 +16,7 @@ function createMemoryIndexedDb(): IDBFactory {
       const store = records.get(name);
       if (!store) throw new Error("Missing object store");
       const transaction: Record<string, unknown> = {};
+      transaction.abort = () => queueMicrotask(() => (transaction.onabort as (() => void) | undefined)?.());
       transaction.objectStore = () => ({
         get: (key: string) => {
           const request: Record<string, unknown> = {};
@@ -75,14 +76,19 @@ describe("PaperAccountStore", () => {
     expect(restored?.config).toEqual(filled.config);
   });
 
-  it("restores only into an empty account and refuses to overwrite existing paper state", async () => {
+  it("restores into an empty store but protects an account with trading activity", async () => {
     const factory = createMemoryIndexedDb();
     const store = new PaperAccountStore(factory);
     const original = createPaperAccount({}, Date.UTC(2026, 0, 1));
     await store.restore(original);
     expect(await store.load()).toEqual(original);
-    await expect(store.restore(createPaperAccount({}, Date.UTC(2026, 0, 2)))).rejects.toThrow();
-    expect(await store.load()).toEqual(original);
+    const active = executePaperMarketOrder(original, {
+      symbol: "BTCUSDT", side: "buy", quantity: 0.001, referencePrice: 50_000,
+      timestamp: Date.UTC(2026, 0, 1),
+    });
+    await store.save(active);
+    await expect(store.restore(createPaperAccount({}, Date.UTC(2026, 0, 2)))).rejects.toThrow(/cannot be overwritten/i);
+    expect(await store.load()).toEqual(active);
     await expect(store.restore({ ...original, cash: Number.NaN })).rejects.toThrow(/cash/i);
   });
 
