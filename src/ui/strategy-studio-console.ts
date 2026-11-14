@@ -126,7 +126,7 @@ export function mountStrategyStudioConsole(root: HTMLElement): void {
         approval.addEventListener("click", async () => {
           approval.disabled = true;
           try {
-            const definition = createHumanReviewedStrategyDefinition(proposal, Date.now());
+            const definition = createHumanReviewedStrategyDefinition(proposal, Date.now(), parsed);
             const saved = await store.save(definition as import("../domain/strategy-studio").StrategyDefinition);
             result.textContent = "Human-approved and saved as " + saved.id +
               ". It is now eligible for historical research, but not approved for paper execution.";
