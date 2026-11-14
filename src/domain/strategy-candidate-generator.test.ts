@@ -77,6 +77,16 @@ describe("generateDonchianStrategyCandidate", () => {
     expect(result.reasonCodes).toContain("STRATEGY_NOT_APPROVED");
   });
 
+  it("requires an approval rationale as well as an approver label", () => {
+    const result = generateDonchianStrategyCandidate({
+      snapshot: snapshot(), candles: breakout, crossFeedStatus: "within_tolerance",
+      strategy: { ...strategy, approvalRationale: "" }, evaluationTime: now,
+    });
+    expect(result.status).toBe("blocked");
+    expect(result.reasonCodes).toContain("STRATEGY_NOT_APPROVED");
+    expect(result.strategyRef.approval).toBeNull();
+  });
+
   it("blocks a breakout against the higher-timeframe regime", () => {
     const result = generateDonchianStrategyCandidate({
       snapshot: snapshot("downtrend"), candles: breakout, crossFeedStatus: "within_tolerance",
