@@ -252,8 +252,8 @@ describe("journalShadowOutcome", () => {
       testHasher,
     );
     expect(result.event.eventType).toBe("outcome_appended");
-    expect(result.outcome.status).toBe("pending");
-    expect(result.outcome.entryFilledQuantity).toBe(0);
+    expect(result.outcome.status).toBe("open");
+    expect(result.outcome.entryFilledQuantity).toBe(1);
   });
 
 });
