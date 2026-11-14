@@ -1,4 +1,5 @@
 import { validateCandles, type Candle } from "./candles";
+import { validateDecisionJournalEvent, validateDecisionJournalRecord, type DecisionJournalEvent, type DecisionJournalRecord } from "./decision-journal";
 
 export const NO_SETUP_REPLAY_VERSION = "donchian-no-setup-v1" as const;
 export const NO_SETUP_REPLAY_INTERVAL_MS = 60 * 60 * 1000;
@@ -148,4 +149,49 @@ export function findFirstCausalDonchianTrigger(
     evaluationBars: evaluated,
     reason: evaluated ? "NO_BREAKOUT_IN_OBSERVED_WINDOW" : "NO_CLOSED_FUTURE_CANDLES",
   };
+}
+
+
+export interface NoSetupReplayJournal {
+  get(decisionId: string): Promise<DecisionJournalRecord | null>;
+  appendEvent(event: DecisionJournalEvent): Promise<DecisionJournalEvent>;
+  listEvents(decisionId: string): Promise<DecisionJournalEvent[]>;
+}
+
+/** Persist the exact detector inputs at the original NO_SETUP timestamp. */
+export async function registerNoSetupReplay(
+  spec: NoSetupReplaySpec,
+  journal: NoSetupReplayJournal,
+): Promise<{ event: DecisionJournalEvent; alreadyRecorded: boolean }> {
+  const decision = await journal.get(spec.decisionId);
+  if (!decision) throw new Error("NO_SETUP replay parent decision is missing");
+  validateDecisionJournalRecord(decision);
+  if (decision.status !== "NO_SETUP" || decision.decisionAt !== spec.decisionAt ||
+      decision.symbol !== spec.symbol || decision.timeframe !== spec.timeframe ||
+      !decision.reasonCodes.includes("DONCHIAN_TRIGGER_ABSENT")) {
+    throw new Error("Frozen replay specification does not match an eligible NO_SETUP decision");
+  }
+  if (spec.detectorVersion !== NO_SETUP_REPLAY_VERSION ||
+      spec.initialWindow.length !== spec.lookback) {
+    throw new TypeError("Frozen NO_SETUP replay specification is invalid");
+  }
+  const event: DecisionJournalEvent = {
+    schemaVersion: 1,
+    eventId: "no-setup-replay:" + spec.decisionId + ":" + spec.detectorVersion,
+    decisionId: spec.decisionId,
+    eventType: "no_setup_replay_registered",
+    occurredAt: spec.decisionAt,
+    payload: { spec: structuredClone(spec) as unknown as Record<string, unknown> },
+  };
+  validateDecisionJournalEvent(event);
+  const existing = (await journal.listEvents(spec.decisionId))
+    .find((item) => item.eventType === event.eventType);
+  if (existing) {
+    if (existing.occurredAt === event.occurredAt &&
+        JSON.stringify(existing.payload) === JSON.stringify(event.payload)) {
+      return { event: existing, alreadyRecorded: true };
+    }
+    throw new Error("A different NO_SETUP replay specification is already registered for this decision");
+  }
+  return { event: await journal.appendEvent(event), alreadyRecorded: false };
 }
