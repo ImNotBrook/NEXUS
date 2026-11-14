@@ -402,3 +402,20 @@ Updated: 2026-11-14
 - PR #23 merged as `b4ec6b4da288283190fdfdd35ace48b5f6d7b9a2`. CI passed 224 tests across 44 files, dependency audit, strict TypeScript checks for both scheduled runners and production build. Pages deployment run #43537370072 passed.
 - The paper workflow has not yet been manually dispatched. Its first run will report disabled and place no simulated orders until a human-approved config is supplied.
 - Current paper agent is signal-based and does not yet implement protective stop/target exits in its continuous state machine. No live exchange routing, exchange keys, paid services or billing activation.
+
+
+## Paper-ledger configuration fingerprint (2026-11-14)
+
+- Persisted paper checkpoints now include a SHA-256 fingerprint covering market, interval, human approval metadata, strategy parameters and all risk/execution settings.
+- Any configuration drift halts the worker rather than silently changing strategy or risk assumptions mid-run.
+- PR #24 merged as `9e90e36840bfaaef36b8891c0fcb1dcf7b8d4b88`; CI passed 225 tests across 44 files, strict TypeScript checks and production build.
+
+
+## Protective exits in automated paper trading (2026-11-14)
+
+- Added optional stop-loss and take-profit support to the checkpointed paper agent.
+- Stop-losses use adverse market execution; partial stop remainders continue as market orders.
+- Take-profit exits use limit semantics, retain target price across partial fills and receive opening-gap price improvement.
+- Stop/target collisions resolve to the adverse stop; protective orders activate only after the entry candle and block same-candle re-entry.
+- PR #25 merged as `19bce2448fa08c98d005e8086d7185f15f62b03f`; CI passed 229 tests across 44 files, dependency audit, strict TypeScript checks and production build.
+- The latest Pages deployment for this commit is pending; verify before treating the updated paper-agent console as live.
