@@ -518,3 +518,13 @@ Updated: 2026-11-14
 - Added unit tests for definition validation, immutability, candidate mapping and deterministic bounded trials; adapter tests cover persistence/reload/immutability/duplicate rejection; integration test connects reloaded strategy definitions to the existing research pipeline.
 - Documentation: [STRATEGY_STUDIO.md](STRATEGY_STUDIO.md).
 - Final code commit `e4dea719c4d29a92bcd87f87f7d56ac7cd8af1aa`: CI [43581319176](https://github.com/ImNotBrook/NEXUS/actions/runs/43581319176) passed 83 test files / 530 tests, scheduled runner type checks, derivatives syntax/type checks, dependency audit (0 vulnerabilities) and production build. GitHub Pages deployment [43581319190](https://github.com/ImNotBrook/NEXUS/actions/runs/43581319190) succeeded.\n- Remaining Stage 10 work: expose parameter-grid generation in the mobile UI, persist trial manifests and link trial sets to research reports, then extend the rule composer and governed AI proposal path. The first increment requires manual Galaxy A55 verification before it is considered accepted.
+
+
+## Stage 10 — Strategy parameter trials (implementation increment)
+
+- Added a mobile Strategy Research parameter-trial panel. It loads saved human-authored strategies, prefills family-specific parameter-grid examples, parses user JSON and previews deterministic trial IDs/count before execution.
+- The selected base strategy is replaced by its generated variants for that run; other baseline and saved human strategies remain. Maximum 25 variants; family parameter validation rejects invalid combinations.
+- Both legacy and execution-aware reports persist the exact trial manifest alongside the report. Saved experiment history shows trial count and base strategy identity after reload. Existing legacy records remain readable without metadata.
+- Adapter tests verify exact manifest round-trip and reject inconsistent trial counts/IDs. The complete CI suite passed 83 test files / 533 tests, dependency audit (0 vulnerabilities), scheduled-runner checks, derivatives checks and production build on commit `4a055dff5713534ee50f75adb15941b19b60f082` (CI [43581981951](https://github.com/ImNotBrook/NEXUS/actions/runs/43581981951)).
+- A follow-up UI correction prefills the correct parameter names for SMA, RSI or Donchian when the selected family changes; this is in commit `d5312c9ef6e78c2d143bac900ebe5910205a0bca` and its CI/deployment verification is pending.
+- Limitations: strategy definitions and research reports remain device-local; neither strategy-library records nor research-run manifests are currently included in the local backup envelope. Parameter trials are exploratory; selecting the best on the same OOS data is biased. No promotion, paper approval or live trading is introduced.
