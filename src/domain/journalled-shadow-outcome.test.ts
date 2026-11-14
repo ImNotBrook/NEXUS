@@ -93,8 +93,11 @@ class MemoryJournal implements ShadowOutcomeJournal {
 }
 const testHasher = async (value: unknown): Promise<string> => {
   const text = JSON.stringify(value);
-  return text.length.toString(16) + "-" + text.slice(-20).length.toString(16) + "-" +
-    [...text].reduce((sum, char) => (sum + char.charCodeAt(0)) % 65535, 0).toString(16);
+  let hash = 2_166_136_261;
+  for (const character of text) {
+    hash = Math.imul(hash ^ character.charCodeAt(0), 16_777_619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
 };
 
 describe("journalShadowOutcome", () => {
@@ -254,6 +257,38 @@ describe("journalShadowOutcome", () => {
     expect(result.event.eventType).toBe("outcome_appended");
     expect(result.outcome.status).toBe("open");
     expect(result.outcome.entryFilledQuantity).toBe(1);
+  });
+
+  it("records the timestamp proving horizon maturity without storing post-horizon OHLC", async () => {
+    const journal = new MemoryJournal();
+    const result = await journalShadowOutcome(
+      plan,
+      [
+        candle(2_000, 100, 101, 99, 100),
+        candle(11_000, 100, 101, 99, 100),
+      ],
+      12_000,
+      journal,
+      testHasher,
+    );
+    expect(result.event.payload.observedThrough).toBe(11_000);
+    expect(result.event.payload.candleCount).toBe(1);
+    expect(result.event.payload.candles).toHaveLength(1);
+    expect(result.event.payload.horizonReached).toBe(true);
+  });
+
+  it("creates a distinct observation when the first horizon-proof timestamp changes", async () => {
+    const journal = new MemoryJournal();
+    const causal = candle(2_000, 100, 101, 99, 100);
+    const first = await journalShadowOutcome(
+      plan, [causal, candle(11_000, 100, 101, 99, 100)], 12_000, journal, testHasher,
+    );
+    const second = await journalShadowOutcome(
+      plan, [causal, candle(12_000, 100, 101, 99, 100)], 13_000, journal, testHasher,
+    );
+    expect(second.event.eventId).not.toBe(first.event.eventId);
+    expect(journal.events).toHaveLength(2);
+    expect(second.event.payload.candles).toHaveLength(1);
   });
 
 });
