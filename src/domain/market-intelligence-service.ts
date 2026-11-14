@@ -81,6 +81,26 @@ function closedCandles(
   ));
 }
 
+
+function closedCandleProviders(
+  providers: readonly MarketDataProvider[],
+  evaluationTime: number,
+): MarketDataProvider[] {
+  return providers.map((provider) => ({
+    name: provider.name,
+    async fetchCandles(request) {
+      const definition = Object.values(TIMEFRAME_CONFIG)
+        .find((item) => item.interval === request.interval);
+      if (!definition) throw new RangeError("Unsupported market timeframe: " + request.interval);
+      return closedCandles(
+        await provider.fetchCandles(request),
+        definition.intervalMs,
+        evaluationTime,
+      );
+    },
+  }));
+}
+
 function assessFrameQuality(
   snapshot: MarketSnapshot,
   intervalMs: number,
@@ -146,19 +166,20 @@ export async function loadMarketIntelligence(
   const historyLimit = input.historyLimit ?? DEFAULT_HISTORY_LIMIT;
   const minimumCandles = input.minimumCandles ?? DEFAULT_MIN_CANDLES;
   const crossFeedToleranceBps = input.crossFeedToleranceBps ?? DEFAULT_CROSS_FEED_TOLERANCE_BPS;
-  if (!Number.isInteger(historyLimit) || historyLimit < 25 || historyLimit > 1_000) {
-    throw new RangeError("historyLimit must be between 25 and 1000");
+  if (!Number.isInteger(historyLimit) || historyLimit < 26 || historyLimit > 1_000) {
+    throw new RangeError("historyLimit must be between 26 and 1000");
   }
-  if (!Number.isInteger(minimumCandles) || minimumCandles < 15 || minimumCandles > historyLimit) {
-    throw new RangeError("minimumCandles must be between 15 and historyLimit");
+  if (!Number.isInteger(minimumCandles) || minimumCandles < 15 || minimumCandles >= historyLimit) {
+    throw new RangeError("minimumCandles must be between 15 and historyLimit - 1");
   }
   if (!Number.isFinite(crossFeedToleranceBps) || crossFeedToleranceBps < 0) {
     throw new RangeError("crossFeedToleranceBps must be finite and non-negative");
   }
 
+  const closedProviders = closedCandleProviders(input.providers, input.evaluationTime);
   const resolved = await Promise.allSettled(TIMEFRAMES.map(async (timeframe) => {
     const definition = TIMEFRAME_CONFIG[timeframe];
-    const snapshot = await resolveMarketSnapshot(input.providers, input.cache, {
+    const rawSnapshot = await resolveMarketSnapshot(closedProviders, input.cache, {
       symbol: input.symbol,
       interval: definition.interval,
       now: input.evaluationTime,
@@ -166,6 +187,10 @@ export async function loadMarketIntelligence(
       minCandles: minimumCandles,
       maxCacheAgeMs: definition.intervalMs * 2,
     });
+    const snapshot: MarketSnapshot = {
+      ...rawSnapshot,
+      candles: closedCandles(rawSnapshot.candles, definition.intervalMs, input.evaluationTime),
+    };
     const quality = assessFrameQuality(snapshot, definition.intervalMs, input.evaluationTime);
     return { timeframe, snapshot, quality };
   }));
