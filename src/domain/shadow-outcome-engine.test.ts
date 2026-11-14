@@ -220,4 +220,19 @@ describe("simulateShadowOutcome", () => {
     expect(result.pendingExitReason).toBe("stop-loss");
   });
 
+  it("cancels a residual entry that gaps out while still managing the already-filled position", () => {
+    const result = simulateShadowOutcome(plan({
+      quantity: 1,
+      executionModel: { ...executionModel, maxParticipationRate: 0.1 },
+    }), [
+      candle(2_000, 100, 101, 99, 100, 5),
+      candle(3_000, 112, 113, 111, 112, 5),
+    ]);
+    expect(result.entryFilledQuantity).toBeCloseTo(0.5);
+    expect(result.entryOrderStatus).toBe("cancelled");
+    expect(result.invalidationReason).toBe("ENTRY_GAPPED_OUT_OF_PLAN");
+    expect(result.exitFilledQuantity).toBeCloseTo(0.5);
+    expect(result.status).toBe("completed");
+  });
+
 });
