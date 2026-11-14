@@ -1,0 +1,20 @@
+export interface WorkspacePage {
+  id: string;
+  label: string;
+  group: string;
+  description: string;
+  help: string;
+}
+
+export const WORKSPACE_PAGES: readonly WorkspacePage[] = [
+  { id: "overview", label: "Overview", group: "Workspace", description: "A concise view of market state and NEXUS readiness.", help: "Your landing page. It summarises the system and links you to the main work areas." },
+  { id: "markets", label: "Market data", group: "Workspace", description: "Live public market snapshots and data-quality checks.", help: "Market prices come from public exchange candle feeds. Cross-feed and freshness checks determine whether paper orders are unlocked." },
+  { id: "paper", label: "Paper trading", group: "Workspace", description: "A simulated account. No orders are sent to an exchange.", help: "Practice with simulated funds only. Fees and adverse slippage are applied. This is not live trading." },
+  { id: "research", label: "Strategy research", group: "Research", description: "Build repeatable experiments and evaluate strategies out of sample.", help: "Run historical experiments with walk-forward folds, execution costs, protective exits and saved reports. Results are historical simulations, not forecasts." },
+  { id: "skills", label: "Skill intelligence", group: "Research", description: "Review external trading research skills and their provenance.", help: "Candidate skills are reviewed for source, licence, tests and security. External code is not executed or automatically trusted." },
+  { id: "system", label: "Controls & safety", group: "Controls", description: "Qualification rules, execution restrictions and safeguards.", help: "Qualification can only request human review. It never enables live trading; live execution remains locked." },
+] as const;
+
+export function getWorkspacePage(id: string): WorkspacePage | undefined {
+  return WORKSPACE_PAGES.find((page) => page.id === id);
+}
