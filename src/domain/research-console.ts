@@ -3,6 +3,8 @@ import type { Candle } from "./candles";
 import { runResearchBatch, type ResearchBatchResult, type ResearchPipelineConfig } from "./research-pipeline";
 import { createBaselineResearchCandidates } from "../strategies/baseline-research-candidates";
 import { ResearchRunStore, type StoredResearchRun } from "../adapters/research-run-store";
+import { StrategyLibraryStore } from "../adapters/strategy-library-store";
+import { createResearchCandidateFromDefinition } from "./strategy-studio";
 import { compareResearchRuns } from "./research-comparison";
 import { runProtectiveExitSensitivity } from "./protective-exit-sensitivity";
 import { runExecutionStressTest } from "./execution-stress-test";
@@ -383,6 +385,7 @@ function renderNestedReport(target: HTMLElement, report: NestedWalkForwardResult
 }
 
 export function mountResearchConsole(container: HTMLElement): void {
+  const strategyLibraryStore = new StrategyLibraryStore();
   container.innerHTML = `
     <section class="panel research-console" aria-labelledby="research-title">
       <span class="panel-label">QUANTITATIVE RESEARCH</span>
@@ -894,11 +897,16 @@ export function mountResearchConsole(container: HTMLElement): void {
           throw new Error(`Insufficient history: received ${candles.length} candles for the requested training/test windows`);
         }
         status.textContent = `Evaluating ${candles.length.toLocaleString()} candles across walk-forward folds…`;
-        const candidates = createBaselineResearchCandidates({
+        const baselineCandidates = createBaselineResearchCandidates({
           sma: { fastPeriod: 10, slowPeriod: 30 },
           rsi: { period: 14, oversold: 30, overbought: 70 },
           donchian: { period: 20 },
         });
+        const savedStrategies = await strategyLibraryStore.list(100);
+        const customCandidates = savedStrategies
+          .filter((record) => record.definition.origin === "human")
+          .map((record) => createResearchCandidateFromDefinition(record.definition));
+        const candidates = [...baselineCandidates, ...customCandidates];
         const metadata = {
           symbol: settings.symbol, interval: settings.interval, provider: "Binance public spot",
         };
