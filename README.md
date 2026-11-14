@@ -14,6 +14,12 @@ NEXUS is a mobile-first, research-led trading intelligence platform. The initial
 
 ## Development
 
-See [AGENTS.md](AGENTS.md) for engineering rules, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system boundaries, [docs/PAPER_TRADING.md](docs/PAPER_TRADING.md) for simulation assumptions, and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the free Android deployment path, and [docs/LEARNING_AND_SKILLS.md](docs/LEARNING_AND_SKILLS.md) for the hybrid skill-learning and approval model, and [docs/MARKET_REGIMES.md](docs/MARKET_REGIMES.md) for causal market regime diagnostics, and [docs/STRATEGY_LIBRARY.md](docs/STRATEGY_LIBRARY.md) for baseline strategies, and [docs/FREE_AI_PROVIDERS.md](docs/FREE_AI_PROVIDERS.md) for the free AI provider registry and routing policy.
+See [AGENTS.md](AGENTS.md) for engineering rules, [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system boundaries, [docs/PAPER_TRADING.md](docs/PAPER_TRADING.md) for simulation assumptions, [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the free Android deployment path, [docs/LEARNING_AND_SKILLS.md](docs/LEARNING_AND_SKILLS.md) for skill governance, [docs/MARKET_REGIMES.md](docs/MARKET_REGIMES.md) for regime diagnostics, [docs/STRATEGY_LIBRARY.md](docs/STRATEGY_LIBRARY.md) for baseline strategies and [docs/FREE_AI_PROVIDERS.md](docs/FREE_AI_PROVIDERS.md) for the free AI provider registry.
+
+### Decision intelligence specifications
+
+- [Market Intelligence](docs/MARKET_INTELLIGENCE_SPEC.md) — causal market regime, structure, liquidity, derivatives and Elliott Wave contracts.
+- [Evidence & Decision Engine](docs/DECISION_ENGINE_SPEC.md) — evidence normalization, contradiction handling, decision states and deterministic risk gates.
+- [Decision & Learning Loop](docs/DECISION_LEARNING_LOOP_SPEC.md) — immutable journal, shadow outcomes, maturity and controlled learning.
 
 The initial frontend is a static TypeScript application. It must remain usable from a modern Android browser and must not depend on a permanently running backend.
