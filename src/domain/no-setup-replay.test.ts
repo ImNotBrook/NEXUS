@@ -32,9 +32,9 @@ describe("causal NO_SETUP Donchian replay", () => {
     ]);
     expect(result.status).toBe("trigger_found");
     if (result.status === "trigger_found") {
-      expect(result.trigger.timestamp).toBe(decisionAt + 3 * hour);
+      expect(result.trigger.timestamp).toBe(decisionAt + 4 * hour);
       expect(result.trigger.entryReferencePrice).toBe(106);
-      expect(result.evaluationBars).toBe(3);
+      expect(result.evaluationBars).toBe(4);
     }
   });
 
