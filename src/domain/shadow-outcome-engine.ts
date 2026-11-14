@@ -263,7 +263,7 @@ export function simulateShadowOutcome(
   for (const candle of candles) {
     if (candle.timestamp <= plan.decisionAt || candle.timestamp > plan.horizonEnd) continue;
     let volumeUsed = 0;
-    const hadPositionAtBarStart = outcome.positionRemainingQuantity > EPSILON;
+    let entryFilledThisBar = false;
 
     if (
       outcome.entryOrderStatus === "pending" &&
@@ -341,6 +341,7 @@ export function simulateShadowOutcome(
         outcome.entryRemainingQuantity = Math.max(0, plan.quantity - outcome.entryFilledQuantity);
         outcome.entryOrderStatus = outcome.entryRemainingQuantity <= EPSILON ? "filled" : "pending";
         outcome.positionRemainingQuantity += fill.quantity;
+        entryFilledThisBar = true;
         outcome.fillEvents.push({
           eventType: "entry",
           timestamp: candle.timestamp,
@@ -358,10 +359,18 @@ export function simulateShadowOutcome(
       outcome.entryOrderStatus = "expired";
     }
 
-    // Do not apply stops/targets on the entry candle: OHLC cannot establish the
-    // order of an intrabar entry fill and a protective trigger.
-    if (outcome.positionRemainingQuantity <= EPSILON ||
-        (!hadPositionAtBarStart && outcome.entryTimestamp === candle.timestamp)) {
+    if (outcome.positionRemainingQuantity <= EPSILON) continue;
+
+    // A limit entry may fill at any point inside the candle. If a protective
+    // level also trades in that bar, OHLC cannot establish which happened first.
+    if (entryFilledThisBar && plan.entry.orderType === "limit") {
+      if (stopReference(plan, candle) !== null || targetReference(plan, candle) !== null) {
+        if (outcome.entryOrderStatus === "pending") outcome.entryOrderStatus = "cancelled";
+        outcome.status = "ambiguous";
+        outcome.totalFees = outcome.entryFees + outcome.exitFees;
+        return outcome;
+      }
+      // Exclude this bar from MFE/MAE and exits because the limit fill time is unknown.
       continue;
     }
 
