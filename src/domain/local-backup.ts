@@ -1,5 +1,5 @@
 export const LOCAL_BACKUP_SCHEMA_VERSION = 1 as const;
-export type LocalBackupKind = "decision-journal" | "paper-account";
+export type LocalBackupKind = "decision-journal" | "paper-account" | "strategy-library";
 
 export interface LocalBackupEnvelope<T = Record<string, unknown>> {
   format: "nexus-local-backup";
@@ -56,7 +56,7 @@ export async function createLocalBackup<T>(
   payload: T,
   createdAt = Date.now(),
 ): Promise<LocalBackupEnvelope<T>> {
-  if (kind !== "decision-journal" && kind !== "paper-account") throw new TypeError("Unsupported backup type");
+  if (kind !== "decision-journal" && kind !== "paper-account" && kind !== "strategy-library") throw new TypeError("Unsupported backup type");
   if (!Number.isSafeInteger(createdAt) || createdAt < 0) throw new RangeError("Backup timestamp is invalid");
   validatePayload(payload);
   const checksum = await sha256(checksumInput(kind, createdAt, payload));
