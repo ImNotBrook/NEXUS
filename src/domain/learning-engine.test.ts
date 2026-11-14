@@ -355,4 +355,34 @@ describe("evaluateLearningCohorts", () => {
       .toEqual(["shadow-v1", "shadow-v2"]);
   });
 
+  it("calculates cohort median and win rate across mixed net outcomes", () => {
+    const winningPlan = makePlan({ decisionId: "win", candidateId: "win-candidate" });
+    const losingPlan = makePlan({ decisionId: "loss", candidateId: "loss-candidate" });
+    const flatPlan = makePlan({ decisionId: "flat", candidateId: "flat-candidate" });
+    const report = evaluateLearningCohorts([
+      makeObservation({
+        plan: winningPlan,
+        decision: makeDecision(winningPlan),
+        outcome: makeOutcome(winningPlan, "completed", { netPnl: 9.79 }),
+      }),
+      makeObservation({
+        plan: losingPlan,
+        decision: makeDecision(losingPlan),
+        outcome: makeOutcome(losingPlan, "completed", { netPnl: -5.21 }),
+      }),
+      makeObservation({
+        plan: flatPlan,
+        decision: makeDecision(flatPlan),
+        outcome: makeOutcome(flatPlan, "completed", { netPnl: 0 }),
+      }),
+    ]);
+    expect(report.cohorts).toHaveLength(1);
+    expect(report.cohorts[0].completedTrades).toBe(3);
+    expect(report.cohorts[0].meanNetR).toBeCloseTo((1.958 - 1.042 + 0) / 3);
+    expect(report.cohorts[0].medianNetR).toBe(0);
+    expect(report.cohorts[0].winRate).toBeCloseTo(1 / 3);
+    expect(report.cohorts[0].firstDecisionAt).toBe(1_000);
+    expect(report.cohorts[0].lastDecisionAt).toBe(1_000);
+  });
+
 });
