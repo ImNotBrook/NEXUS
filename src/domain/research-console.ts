@@ -8,6 +8,7 @@ import { runProtectiveExitSensitivity } from "./protective-exit-sensitivity";
 import { runExecutionStressTest } from "./execution-stress-test";
 import { rankResearchCandidates } from "./research-result-ranking";
 import { rankExecutionStressCandidates } from "./execution-stress-ranking";
+import { buildResearchLeaderboard, type ResearchLeaderboardEntry } from "./research-leaderboard";
 import { runNestedWalkForwardSelection, type NestedWalkForwardResult, type NestedWalkForwardConfig } from "./nested-walk-forward-selection";
 import { NestedResearchRunStore } from "../adapters/nested-research-run-store";
 import { prepareSealedHoldout, evaluateSealedHoldout } from "./sealed-holdout";
@@ -165,25 +166,28 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
   );
   target.append(summary);
 
-  const rankedCandidates = rankResearchCandidates(report.candidateResults.map((candidate) => ({
-    candidate,
-    robustness: buildStatisticalRobustnessReport(candidate.evaluation, report.candidateResults.length),
-    id: candidate.id,
-    name: candidate.name,
-    completedTrades: candidate.scorecard.completedTrades,
-    foldCount: candidate.evaluation.foldCount,
-    reviewStatus: buildStatisticalRobustnessReport(candidate.evaluation, report.candidateResults.length).status,
-    positiveFoldPct: candidate.scorecard.positiveFoldPct,
-    worstFoldReturnPct: buildStatisticalRobustnessReport(candidate.evaluation, report.candidateResults.length).worstFoldReturnPct,
-    expectancy: candidate.scorecard.expectancyPerTrade,
-    worstDrawdownPct: candidate.scorecard.worstFoldDrawdownPct,
-    compoundedReturnPct: candidate.evaluation.compoundedReturnPct,
-  })));
-  for (const ranked of rankedCandidates) {
+  const rankedCandidates = rankResearchCandidates(report.candidateResults.map((candidate) => {
+    const robustness = buildStatisticalRobustnessReport(candidate.evaluation, report.candidateResults.length);
+    return {
+      candidate,
+      robustness,
+      id: candidate.id,
+      name: candidate.name,
+      completedTrades: candidate.scorecard.completedTrades,
+      foldCount: candidate.evaluation.foldCount,
+      reviewStatus: robustness.status,
+      positiveFoldPct: candidate.scorecard.positiveFoldPct,
+      worstFoldReturnPct: robustness.worstFoldReturnPct,
+      expectancy: candidate.scorecard.expectancyPerTrade,
+      worstDrawdownPct: candidate.scorecard.worstFoldDrawdownPct,
+      compoundedReturnPct: candidate.evaluation.compoundedReturnPct,
+    };
+  }));
+  for (const [rankIndex, ranked] of rankedCandidates.entries()) {
     const candidate = ranked.candidate;
     const card = el("article", "research-result");
     const heading = el("div", "research-result-heading");
-    heading.append(el("h3", "", "#" + (rankedCandidates.indexOf(ranked) + 1) + " · " + candidate.name), el("span", "tag safe", candidate.id));
+    heading.append(el("h3", "", "#" + (rankIndex + 1) + " · " + candidate.name), el("span", "tag safe", candidate.id));
     card.append(heading);
     const stats = el("div", "research-summary");
     stats.append(
@@ -253,6 +257,51 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
     card.append(folds);
     target.append(card);
   }
+}
+
+function renderResearchLeaderboard(target: HTMLElement, records: readonly StoredResearchRun[]): void {
+  target.replaceChildren();
+  const leaderboard = buildResearchLeaderboard(records);
+  if (records.length === 0) {
+    target.append(el("p", "small", "No saved runs available. Complete a research experiment to populate the leaderboard."));
+    return;
+  }
+  if (leaderboard.nonComparableRunIds.length > 0) {
+    target.append(el("p", "small", "Non-comparable runs isolated due to missing provenance: " + leaderboard.nonComparableRunIds.join(", ")));
+  }
+  const renderEntries = (title: string, entries: ResearchLeaderboardEntry[]): HTMLElement => {
+    const section = el("section", "research-result");
+    section.append(el("h4", "", title));
+    if (entries.length === 0) {
+      section.append(el("p", "small", "No candidate results."));
+      return section;
+    }
+    entries.slice(0, 5).forEach((entry, index) => {
+      const row = el("div", "saved-run");
+      const details = el("div", "saved-run-info");
+      details.append(
+        el("strong", "", "#" + (index + 1) + " · " + entry.name + " · " + entry.reviewStatus.replaceAll("_", " ")),
+        el("span", "small", "OOS return " + entry.returnPct.toFixed(2) + "% · worst fold " +
+          (entry.worstFoldReturnPct === null ? "—" : entry.worstFoldReturnPct.toFixed(2) + "%") +
+          " · drawdown " + (entry.worstDrawdownPct === null ? "—" : entry.worstDrawdownPct.toFixed(2) + "%") +
+          " · expectancy " + (entry.expectancy === null ? "—" : entry.expectancy.toFixed(2) + " USDT") +
+          " · " + entry.completedTrades + " trades · " + entry.foldCount + " folds"),
+        el("span", "small", "Run " + entry.runId + " · " + new Date(entry.createdAt).toLocaleString() + " · " + entry.candidateId),
+      );
+      row.append(details);
+      section.append(row);
+    });
+    return section;
+  };
+  for (const group of leaderboard.groups) {
+    const panel = el("article", "research-result");
+    panel.append(el("h3", "", group.label));
+    panel.append(el("p", "small", group.comparisonNote + " Runs in group: " + group.runIds.length));
+    panel.append(renderEntries("Best historical return · descriptive only", group.bestHistorical));
+    panel.append(renderEntries("Most robust · sample and fold consistency first", group.mostRobust));
+    target.append(panel);
+  }
+  target.append(el("p", "small", "Leaderboard entries are historical research observations, not forecasts, strategy promotions or permission to trade. Exact compatibility is required; missing provenance is never inferred."));
 }
 
 function renderNestedReport(target: HTMLElement, report: NestedWalkForwardResult): void {
@@ -355,7 +404,7 @@ export function mountResearchConsole(container: HTMLElement): void {
       </section>
       <p id="research-status" class="paper-status" role="status">Ready · public Binance spot data · no API key required</p>
       <div id="research-results" aria-live="polite"></div>
-      <section class="saved-research"><h3>Saved experiment history</h3><p class="small">Stored only on this device. Clearing browser site data can erase these records.</p><div id="research-history" aria-live="polite">Loading saved experiments…</div><button id="compare-research" type="button" disabled>Compare selected experiments</button><div id="research-comparison" aria-live="polite"></div></section>
+      <section class="saved-research"><h3>Global research leaderboard</h3><p class="small">Best historical return and most robust result are shown separately. Only exact matching datasets, provenance and research/execution settings share a comparison group.</p><div id="research-leaderboard" aria-live="polite">Loading leaderboard…</div></section><section class="saved-research"><h3>Saved experiment history</h3><p class="small">Stored only on this device. Clearing browser site data can erase these records.</p><div id="research-history" aria-live="polite">Loading saved experiments…</div><button id="compare-research" type="button" disabled>Compare selected experiments</button><div id="research-comparison" aria-live="polite"></div></section>
       <p class="small">Baseline parameters and regime thresholds are fixed research defaults, not optimized recommendations. Results are historical simulations, not evidence of future profitability.</p>
     </section>
   `;
@@ -365,6 +414,7 @@ export function mountResearchConsole(container: HTMLElement): void {
   const status = container.querySelector<HTMLElement>("#research-status");
   const results = container.querySelector<HTMLElement>("#research-results");
   const history = container.querySelector<HTMLElement>("#research-history");
+  const leaderboardTarget = container.querySelector<HTMLElement>("#research-leaderboard");
   const compareButton = container.querySelector<HTMLButtonElement>("#compare-research");
   const comparisonTarget = container.querySelector<HTMLElement>("#research-comparison");
   const sensitivityButton = container.querySelector<HTMLButtonElement>("#run-sensitivity");
@@ -380,7 +430,7 @@ export function mountResearchConsole(container: HTMLElement): void {
   const holdoutButton = container.querySelector<HTMLButtonElement>("#run-sealed-holdout");
   const holdoutResults = container.querySelector<HTMLElement>("#sealed-holdout-results");
   const holdoutHistory = container.querySelector<HTMLElement>("#sealed-holdout-history");
-  if (!form || !button || !status || !results || !history || !compareButton || !comparisonTarget ||
+  if (!form || !button || !status || !results || !history || !leaderboardTarget || !compareButton || !comparisonTarget ||
       !sensitivityButton || !sensitivityStops || !sensitivityTargets || !sensitivityResults ||
       !executionStressButton || !executionStressResults ||
       !nestedButton || !nestedMinTrades || !nestedResults || !nestedHistory ||
@@ -478,6 +528,7 @@ export function mountResearchConsole(container: HTMLElement): void {
     try {
       const records = await runStore.list(50);
       cachedRuns = records;
+      renderResearchLeaderboard(leaderboardTarget, records);
       history.replaceChildren();
       if (records.length === 0) {
         selectedRunIds.clear();
