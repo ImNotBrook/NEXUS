@@ -134,7 +134,10 @@ describe("simulateShadowOutcome", () => {
     }), [candle(2_000, 100, 101, 99.95, 100), candle(4_000, 100, 101, 99, 100)]);
     expect(expired.status).toBe("expired");
 
-    const open = simulateShadowOutcome(plan({ horizonEnd: 3_000 }), [
+    const open = simulateShadowOutcome(plan({
+      horizonEnd: 3_000,
+      entry: { ...plan().entry, expiresAt: 3_000 },
+    }), [
       candle(2_000, 100, 101, 99, 100),
       candle(3_000, 100, 105, 98, 102),
       candle(4_000, 100, 112, 94, 101),
