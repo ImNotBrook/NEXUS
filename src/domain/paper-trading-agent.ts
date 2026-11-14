@@ -170,6 +170,11 @@ function fillPendingOrder(
     requested = Math.min(requested, state.position?.quantity ?? 0);
   }
 
+  if (requested <= 1e-12) {
+    state.pendingOrder = null;
+    return;
+  }
+
   const fill = resolveMarketFill({
     side: pending.side,
     requestedQuantity: requested,
