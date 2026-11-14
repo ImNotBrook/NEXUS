@@ -1,4 +1,8 @@
-import { assessCandidateGates, type CandidateGatePolicy } from "./decision-gates";
+import {
+  assessCandidateGates,
+  type CandidateGateAssessment,
+  type CandidateGatePolicy,
+} from "./decision-gates";
 import type { DecisionJournalVersions } from "./decision-journal";
 import {
   evaluateAndJournalDecision,
@@ -41,6 +45,7 @@ export interface DecisionWorkbenchAssessment extends JournalledDecisionResult {
 export interface DecisionWorkbenchResult {
   generation: ReturnType<typeof generateDonchianStrategyCandidate>;
   assessment: DecisionWorkbenchAssessment;
+  gateAssessment: CandidateGateAssessment | null;
 }
 
 function marketDataStatus(
@@ -107,7 +112,7 @@ export async function runDecisionWorkbench(
       decisionId: input.decisionId,
       randomUUID: input.randomUUID,
     });
-    return { generation, assessment };
+    return { generation, assessment, gateAssessment: gates };
   }
 
   const disposition: "WAIT" | "REJECT" | "NO_SETUP" =
@@ -161,5 +166,6 @@ export async function runDecisionWorkbench(
   return {
     generation,
     assessment: { ...journalled, marketDataStatus: dataStatus },
+    gateAssessment: null,
   };
 }
