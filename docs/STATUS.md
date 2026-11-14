@@ -24,7 +24,13 @@ Updated: 2026-11-14
 - Domain and adapter tests cover the decision/shadow/NO_SETUP workflows plus backup envelope integrity, full journal export, additive restore, duplicate/conflict handling and paper-account restore protection. Remaining verification: exercise the deployed backup and restore workflow on the Galaxy A55; the physical device workflow has not been independently operated by the development agent.
 
 
-## Completed
+## Current verified Stage 7 release state (2026-11-14)\n\n- Stage 7 Statistical Robustness is implemented in Strategy Research. Each walk-forward candidate report now shows a 95% Wilson win-rate interval, deterministic 1,000-resample circular moving-block bootstrap expectancy interval (when at least 30 trades exist), positive-fold consistency, median/worst fold returns, worst fold drawdown, unresolved exposure and multiple-candidate selection-bias warnings. Review states are INSUFFICIENT_SAMPLE, FRAGILE and REVIEW_FOR_PAPER; none promotes a strategy.
+- Stage 7 interpretation limits are documented: bootstrap bounds are not a significance test, serial dependence and non-stationarity remain, multiple-testing bias is not corrected, and a REVIEW_FOR_PAPER result is not evidence of future profitability. Existing 90-day/1,000-trade qualification and paper-only safety boundaries are unchanged.
+- Stage 7 CI passed at commit `e0ab83166564323d122014ae8d40ebb2d60f9a5e`: 76 test files, 497 tests passed, dependency audit, scheduled-runner type checks, derivatives collector checks, TypeScript production build and Vite build all passed.
+- Stage 7 deployment succeeded at commit `e0ab83166564323d122014ae8d40ebb2d60f9a5e`: https://imnotbrook.github.io/NEXUS/
+- CI run: https://github.com/ImNotBrook/NEXUS/actions/runs/43573881252
+- Deployment run: https://github.com/ImNotBrook/NEXUS/actions/runs/43573881248
+\n## Completed
 - Empty NEXUS repository inspected and confirmed.
 - Product constraints, safety boundaries and architecture baseline documented.
 - TypeScript/Vite project skeleton added.
