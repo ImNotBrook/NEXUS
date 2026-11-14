@@ -243,10 +243,10 @@ export function mountDecisionJournalConsole(root: HTMLElement): void {
     paperPreview.textContent = "Checking paper account backup…";
     try {
       const envelope = await parseLocalBackup(await file.text(), "paper-account");
-      const account = normalizePaperAccountSnapshot(envelope.payload.account);
+      const normalizedAccount = normalizePaperAccountSnapshot(envelope.payload.account);
       pendingPaper = {
         ...envelope,
-        payload: { ...envelope.payload, account },
+        payload: { ...envelope.payload, account: normalizedAccount },
       } as unknown as LocalBackupEnvelope<PaperBackupPayload>;
       const current = await paperStore.load();
       if (current && !isPristinePaperAccount(current)) {
