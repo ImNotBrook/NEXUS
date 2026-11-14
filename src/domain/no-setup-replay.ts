@@ -55,8 +55,7 @@ export function buildNoSetupReplaySpec(input: {
 }): NoSetupReplaySpec | null {
   if (input.status !== "NO_SETUP" || !input.reasonCodes.includes("DONCHIAN_TRIGGER_ABSENT")) return null;
   if (input.symbol !== "BTCUSDT" || input.timeframe !== "1h") return null;
-  if (!Number.isSafeInteger(input.decisionAt) || input.decisionAt < 0 ||
-      input.decisionAt % NO_SETUP_REPLAY_INTERVAL_MS !== 0) return null;
+  if (!Number.isSafeInteger(input.decisionAt) || input.decisionAt < 0) return null;
   const candles = validateCandles(input.candles);
   const strategy = input.strategy;
   if (!Number.isSafeInteger(strategy.lookback) || strategy.lookback < 2 ||
@@ -108,20 +107,22 @@ export function findFirstCausalDonchianTrigger(
     throw new TypeError("Frozen replay scope or initial channel window is invalid");
   }
   const initial = validateCandles(spec.initialWindow);
-  if (initial.some((candle) => candle.timestamp + NO_SETUP_REPLAY_INTERVAL_MS > spec.decisionAt)) {
+  if (initial.some((candle) => candle.timestamp % NO_SETUP_REPLAY_INTERVAL_MS !== 0 ||
+      candle.timestamp + NO_SETUP_REPLAY_INTERVAL_MS > spec.decisionAt)) {
     throw new RangeError("Frozen initial channel contains data unavailable at decision time");
   }
   const future = validateCandles(inputCandles);
+  if (future.some((candle) => candle.timestamp > spec.decisionAt &&
+      candle.timestamp % NO_SETUP_REPLAY_INTERVAL_MS !== 0)) {
+    throw new RangeError("Replay candles must be aligned to hourly UTC boundaries");
+  }
   const closed = future.filter((candle) =>
     candle.timestamp > spec.decisionAt &&
     candle.timestamp + NO_SETUP_REPLAY_INTERVAL_MS <= asOf
   );
-  if (closed.length !== future.filter((candle) => candle.timestamp > spec.decisionAt).length) {
-    // Future/incomplete candles are not silently included; they are simply beyond the as-of boundary.
-  }
   let window = initial.map((candle) => ({ ...candle }));
   let evaluated = 0;
-  let expectedTimestamp = spec.decisionAt + NO_SETUP_REPLAY_INTERVAL_MS;
+  let expectedTimestamp = (Math.floor(spec.decisionAt / NO_SETUP_REPLAY_INTERVAL_MS) + 1) * NO_SETUP_REPLAY_INTERVAL_MS;
   for (const candle of closed) {
     if (candle.timestamp !== expectedTimestamp) {
       throw new RangeError("Replay history must be continuous hourly candles after the decision");
