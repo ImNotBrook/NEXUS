@@ -471,8 +471,7 @@ export function simulateShadowOutcome(
     }
   }
 
-  if (outcome.entryOrderStatus === "pending" &&
-      candles.some((candle) => candle.timestamp >= plan.entry.expiresAt && candle.timestamp <= plan.horizonEnd)) {
+  if (outcome.entryOrderStatus === "pending" && outcome.horizonReached) {
     outcome.entryOrderStatus = "expired";
   }
   if (outcome.entryFilledQuantity <= EPSILON) {
