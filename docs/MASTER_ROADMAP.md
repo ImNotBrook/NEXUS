@@ -67,14 +67,32 @@ The ordinary and execution-stress family leaderboards are connected to persisted
 - Add a mobile-first Strategy Studio page. Saved human-authored definitions become eligible for historical walk-forward research; AI-origin proposals are excluded until human review.
 - No automatic selection, approval, paper execution, qualification changes or live routing.
 
+### Current increment — parameter-trial workflow
+- Strategy Research now lets the user select a saved human-authored definition and enter a JSON parameter grid. Family-specific examples are prefilled when the selection changes.
+- The UI previews the deterministic Cartesian trial count and full candidate identities before running research; the 25-trial cap and strict family validation remain authoritative.
+- The selected base candidate is excluded from that batch and replaced by the exact generated trial candidates. Baseline and other saved human strategies remain in the batch.
+- Both legacy and execution-aware research reports persist the exact trial manifest in `ResearchRunStore`; saved history displays the base strategy and trial count after reload.
+- The manifest records generator version, base strategy ID/version, parameter grid, trial count, all trial IDs and the selection-bias warning.
+
 ### Acceptance criteria
 - Unit tests cover schema/version/parameter validation, immutability, stable candidate identity, deterministic grid order, trial caps and invalid combinations.
 - Adapter tests cover append-only persistence, reload, duplicate-version rejection and migration from existing IndexedDB state.
 - Integration test proves a saved strategy can be reloaded, converted to a candidate and evaluated by the existing walk-forward research pipeline.
 - Mobile UI supports template selection, parameter entry, immutable save and library reload.
-- Trial count and selection-bias manifest are retained with any future parameter-search experiment; no unrecorded tuning.
+- Trial count and selection-bias manifest are retained with parameter-search research reports; no unrecorded tuning.
 - Existing strategy, research, holdout, stress, decision and paper workflows remain unchanged.
 - CI, dependency audit, TypeScript and production build pass before deployment.
+
+
+## Stage 10 — Strategy parameter trials (implementation increment)
+
+- Added a mobile Strategy Research parameter-trial panel. It loads saved human-authored strategies, prefills family-specific parameter-grid examples, parses user JSON and previews deterministic trial IDs/count before execution.
+- The selected base strategy is replaced by its generated variants for that run; other baseline and saved human strategies remain. Maximum 25 variants; family parameter validation rejects invalid combinations.
+- Both legacy and execution-aware reports persist the exact trial manifest alongside the report. Saved experiment history shows trial count and base strategy identity after reload. Existing legacy records remain readable without metadata.
+- Adapter tests verify exact manifest round-trip and reject inconsistent trial counts/IDs. The complete CI suite passed 83 test files / 533 tests, dependency audit (0 vulnerabilities), scheduled-runner checks, derivatives checks and production build on commit `4a055dff5713534ee50f75adb15941b19b60f082` (CI [43581981951](https://github.com/ImNotBrook/NEXUS/actions/runs/43581981951)).
+- A follow-up UI correction prefills the correct parameter names for SMA, RSI or Donchian when the selected family changes; this is in commit `d5312c9ef6e78c2d143bac900ebe5910205a0bca` and its CI/deployment verification is pending.
+- Limitations: strategy definitions and research reports remain device-local; neither strategy-library records nor research-run manifests are currently included in the local backup envelope. Parameter trials are exploratory; selecting the best on the same OOS data is biased. No promotion, paper approval or live trading is introduced.
+
 ## Remaining platform work — definition of done
 
 ### Strategy creation
