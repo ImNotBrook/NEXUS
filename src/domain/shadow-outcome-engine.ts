@@ -30,7 +30,7 @@ export interface ShadowTradePlan {
   executionModel: MarketExecutionConfig;
 }
 
-export type ShadowOutcomeStatus = "pending" | "expired" | "open" | "completed" | "ambiguous";
+export type ShadowOutcomeStatus = "pending" | "expired" | "open" | "completed" | "ambiguous" | "invalidated";
 export type ShadowExitReason = "stop-loss" | "take-profit";
 
 export interface ShadowFillEvent {
@@ -51,6 +51,8 @@ export interface ShadowOutcome {
   decisionId: string;
   candidateId: string;
   status: ShadowOutcomeStatus;
+  invalidationReason: "ENTRY_GAPPED_OUT_OF_PLAN" | null;
+  pendingExitReason: ShadowExitReason | null;
   entryOrderStatus: "pending" | "filled" | "expired" | "cancelled";
   entryTimestamp: number | null;
   entryFilledQuantity: number;
@@ -221,6 +223,8 @@ export function simulateShadowOutcome(
     decisionId: plan.decisionId,
     candidateId: plan.candidateId,
     status: "pending",
+    invalidationReason: null,
+    pendingExitReason: null,
     entryOrderStatus: "pending",
     entryTimestamp: null,
     entryFilledQuantity: 0,
@@ -258,6 +262,15 @@ export function simulateShadowOutcome(
       const availableVolume = Math.max(0, candle.volume - volumeUsed);
       let fill: { quantity: number; price: number; fee: number } | null = null;
       if (plan.entry.orderType === "market") {
+        const marketEntryValid = plan.side === "long"
+          ? candle.open > plan.stopPrice && candle.open < plan.targetPrice
+          : candle.open < plan.stopPrice && candle.open > plan.targetPrice;
+        if (!marketEntryValid) {
+          outcome.entryOrderStatus = "cancelled";
+          outcome.status = "invalidated";
+          outcome.invalidationReason = "ENTRY_GAPPED_OUT_OF_PLAN";
+          break;
+        }
         const execution = resolveMarketFill({
           side: plan.side === "long" ? "buy" : "sell",
           requestedQuantity: outcome.entryRemainingQuantity,
@@ -273,6 +286,17 @@ export function simulateShadowOutcome(
         }
       } else {
         fill = limitEntryFill(plan, candle, outcome.entryRemainingQuantity, availableVolume);
+        if (fill) {
+          const fillWithinPlan = plan.side === "long"
+            ? fill.price > plan.stopPrice && fill.price < plan.targetPrice
+            : fill.price < plan.stopPrice && fill.price > plan.targetPrice;
+          if (!fillWithinPlan) {
+            outcome.entryOrderStatus = "cancelled";
+            outcome.status = "invalidated";
+            outcome.invalidationReason = "ENTRY_GAPPED_OUT_OF_PLAN";
+            break;
+          }
+        }
       }
 
       if (fill) {
@@ -348,6 +372,7 @@ export function simulateShadowOutcome(
     }
 
     if (!pendingExitReason) continue;
+    outcome.pendingExitReason = pendingExitReason;
     if (outcome.entryOrderStatus === "pending") outcome.entryOrderStatus = "cancelled";
 
     const requested = outcome.positionRemainingQuantity;
@@ -400,6 +425,7 @@ export function simulateShadowOutcome(
     if (outcome.positionRemainingQuantity <= EPSILON) {
       outcome.positionRemainingQuantity = 0;
       outcome.status = "completed";
+      outcome.pendingExitReason = null;
       break;
     }
   }
@@ -409,7 +435,9 @@ export function simulateShadowOutcome(
     outcome.entryOrderStatus = "expired";
   }
   if (outcome.entryFilledQuantity <= EPSILON) {
-    outcome.status = outcome.entryOrderStatus === "expired" ? "expired" : "pending";
+    if (outcome.status !== "invalidated") {
+      outcome.status = outcome.entryOrderStatus === "expired" ? "expired" : "pending";
+    }
   } else if (outcome.status !== "ambiguous" && outcome.status !== "completed") {
     outcome.status = "open";
   }
