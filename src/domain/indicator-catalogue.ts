@@ -245,7 +245,7 @@ export const INDICATOR_CATALOGUE: readonly IndicatorDefinition[] = [
     limitations: ["Broad market rather than asset-specific", "Methodology and component availability can change"],
     redundancyGroup: "sentiment", defaultParameters: {},
   },
-] as const;
+];
 
 export function getIndicatorById(id: string): IndicatorDefinition | undefined {
   return INDICATOR_CATALOGUE.find((indicator) => indicator.id === id);
@@ -262,10 +262,14 @@ export function getImplementedIndicators(): IndicatorDefinition[] {
 export function recommendIndicators(
   context: IndicatorRecommendationContext,
 ): IndicatorRecommendation[] {
-  const recommendations: IndicatorRecommendation[] = [];
+  const recommendations = new Map<string, IndicatorRecommendation>();
   const add = (id: string, relevance: IndicatorRecommendation["relevance"], rationale: string): void => {
     const indicator = getIndicatorById(id);
-    if (indicator?.implementation === "implemented") recommendations.push({ indicator, relevance, rationale });
+    if (indicator?.implementation !== "implemented") return;
+    const existing = recommendations.get(id);
+    if (!existing || (existing.relevance === "supporting" && relevance === "primary")) {
+      recommendations.set(id, { indicator, relevance, rationale });
+    }
   };
 
   if (context.trend === "uptrend" || context.trend === "downtrend") {
@@ -289,10 +293,5 @@ export function recommendIndicators(
     add("atr", "supporting", "Track whether realized range remains compressed or begins expanding.");
   }
 
-  const seen = new Set<string>();
-  return recommendations.filter((item) => {
-    if (seen.has(item.indicator.id)) return false;
-    seen.add(item.indicator.id);
-    return true;
-  });
+  return [...recommendations.values()];
 }
