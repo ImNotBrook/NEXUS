@@ -168,7 +168,7 @@ function buildRequestBody(context: AiMarketContext, model: string): string {
     messages: [
       {
         role: "system",
-        content: NEXUS_AI_GOVERNANCE_POLICY + "\\nTASK-SPECIFIC CONTRACT: You are a quantitative research hypothesis generator. Return only a JSON object with a candidates array containing 1 to 4 objects. Each object must have family (sma-crossover, rsi-mean-reversion, or donchian-breakout), parameters, and a falsifiable rationale of at least 12 characters. SMA parameters: integer fastPeriod 2..30 and slowPeriod 5..100 with fastPeriod < slowPeriod. RSI parameters: integer period 5..50, oversold 10..40, overbought 60..90 and oversold < overbought. Donchian parameters: integer period 5..100. Do not return code, formulas, tools, orders, credentials, execution instructions or claims of profitability. Historical results are unknown; do not pretend you have backtested them.",
+        content: NEXUS_AI_GOVERNANCE_POLICY + "\nTASK-SPECIFIC CONTRACT: You are a quantitative research hypothesis generator. Return only a JSON object with a candidates array containing 1 to 4 objects. Each object must have family (sma-crossover, rsi-mean-reversion, or donchian-breakout), parameters, and a falsifiable rationale of at least 12 characters. SMA parameters: integer fastPeriod 2..30 and slowPeriod 5..100 with fastPeriod < slowPeriod. RSI parameters: integer period 5..50, oversold 10..40, overbought 60..90 and oversold < overbought. Donchian parameters: integer period 5..100. Do not return code, formulas, tools, orders, credentials, execution instructions or claims of profitability. Historical results are unknown; do not pretend you have backtested them.",
       },
       { role: "user", content: JSON.stringify(context) },
     ],
