@@ -90,6 +90,10 @@ function renderResult(result: DecisionWorkbenchResult): HTMLElement {
       : result.shadowPlan.status === "not_simulatable"
         ? result.shadowPlan.reasonCode + " · " + result.shadowPlan.explanation
         : "not registered")));
+  panel.append(node("p", "small", "NO_SETUP replay: " +
+    (result.noSetupReplayRegistered
+      ? "frozen Donchian-only diagnostic registered at decision time"
+      : "not eligible for the current diagnostic scope")));
   panel.append(node("p", "small", "Journal record: " + assessment.record.decisionId));
   panel.append(node("p", "small", "* Diagnostic score and net reward/risk are not probabilities or guarantees."));
   return panel;
