@@ -223,9 +223,20 @@ export async function evaluateShadowOutcomes(
       const rightThrough = Number(right.payload.observedThrough ?? -1);
       return rightThrough - leftThrough || right.occurredAt - left.occurredAt || right.eventId.localeCompare(left.eventId);
     })[0];
-    if (latest && object(latest.payload) && object(latest.payload.outcome)) {
+    if (latest && object(latest.payload) &&
+        object(latest.payload.outcome) && object(latest.payload.plan)) {
       const outcome = latest.payload.outcome as unknown as ShadowOutcome;
       const plan = latest.payload.plan as unknown as ShadowTradePlan;
+      try {
+        validateShadowTradePlan(plan);
+      } catch {
+        failures.push({ decisionId: decision.decisionId, reason: "Invalid plan in stored outcome event" });
+        continue;
+      }
+      if (!["pending", "expired", "open", "completed", "ambiguous", "invalidated"].includes(outcome.status)) {
+        failures.push({ decisionId: decision.decisionId, reason: "Invalid outcome status in stored event" });
+        continue;
+      }
       latestOutcomes.push({
         decisionId: decision.decisionId,
         symbol: decision.symbol,
