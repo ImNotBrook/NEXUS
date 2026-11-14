@@ -328,8 +328,10 @@ describe("buildMarketIntelligenceSnapshot", () => {
       input(undefined, { volumeUnit: "quote" }),
       testHasher,
     );
+    const base = await buildMarketIntelligenceSnapshot(input(), testHasher);
     expect(snapshot.instrumentCategory).toBe("spot");
     expect(snapshot.volumeUnit).toBe("quote");
+    expect(snapshot.contentHash).not.toBe(base.contentHash);
   });
 
   it("rejects unsupported instrument and volume-unit metadata", async () => {
