@@ -132,6 +132,44 @@ export function createPaperTradingAgentState(
   };
 }
 
+function validateState(state: PaperTradingAgentState): void {
+  const finiteNonNegative = (value: number): boolean => Number.isFinite(value) && value >= 0;
+  if (!Number.isSafeInteger(state.lastProcessedTimestamp) || state.lastProcessedTimestamp < 0 ||
+      !Number.isFinite(state.initialCapital) || state.initialCapital <= 0 ||
+      !finiteNonNegative(state.cash) || !Number.isFinite(state.dailyStartEquity) || state.dailyStartEquity <= 0 ||
+      !finiteNonNegative(state.lastEquity) || !finiteNonNegative(state.peakEquity) ||
+      !finiteNonNegative(state.maxDrawdownPct) || !finiteNonNegative(state.realizedPnl) &&
+        !Number.isFinite(state.realizedPnl) ||
+      !finiteNonNegative(state.totalFees) ||
+      !Number.isSafeInteger(state.completedTrades) || state.completedTrades < 0 ||
+      !Number.isSafeInteger(state.totalFillEvents) || state.totalFillEvents < 0 ||
+      !Number.isSafeInteger(state.totalPartialFillEvents) || state.totalPartialFillEvents < 0 ||
+      !Number.isSafeInteger(state.processedCandles) || state.processedCandles < 0 ||
+      state.tradingDay !== utcDay(state.lastProcessedTimestamp) ||
+      !Array.isArray(state.fills) || !Array.isArray(state.trades) || !Array.isArray(state.equityCurve)) {
+    throw new TypeError("Persisted paper trading state failed validation");
+  }
+  if (state.position && (
+    !finiteNonNegative(state.position.quantity) || state.position.quantity <= 0 ||
+    !Number.isFinite(state.position.entryPrice) || state.position.entryPrice <= 0 ||
+    !finiteNonNegative(state.position.entryCost) ||
+    !finiteNonNegative(state.position.originalEntryCost) ||
+    !finiteNonNegative(state.position.originalQuantity) ||
+    !finiteNonNegative(state.position.exitNotional) ||
+    !finiteNonNegative(state.position.exitFee) ||
+    !finiteNonNegative(state.position.exitQuantity)
+  )) throw new TypeError("Persisted paper position failed validation");
+  if (state.pendingOrder && (
+    (state.pendingOrder.side !== "buy" && state.pendingOrder.side !== "sell") ||
+    !finiteNonNegative(state.pendingOrder.remainingQuantity) || state.pendingOrder.remainingQuantity <= 0 ||
+    !Number.isSafeInteger(state.pendingOrder.submittedAt) ||
+    !["signal", "stop-loss", "take-profit"].includes(state.pendingOrder.reason)
+  )) throw new TypeError("Persisted paper order failed validation");
+  if (state.fills.length > 500 || state.trades.length > 500 || state.equityCurve.length > 500) {
+    throw new RangeError("Persisted paper ledger exceeds its bounded history limit");
+  }
+}
+
 function equityAt(price: number, state: PaperTradingAgentState): number {
   return state.cash + (state.position ? state.position.quantity * price : 0);
 }
@@ -291,6 +329,7 @@ export function runPaperTradingAgentCycle(
       typeof previousState.strategyId !== "string" || !previousState.strategyId.trim()) {
     throw new TypeError("A supported paper trading state is required");
   }
+  validateState(previousState);
   if (typeof evaluate !== "function") throw new TypeError("A strategy evaluator is required");
   const candles = validateCandles(inputCandles);
   if (candles.some((candle) => candle.open <= 0 || candle.high <= 0 || candle.low <= 0 || candle.close <= 0)) {
