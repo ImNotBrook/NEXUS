@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ResearchRunStore } from "./research-run-store";
 import type { ResearchBatchResult } from "../domain/research-pipeline";
+import { buildResearchLeaderboard } from "../domain/research-leaderboard";
 
 function memoryIndexedDb(): IDBFactory {
   const stores = new Map<string, Map<string, unknown>>();
@@ -68,6 +69,55 @@ describe("ResearchRunStore", () => {
     const records = await store.list();
     expect(records.map((record) => record.id)).toEqual([second.id, first.id]);
     expect(records[0].report.dataset.fingerprint).toBe("fnv1a32:87654321");
+  });
+
+
+  it("feeds persisted research records into the compatibility-safe leaderboard after reload", async () => {
+    const store = new ResearchRunStore(memoryIndexedDb());
+    const trades = Array.from({ length: 30 }, (_, index) => ({
+      entryTimestamp: index * 2, exitTimestamp: index * 2 + 1,
+      entryPrice: 100, exitPrice: 101, quantity: 1,
+      entryFee: 0, exitFee: 0, pnl: 1, pnlPct: 1, exitReason: "signal" as const,
+    }));
+    const evaluation = {
+      folds: Array.from({ length: 5 }, (_, index) => ({
+        index, trainStartTimestamp: 0, trainEndTimestamp: 1,
+        testStartTimestamp: index * 2 + 2, testEndTimestamp: index * 2 + 3,
+        result: {
+          startingCapital: 1000, endingEquity: 1001, cash: 1000,
+          totalReturnPct: 1, maxDrawdownPct: 2, completedTrades: 6,
+          winRatePct: 100, totalFees: 0, trades: trades.slice(index * 6, index * 6 + 6),
+          equityCurve: [], openPosition: null,
+        },
+      })),
+      foldCount: 5, totalCompletedTrades: 30, totalFees: 0,
+      meanFoldReturnPct: 1, compoundedReturnPct: 5,
+      worstFoldDrawdownPct: 2, aggregateWinRatePct: 100,
+      totalFillEvents: 30, totalPartialFillEvents: 0,
+      foldsWithOpenPositions: 0, foldsWithPendingOrders: 0, totalPendingQuantity: 0,
+    };
+    const persistedReport = {
+      ...report,
+      dataset: { ...report.dataset, metadata: { symbol: "BTCUSDT", interval: "1h", provider: "binance" } },
+      candidateResults: [{
+        id: "baseline-v1", name: "Baseline",
+        evaluation,
+        scorecard: {
+          completedTrades: 30, positiveFoldPct: 100, worstFoldDrawdownPct: 2,
+          expectancyPerTrade: 1, winRatePct: 100, profitFactor: 2, totalFees: 0,
+        },
+        regimeScorecard: { groups: [], classifiedTrades: 0, unclassifiedTrades: 30 },
+      }],
+    } as unknown as ResearchBatchResult;
+    await store.save(persistedReport, 1000);
+    const reloaded = await store.list();
+    const leaderboard = buildResearchLeaderboard(reloaded);
+    expect(leaderboard.groups).toHaveLength(1);
+    expect(leaderboard.groups[0].bestHistorical[0]).toMatchObject({
+      runId: reloaded[0].id,
+      candidateId: "baseline-v1",
+      reviewStatus: "REVIEW_FOR_PAPER",
+    });
   });
 
   it("rejects malformed reports and invalid timestamps", async () => {
