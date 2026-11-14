@@ -20,6 +20,7 @@ describe("workspace navigation", () => {
       ["overview", "Workspace"],
       ["markets", "Workspace"],
       ["paper", "Workspace"],
+      ["decisions", "Research"],
       ["research", "Research"],
       ["skills", "Research"],
       ["automation", "Automation"],
