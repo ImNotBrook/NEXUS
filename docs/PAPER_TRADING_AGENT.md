@@ -19,6 +19,7 @@ Do not enable a strategy merely because it had the highest return in one researc
 - Fills signal-generated orders at the next candle open using fees, adverse slippage, spread, candle-volume participation and market-impact assumptions.
 - Supports partial fills and persistent pending market orders.
 - Long-only, no leverage, bounded allocation and daily loss lockout.
+- Optional protective stop-loss and take-profit exits use the same adverse stop / limit-target semantics as the execution-aware backtester. Stop remainders continue as market orders; target remainders remain limit orders.
 - Persists a versioned checkpoint on the separate `nexus-paper-ledger` branch and uploads a 30-day report artifact.
 
 ## Limitations and safety
