@@ -91,7 +91,15 @@ The ordinary and execution-stress family leaderboards are connected to persisted
 - Both legacy and execution-aware reports persist the exact trial manifest alongside the report. Saved experiment history shows trial count and base strategy identity after reload. Existing legacy records remain readable without metadata.
 - Adapter tests verify exact manifest round-trip and reject inconsistent trial counts/IDs. The complete CI suite passed 83 test files / 532 tests, dependency audit (0 vulnerabilities), scheduled-runner checks, derivatives checks and production build on commit `4a055dff5713534ee50f75adb15941b19b60f082` (CI [43581981951](https://github.com/ImNotBrook/NEXUS/actions/runs/43581981951)).
 - A follow-up UI correction prefills the correct parameter names for SMA, RSI or Donchian when the selected family changes; this is in commit `d5312c9ef6e78c2d143bac900ebe5910205a0bca` and CI [43582070135](https://github.com/ImNotBrook/NEXUS/actions/runs/43582070135) has now passed all 83 test files / 532 tests, scheduled-runner checks, derivatives checks, dependency audit and production build. Deployment was superseded by documentation commits and will be verified on the final documentation commit.
-- Limitations: strategy definitions and research reports remain device-local; neither strategy-library records nor research-run manifests are currently included in the local backup envelope. Parameter trials are exploratory; selecting the best on the same OOS data is biased. No promotion, paper approval or live trading is introduced.
+- Strategy-library backup is now available as a third independent JSON backup type. Strategy versions restore additively with conflict detection; research-run reports and their trial manifests are still not included in the local backup envelope. Parameter trials are exploratory; selecting the best on the same OOS data is biased. No promotion, paper approval or live trading is introduced.
+
+## Stage 10 — Strategy library backup and restore (implementation increment)
+
+- Added a third versioned local backup kind for the complete immutable strategy library. The Strategy Studio can export every saved version and restore from a downloaded JSON file.
+- Restore validates each definition and its ID/version/timestamp identity, rejects duplicate entries in a backup, skips identical local versions, and blocks any same-ID/version content conflict. Missing records are inserted additively in one IndexedDB transaction; existing strategy versions are never overwritten.
+- Added adapter tests for full export, restore into an empty store, idempotent repeat restore, conflict refusal and malformed/duplicate records; backup-envelope tests cover the new backup type.
+- CI passed 83 test files / 536 tests, dependency audit (0 vulnerabilities), scheduled-runner checks, derivatives checks and production build on commit `6f586c6719d2969eb506c8f351f3058f1772fcb5` (CI [43582449928](https://github.com/ImNotBrook/NEXUS/actions/runs/43582449928)).
+- Remaining: research-run reports and trial manifests are not yet backed up; nested research, sealed holdouts and other local ledgers also remain outside the current backup formats. This increment does not claim a full-device backup.
 
 ## Remaining platform work — definition of done
 
