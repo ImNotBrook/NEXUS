@@ -474,3 +474,14 @@ Updated: 2026-11-14
 - Stages 1–8 are recorded as delivered workstreams; existing AI, market intelligence and scheduled paper-agent foundations are marked PARTIAL where the complete end-to-end capability remains unfinished.
 - Stage 9 Global Research Leaderboard is the next active stage. Its acceptance criteria require compatibility-aware comparisons, no guessed metadata, deterministic ordering, local persistence and regression coverage.
 - Permanent constraints remain $0 cost, Android-first, human-governed AI and paper-only execution. Live trading is not in scope.
+
+
+## Stage 9 — Global Research Leaderboard (initial implementation)
+
+- Added `src/domain/research-leaderboard.ts` and focused tests. Runs are grouped only when full dataset identity, symbol, interval, provider and complete research/execution configuration match exactly.
+- Missing/invalid market provenance is isolated into a single-run non-comparable group; the leaderboard never guesses missing metadata.
+- The Strategy Research page now renders separate top-five lists for best historical OOS return and most robust observation, with statistical review state, sample counts, fold counts, worst-fold return/drawdown and expectancy.
+- The leaderboard reads existing local `ResearchRunStore` history and refreshes after saves/deletes; it does not create a second persistence source or mutate experiments.
+- Refactored normal research candidate rendering to compute the statistical robustness report once per candidate instead of three times; rank numbering is now index-based.
+- Scope limitation: nested reports and sealed holdouts remain separate; execution-stress scenarios are not yet aggregated as a dedicated stress-family ranking because scenario provenance is not stored as a family manifest. See `docs/RESEARCH_LEADERBOARD.md`.
+- Verification pending: focused leaderboard tests, full CI, TypeScript, dependency audit, production build and deployment.
