@@ -18,6 +18,7 @@ export interface ShadowTradePlan {
   decisionId: string;
   candidateId: string;
   symbol: string;
+  timeframe: string;
   instrumentCategory: "spot" | "linear_perpetual" | "inverse_perpetual";
   /** Candle volume must be expressed in base-asset units for participation limits. */
   volumeUnit: "base" | "quote";
@@ -90,6 +91,7 @@ export function validateShadowTradePlan(plan: ShadowTradePlan): void {
     decisionId: plan.decisionId,
     candidateId: plan.candidateId,
     symbol: plan.symbol,
+    timeframe: plan.timeframe,
     simulationVersion: plan.simulationVersion,
   })) {
     if (typeof value !== "string" || !value.trim()) throw new TypeError(name + " is required");
