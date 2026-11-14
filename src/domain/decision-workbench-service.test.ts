@@ -28,7 +28,7 @@ const market = (): MarketIntelligenceSnapshot => ({
   positioning: { status: "unknown", note: "Unavailable" }, missingDimensions: [], supportingObservations: [], contradictions: [],
 });
 const strategy = {
-  id: "donchian-breakout", version: "1.0.0", approvedBy: "human-review",
+  id: "donchian-breakout", version: "1.0.0", approvedBy: "human-review", approvalRationale: "Approved for paper-only research evaluation",
   approvedAt: now - 10_000, lookback: 3, atrStopMultiple: 2, rewardRiskMultiple: 2,
   riskBudget: 20, maxNotional: 2_000, expiryBars: 2,
 };
