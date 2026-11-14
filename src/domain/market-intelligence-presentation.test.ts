@@ -70,7 +70,7 @@ describe("buildMarketIntelligencePresentation", () => {
     const view = buildMarketIntelligencePresentation(input);
     expect(view.liquidity).toMatch(/depth unknown/i);
     expect(view.positioning).toMatch(/unknown/i);
-    expect(view.missingDimensions).toContain("order_book_depth");
+    expect(view.missingDimensions).toContain("ORDER BOOK DEPTH");
   });
 
   it("locks paper eligibility when cross-feed confirmation or data quality fails", () => {
