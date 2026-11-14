@@ -14,7 +14,7 @@ The discovery catalogues are useful for finding providers, not for proving that 
 |---|---|---|---|
 | [pacocartones/free-llm-api-hub](https://github.com/pacocartones/free-llm-api-hub) | MIT | 121 stars, 52 forks, 79 open issues; pushed 2026-11-13 | Preferred machine-readable discovery source. Its dataset separates ongoing tiers from trial credits and records verification dates, source URLs, card/phone requirements and data policy. |
 | [open-free-llm-api/awesome-freellm-apis](https://github.com/open-free-llm-api/awesome-freellm-apis) | MIT | 5,593 stars, 878 forks, 4 open issues; pushed 2026-11-13 | Broad secondary catalogue with 500+ listed model entries and provider setup examples. Treat its model counts as catalogue claims, not a guarantee of current availability. |
-| [cheahjs/free-llm-api-resources](https://github.com/cheahjs/free-llm-api-resources) | Check upstream before reuse | Curated list discovered through search | Secondary discovery list; explicitly excludes reverse-engineered chatbot access and other illegitimate services. |
+| [jphermans/free-llm-api-resources](https://github.com/jphermans/free-llm-api-resources) | Check upstream before reuse | Curated list discovered through search | Secondary discovery list; explicitly excludes reverse-engineered chatbot access and other illegitimate services. |
 
 The preferred dataset was version 2.11.0, generated 2026-11-13, and contained 68 provider records when inspected. It is MIT-licensed. Its maintainer distinguishes verified core claims from community-sourced entries that still need confirmation.
 
@@ -24,7 +24,7 @@ These are candidates, not a promise of unlimited or permanent capacity. Limits c
 
 | Provider | Free access found | Key constraints | NEXUS status |
 |---|---|---|---|
-| Groq | Free open-model inference; e.g. GPT-OSS 120B | Official docs list 30 RPM, 1,000 RPD, 8K TPM and 200K TPD for GPT-OSS 120B/20B and Qwen 3.8 27B. Phone verification may be required; no card required in the reviewed directory. | Supported; first default. |
+| Groq | Free open-model inference; e.g. GPT-OSS 120B | Official docs list 30 RPM, 1,000 RPD, 8K TPM and 200K TPD for GPT-OSS 120B/20B and Qwen 3.8 27B. Phone verification is required according to the reviewed provider dataset; no card required in that dataset. | Supported; first default. |
 | Google Gemini API | Free AI Studio quota for selected Gemini models, including Gemini 2.5 Flash and Flash-Lite | Per-model limits vary and are displayed in AI Studio. Google says content submitted through unpaid services may be used to improve its products. Do not send secrets or private account data. | Supported; default fallback. |
 | Z.ai / GLM | GLM-4.7-Flash and other Flash models listed at $0 | Public rate limits are not stated clearly; inspect the account console and terms. | Supported; default fallback. |
 | Cloudflare Workers AI | 10,000 Neurons/day on the Workers Free plan | Some models require a paid plan. The default model is selected from the free-model catalogue; requests stop when the free allocation is exhausted. Requires an account ID and API token. | Supported; default fallback. |
