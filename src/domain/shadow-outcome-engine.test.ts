@@ -139,6 +139,7 @@ describe("simulateShadowOutcome", () => {
     ]);
     expect(open.status).toBe("open");
     expect(open.exitReason).toBeNull();
+    expect(open.horizonReached).toBe(true);
   });
 
   it("rejects invalid plans and malformed or unordered candles", () => {
@@ -252,6 +253,15 @@ describe("simulateShadowOutcome", () => {
     expect(() => simulateShadowOutcome(plan(), [
       candle(2_000, 100, 101, 0, 100),
     ])).toThrow(/positive/i);
+  });
+
+  it("does not mark an outcome mature when the supplied candles stop before its horizon", () => {
+    const result = simulateShadowOutcome(plan(), [
+      candle(2_000, 100, 101, 99, 100),
+      candle(3_000, 100, 105, 98, 102),
+    ]);
+    expect(result.status).toBe("open");
+    expect(result.horizonReached).toBe(false);
   });
 
 });
