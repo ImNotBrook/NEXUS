@@ -36,7 +36,7 @@ const candidates = [{
 
 describe("runExecutionStressTest", () => {
   it("runs a baseline and deterministic adverse-cost and reduced-capacity scenarios", () => {
-    const report = runExecutionStressTest(candles, candidates, config, {
+    const report = runExecutionStressTest(candles, candidates, config, {}, {
       symbol: "BTCUSDT", interval: "1m", provider: "test",
     });
     expect(report.scenarios.map((scenario) => scenario.id)).toEqual([
@@ -57,7 +57,7 @@ describe("runExecutionStressTest", () => {
 
   it("does not silently fall back when execution-aware assumptions are missing", () => {
     const legacy = { ...config, executionModel: undefined };
-    expect(() => runExecutionStressTest(candles, candidates, legacy, {
+    expect(() => runExecutionStressTest(candles, candidates, legacy, {}, {
       symbol: "BTCUSDT", interval: "1m", provider: "test",
     })).toThrow(/execution-aware/i);
   });
@@ -69,13 +69,13 @@ describe("runExecutionStressTest", () => {
       executionModel: { ...config.executionModel, baseSlippageBps: 4_000 },
       backtest: { ...config.backtest, slippageBps: 4_000 },
     };
-    expect(() => runExecutionStressTest(candles, candidates, extreme, {
+    expect(() => runExecutionStressTest(candles, candidates, extreme, {}, {
       symbol: "BTCUSDT", interval: "1m", provider: "test",
     })).toThrow();
   });
 
   it("reports deterioration without selecting a preferred scenario", () => {
-    const report = runExecutionStressTest(candles, candidates, config, {
+    const report = runExecutionStressTest(candles, candidates, config, {}, {
       symbol: "BTCUSDT", interval: "1m", provider: "test",
     });
     expect(report.selectionWarning).toMatch(/must not select/i);
