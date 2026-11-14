@@ -15,6 +15,7 @@ const plan = (overrides: Partial<ShadowTradePlan> = {}): ShadowTradePlan => ({
   decisionId: "decision-1",
   candidateId: "candidate-1",
   symbol: "BTCUSDT",
+  timeframe: "4h",
   instrumentCategory: "spot",
   volumeUnit: "base",
   side: "long",
@@ -286,6 +287,18 @@ describe("simulateShadowOutcome", () => {
     expect(result.horizonReached).toBe(true);
     expect(result.entryOrderStatus).toBe("expired");
     expect(result.status).toBe("expired");
+  });
+
+  it("ignores malformed OHLC values after the declared horizon", () => {
+    const result = simulateShadowOutcome(plan({
+      horizonEnd: 3_000,
+      entry: { ...plan().entry, expiresAt: 3_000 },
+    }), [
+      candle(2_000, 100, 101, 99, 100),
+      candle(4_000, -1, -1, -1, -1),
+    ]);
+    expect(result.horizonReached).toBe(true);
+    expect(result.status).toBe("open");
   });
 
 });
