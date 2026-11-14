@@ -32,7 +32,7 @@ The shared policy requires:
 - Causal chronological testing, fees, spread, slippage, market impact, sizing, out-of-sample evaluation, untouched holdout, trial accounting and robustness checks.
 - Evidence-backed, versioned, regression-tested skill proposals. No autonomous self-modification; protected changes require human approval.
 
-The current strategy-proposal task is further restricted to 1–4 proposals from existing SMA crossover, RSI mean reversion and Donchian breakout templates, with parameter bounds enforced by the deterministic parser. The model cannot return code or arbitrary strategy families.
+The current strategy-generation task returns 1–4 bounded parameter proposals from SMA crossover, RSI mean reversion and Donchian breakout templates plus 1–2 complete rule specifications from the versioned whitelist. The rule DSL supports only long-only 1h entry triggers (SMA cross, RSI recovery, prior-channel Donchian breakout), up to two EMA alignment confirmations and explicit SMA/RSI exits. The deterministic parser enforces exact fields and numeric bounds; the compiler accepts only these rules. The model cannot return code, arbitrary indicators, arbitrary strategy families or execution instructions.
 
 ## The important limitation: prompts are not security boundaries
 
