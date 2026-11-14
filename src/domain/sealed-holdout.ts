@@ -18,6 +18,7 @@ export interface SealedHoldoutPlan {
   developmentCandles: readonly Candle[];
   embargoCandles: readonly Candle[];
   holdoutCandles: readonly Candle[];
+  fraction: number;
 }
 
 export interface SealedHoldoutSeal {
@@ -92,6 +93,7 @@ export function prepareSealedHoldout(
     developmentCandles: Object.freeze(developmentCandles.map((candle) => Object.freeze({ ...candle }))),
     embargoCandles: Object.freeze(embargoCandles.map((candle) => Object.freeze({ ...candle }))),
     holdoutCandles: Object.freeze(holdoutCandles.map((candle) => Object.freeze({ ...candle }))),
+    fraction,
   };
 }
 
@@ -104,7 +106,6 @@ export function evaluateSealedHoldout(
   plan: SealedHoldoutPlan,
   candidates: readonly ResearchCandidate[],
   pipeline: ResearchPipelineConfig,
-  fraction = 0.2,
 ): SealedHoldoutEvaluation {
   if (!plan || !Array.isArray(plan.developmentCandles) || !Array.isArray(plan.embargoCandles) ||
       !Array.isArray(plan.holdoutCandles)) {
@@ -121,9 +122,7 @@ export function evaluateSealedHoldout(
   const candidateFingerprint = fingerprint(candidates.map((candidate) => ({
     id: candidate.id, name: candidate.name, factorySource: candidate.fit.toString(),
   })));
-  const pipelineFingerprint = fingerprint(pipeline);
-  const series = [...plan.developmentCandles, ...plan.embargoCandles, ...plan.holdoutCandles];
-  const report = runResearchBatch(series, candidates, {
+  const effectivePipeline: ResearchPipelineConfig = {
     ...pipeline,
     folds: {
       trainBars: plan.developmentCandles.length,
@@ -132,7 +131,10 @@ export function evaluateSealedHoldout(
       embargoBars: plan.embargoCandles.length,
       expanding: true,
     },
-  }, {
+  };
+  const pipelineFingerprint = fingerprint(effectivePipeline);
+  const series = [...plan.developmentCandles, ...plan.embargoCandles, ...plan.holdoutCandles];
+  const report = runResearchBatch(series, candidates, effectivePipeline, {
     symbol: plan.identity.symbol,
     interval: plan.identity.interval,
     provider: plan.provider,
@@ -154,7 +156,7 @@ export function evaluateSealedHoldout(
       developmentBars: plan.developmentCandles.length,
       embargoBars: plan.embargoCandles.length,
       holdoutBars: plan.holdoutCandles.length,
-      fraction,
+      fraction: plan.fraction,
     },
     report,
   };
