@@ -324,6 +324,7 @@ describe("evaluateLearningCohorts", () => {
       valid,
       duplicate,
       makeObservation({
+        observationId: "invalid-risk-plan",
         plan: invalidRiskPlan,
         decision: invalidRiskDecision,
       }),
