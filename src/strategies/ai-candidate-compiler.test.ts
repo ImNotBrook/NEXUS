@@ -9,7 +9,7 @@ describe("AI candidate compiler", () => {
       { family: "donchian-breakout", parameters: { period: 35 }, rationale: "A longer breakout channel tests slower momentum." },
     ]);
     expect(candidates).toHaveLength(3);
-    expect(candidates.every((candidate) => typeof candidate.fit() === "function")).toBe(true);
+    expect(candidates.every((candidate) => typeof candidate.fit([]) === "function")).toBe(true);
     expect(candidates.map((candidate) => candidate.id)).toEqual([
       "baseline-sma-cross-f7-s28",
       "baseline-rsi-reversion-p12-o25-b75",
