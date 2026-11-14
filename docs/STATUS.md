@@ -348,3 +348,15 @@ Updated: 2026-11-14
 - Added an explicit selection-bias warning: choosing the best parameter on these same OOS folds invalidates an unbiased performance claim. Nested walk-forward selection or a final untouched holdout is required.
 - Corrected a pipeline defect discovered during integration: the research batch stored the execution model in its report but did not pass it to walk-forward evaluation; execution-aware research now uses the configured fill model in every fold.
 - Historical paper research only. Candle volume remains a liquidity proxy; no live routing or paid services added.
+
+
+## Nested walk-forward parameter selection (2026-11-14)
+
+- Added candidate-specific nested selection for protective stop-loss/take-profit settings. Each outer fold performs its bounded parameter grid only on the outer training slice, then freezes the chosen settings before evaluating the untouched outer test window.
+- Inner selection uses compounded inner OOS return, with lower worst-fold drawdown as a tie-breaker. Exact ties preserve the disabled-baseline-first scenario order.
+- Added a minimum inner completed-trade eligibility threshold. If no scenario meets it, the disabled protective-exit baseline is retained rather than selecting a no-trade or under-sampled configuration.
+- Reports separate inner selection metrics from outer test metrics, selected parameters per outer fold, aggregate outer returns/drawdown/trades and parameter stability.
+- Added a mobile console action with an eight-outer-fold cap, existing 25-scenario grid cap and configurable minimum inner trade count.
+- Added regression specifications for training/test separation, invariance of a fold's selection to changes in that fold's outer test data, baseline fallback, invalid fold geometry and separation of inner/outer metrics.
+- See `docs/NESTED_WALK_FORWARD_SELECTION.md` for the protocol and limits.
+- The feature is under PR review; full GitHub Actions verification is pending. No live trading, exchange credentials, paid services or billing changes introduced.
