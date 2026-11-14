@@ -56,7 +56,7 @@ function makeFrame(
     intervalMs,
     provider: "test-feed",
     fetchedAt: NOW - 1_000,
-    maxAgeMs: 10_000,
+    maxAgeMs: intervalMs * 2,
     qualityStatus: "pass",
     candles,
     ...frameOverrides,
@@ -191,7 +191,7 @@ describe("buildMarketIntelligenceSnapshot", () => {
   });
 
   it("marks stale or failed frames unknown and reports aggregate degraded quality", async () => {
-    const stale = makeFrame("1d", "up", { fetchedAt: NOW - 100_000 });
+    const stale = makeFrame("1d", "up", { fetchedAt: NOW - 100_000, maxAgeMs: 10_000 });
     const failed = makeFrame("4h", "up", { qualityStatus: "fail" });
     const snapshot = await buildMarketIntelligenceSnapshot(input({
       "1d": stale,
