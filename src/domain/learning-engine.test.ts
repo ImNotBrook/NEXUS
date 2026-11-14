@@ -399,4 +399,19 @@ describe("evaluateLearningCohorts", () => {
     expect(report.cohorts).toHaveLength(0);
   });
 
+  it("counts a pre-fill gap invalidation as a mature no-fill candidate", () => {
+    const plan = makePlan();
+    const outcome = makeOutcome(plan, "invalidated", {
+      entryOrderStatus: "cancelled",
+      invalidationReason: "ENTRY_GAPPED_OUT_OF_PLAN",
+    });
+    const report = evaluateLearningCohorts([
+      makeObservation({ plan, decision: makeDecision(plan), outcome }),
+    ]);
+    expect(report.eligibleObservations).toBe(1);
+    expect(report.cohorts[0].noFillCandidates).toBe(1);
+    expect(report.cohorts[0].completedTrades).toBe(0);
+    expect(report.cohorts[0].meanNetR).toBeNull();
+  });
+
 });
