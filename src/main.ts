@@ -5,6 +5,8 @@ import { mountSkillConsole } from "./domain/skill-console";
 import { mountAutomationConsole } from "./ui/automation-console";
 import { mountDecisionJournalConsole } from "./ui/decision-journal-console";
 import { mountDecisionWorkbenchConsole } from "./ui/decision-workbench-console";
+import { mountShadowOutcomeConsole } from "./ui/shadow-outcome-console";
+import { evaluateShadowOutcomes } from "./domain/shadow-outcome-service";
 import { DecisionJournalStore } from "./adapters/decision-journal-store";
 import { runDecisionWorkbench } from "./domain/decision-workbench-service";
 import type { ApprovedDonchianStrategy } from "./domain/strategy-candidate-generator";
@@ -13,7 +15,7 @@ import type { Candle } from "./domain/candles";
 import type { CrossFeedStatus } from "./domain/market-intelligence-service";
 import { evaluateQualification } from "./domain/qualification";
 import { rsi } from "./domain/indicators";
-import { fetchBinanceCandles, type BinanceInterval } from "./adapters/binance-public";
+import { fetchBinanceCandles, fetchBinanceHistory, type BinanceInterval } from "./adapters/binance-public";
 import { fetchKrakenCandles } from "./adapters/kraken-public";
 import { IndexedDbMarketSnapshotCache } from "./adapters/market-snapshot-cache";
 import type { MarketDataProvider } from "./domain/market-data";
@@ -112,6 +114,7 @@ root.innerHTML = `
     <div id="research-console-mount"></div>
     <div id="decision-workbench-mount"></div>
     <div id="decision-journal-mount"></div>
+    <div id="shadow-outcome-mount"></div>
     <div id="skill-console-mount"></div>
     <div id="automation-console-mount"></div>
     <footer> NEXUS v0.1.0 <span>BUILDING THE EVIDENCE ENGINE</span></footer>
@@ -123,6 +126,25 @@ const researchConsoleMount = document.querySelector<HTMLElement>("#research-cons
 if (researchConsoleMount) mountResearchConsole(researchConsoleMount);
 const decisionJournalMount = document.querySelector<HTMLElement>("#decision-journal-mount");
 if (decisionJournalMount) mountDecisionJournalConsole(decisionJournalMount);
+const shadowOutcomeMount = document.querySelector<HTMLElement>("#shadow-outcome-mount");
+if (shadowOutcomeMount) mountShadowOutcomeConsole(shadowOutcomeMount, async () => {
+  const now = Date.now();
+  return evaluateShadowOutcomes({
+    journal: decisionJournalStore,
+    now,
+    fetchHistory: (plan) => {
+      if (now < plan.entry.earliestEligibleAt) return Promise.resolve([]);
+      return fetchBinanceHistory({
+        symbol: plan.symbol,
+        interval: "1h",
+        startTime: plan.entry.earliestEligibleAt,
+        endTime: Math.min(now, plan.horizonEnd + 1),
+        pageLimit: 500,
+        maxCandles: 1_000,
+      }, fetch, now);
+    },
+  });
+});
 const skillConsoleMount = document.querySelector<HTMLElement>("#skill-console-mount");
 if (skillConsoleMount) mountSkillConsole(skillConsoleMount);
 const automationConsoleMount = document.querySelector<HTMLElement>("#automation-console-mount");
