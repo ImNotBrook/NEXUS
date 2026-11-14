@@ -44,7 +44,7 @@ function approximatelyEqual(left: number, right: number): boolean {
 }
 
 function assertPlanMatchesDecision(plan: ShadowTradePlan, decision: DecisionJournalRecord | null): void {
-  if (!decision) throw new Error("Missing parent decision in the Decision Journal");
+  if (!decision) throw new Error("Missing decision: parent record not found in the Decision Journal");
   const candidate = decision.candidate;
   if (!candidate) throw new Error("A shadow outcome requires a journalled candidate; NO_SETUP has no candidate");
   if (
