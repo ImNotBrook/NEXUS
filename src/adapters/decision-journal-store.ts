@@ -93,6 +93,7 @@ export class DecisionJournalStore {
     );
     const done = transactionComplete(transaction);
     let missingDecision = false;
+    let eventPredatesDecision = false;
     const parentRequest = transaction.objectStore(DECISION_JOURNAL_STORE).get(event.decisionId);
     parentRequest.onsuccess = () => {
       if (!parentRequest.result) {
@@ -101,7 +102,7 @@ export class DecisionJournalStore {
         return;
       }
       if (snapshot.occurredAt < parentRequest.result.decisionAt) {
-        missingDecision = false;
+        eventPredatesDecision = true;
         transaction.abort();
         return;
       }
@@ -111,8 +112,7 @@ export class DecisionJournalStore {
       await done;
     } catch (error) {
       if (missingDecision) throw new Error("Cannot append an event for a missing decision");
-      if (snapshot.occurredAt < 0) throw new Error("Event timestamp cannot precede its decision");
-      // The transaction abort is intentional when an event predates the immutable decision.
+      if (eventPredatesDecision) throw new Error("Event timestamp cannot precede its decision");
       throw error;
     }
     return structuredClone(snapshot);
