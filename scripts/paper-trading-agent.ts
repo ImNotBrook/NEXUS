@@ -149,7 +149,7 @@ async function main(): Promise<void> {
   }
 
   const previousProcessedCandles = state.processedCandles;
-  const nextState = runPaperTradingAgentCycle(state, candles, candidate.fit(), executionConfig);
+  const nextState = runPaperTradingAgentCycle(state, candles, candidate.fit(candles.slice(0, approvalIndex + 1)), executionConfig);
   await writeFile(statePath, JSON.stringify(nextState, null, 2) + "\n", "utf8");
   const positionValue = nextState.position
     ? nextState.position.quantity * candles[candles.length - 1].close : 0;
