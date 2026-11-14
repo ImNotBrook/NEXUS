@@ -40,6 +40,9 @@ const HOUR_MS = 60 * 60 * 1_000;
 const HISTORY_BARS = 600;
 
 function candidateFromConfig(strategy: PaperStrategyConfig) {
+  if (!["sma-crossover", "rsi-mean-reversion", "donchian-breakout"].includes(strategy.family)) {
+    throw new TypeError("Approved paper strategy family is not supported");
+  }
   const candidates = createBaselineResearchCandidates({
     sma: {
       fastPeriod: strategy.family === "sma-crossover" ? strategy.parameters.fastPeriod : 10,
@@ -111,7 +114,10 @@ async function main(): Promise<void> {
   }, fetch, now);
   if (candles.length < 100) throw new Error("Insufficient closed candles to warm up the approved paper strategy");
 
-  const approvalIndex = candles.findLastIndex((candle) => candle.timestamp <= (config.approvedAt as number));
+  let approvalIndex = -1;
+  for (let index = 0; index < candles.length; index += 1) {
+    if (candles[index].timestamp <= (config.approvedAt as number)) approvalIndex = index;
+  }
   if (approvalIndex < 0) {
     throw new Error("Approval timestamp is outside the available candle history; disable and re-approve to reset safely");
   }
@@ -142,6 +148,7 @@ async function main(): Promise<void> {
     }
   }
 
+  const previousProcessedCandles = state.processedCandles;
   const nextState = runPaperTradingAgentCycle(state, candles, candidate.fit(), executionConfig);
   await writeFile(statePath, JSON.stringify(nextState, null, 2) + "\n", "utf8");
   const positionValue = nextState.position
@@ -161,7 +168,7 @@ async function main(): Promise<void> {
     },
     checkpoint: {
       lastProcessedTimestamp: nextState.lastProcessedTimestamp,
-      newlyProcessedCandles: nextState.processedCandles,
+      newlyProcessedCandles: nextState.processedCandles - previousProcessedCandles,
       datasetCandles: candles.length,
     },
     account: {
@@ -194,7 +201,7 @@ async function main(): Promise<void> {
     status: report.status,
     strategyId: candidate.id,
     lastProcessedTimestamp: nextState.lastProcessedTimestamp,
-    newlyProcessedCandles: nextState.processedCandles,
+    newlyProcessedCandles: nextState.processedCandles - previousProcessedCandles,
     equityUsdt: equity,
     completedTrades: nextState.completedTrades,
     fillEvents: nextState.totalFillEvents,
