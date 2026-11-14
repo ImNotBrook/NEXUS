@@ -76,7 +76,7 @@ jobs:
             throw new Error("Automated research report does not match the expected schema");
           }
           if (report.aiGeneration.status !== "generated" || report.aiGeneration.proposals.length < 1 || report.aiGeneration.composedStrategies.length < 1) {
-            fs.appendFileSync(process.env.GITHUB_OUTPUT, "publish=false\\n");
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "publish=false\n");
             console.log("No validated AI generation in this run; retaining the previous proposal feed.");
             process.exit(0);
           }
@@ -96,6 +96,7 @@ jobs:
           fs.writeFileSync("/tmp/ai-strategy-proposals.json", JSON.stringify(publication, null, 2) + "\n");
           NODE
       - name: Publish latest proposal feed to the dedicated branch
+        if: steps.feed.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
