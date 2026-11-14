@@ -109,11 +109,14 @@ export async function journalShadowOutcome(
   }
 
   const planSnapshot = jsonSnapshot(plan);
+  const observedThrough = inputCandles.find((candle) => candle.timestamp >= plan.horizonEnd)?.timestamp ??
+    (inputCandles.length ? inputCandles[inputCandles.length - 1].timestamp : null);
   const hashInput = {
     decisionId: plan.decisionId,
     plan: planSnapshot,
     candles: relevantCandles,
     horizonReached: outcome.horizonReached,
+    observedThrough,
   };
   const inputHash = await hasher(hashInput);
   if (typeof inputHash !== "string" || !/^[A-Za-z0-9_-]{1,256}$/.test(inputHash)) {
@@ -132,8 +135,7 @@ export async function journalShadowOutcome(
       inputHash,
       horizonReached: outcome.horizonReached,
       // Timestamp-only maturity proof; post-horizon OHLC remains excluded.
-      observedThrough: inputCandles.find((candle) => candle.timestamp >= plan.horizonEnd)?.timestamp ??
-        (inputCandles.length ? inputCandles[inputCandles.length - 1].timestamp : null),
+      observedThrough,
       candleCount: relevantCandles.length,
       plan: planSnapshot,
       candles: relevantCandles,
