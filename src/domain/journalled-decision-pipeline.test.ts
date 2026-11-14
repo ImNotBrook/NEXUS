@@ -120,4 +120,15 @@ describe("evaluateAndJournalDecision", () => {
       writer(),
     )).rejects.toThrow();
   });
+  it("preserves an invalid candidate in the journal when the kernel rejects it", async () => {
+    const result = await evaluateAndJournalDecision(
+      input({ candidate: { ...candidate, id: " " } }),
+      context,
+      writer(),
+    );
+    expect(result.result.status).toBe("REJECT");
+    expect(result.record.candidate?.id).toBe(" ");
+    expect(result.record.reasonCodes).toContain("INVALID_CANDIDATE");
+  });
+
 });
