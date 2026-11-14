@@ -152,6 +152,21 @@ export function generateDonchianStrategyCandidate(
     };
   }
 
+  if (side === "short" && snapshot.instrumentCategory === "spot") {
+    return {
+      status: "no_setup",
+      candidate: null,
+      thesis: {
+        bullCase: [],
+        bearCase: ["Completed 1H close broke the prior Donchian lower channel"],
+        alternatives: ["Spot instruments cannot open short exposure; use an approved derivatives strategy only"],
+        invalidation: [],
+      },
+      reasonCodes: ["SPOT_SHORT_UNSUPPORTED"],
+      strategyRef: { id: strategy.id, version: strategy.version },
+    };
+  }
+
   const expectedTrend = side === "long" ? "uptrend" : "downtrend";
   if (snapshot.primaryTrend !== expectedTrend || snapshot.tacticalTrend !== expectedTrend) {
     return {
