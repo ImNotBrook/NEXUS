@@ -267,9 +267,11 @@ export function simulateShadowOutcome(
           : candle.open < plan.stopPrice && candle.open > plan.targetPrice;
         if (!marketEntryValid) {
           outcome.entryOrderStatus = "cancelled";
-          outcome.status = "invalidated";
           outcome.invalidationReason = "ENTRY_GAPPED_OUT_OF_PLAN";
-          break;
+          if (outcome.positionRemainingQuantity <= EPSILON) {
+            outcome.status = "invalidated";
+            break;
+          }
         }
         const execution = resolveMarketFill({
           side: plan.side === "long" ? "buy" : "sell",
@@ -283,9 +285,11 @@ export function simulateShadowOutcome(
             : execution.executionPrice < plan.stopPrice && execution.executionPrice > plan.targetPrice;
           if (!executionWithinPlan) {
             outcome.entryOrderStatus = "cancelled";
-            outcome.status = "invalidated";
             outcome.invalidationReason = "ENTRY_GAPPED_OUT_OF_PLAN";
-            break;
+            if (outcome.positionRemainingQuantity <= EPSILON) {
+              outcome.status = "invalidated";
+              break;
+            }
           }
           fill = {
             quantity: execution.filledQuantity,
