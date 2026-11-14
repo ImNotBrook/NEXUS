@@ -32,6 +32,8 @@ export interface MarketFrameInput {
 
 export interface MarketIntelligenceInput {
   symbol: string;
+  instrumentCategory: "spot" | "linear_perpetual" | "inverse_perpetual";
+  volumeUnit: "base" | "quote";
   evaluationTime: number;
   config: MarketRegimeConfig;
   frames: Partial<Record<MarketTimeframe, MarketFrameInput>>;
@@ -72,6 +74,8 @@ export interface MarketIntelligenceSnapshot {
   snapshotId: string;
   contentHash: string;
   symbol: string;
+  instrumentCategory: "spot" | "linear_perpetual" | "inverse_perpetual";
+  volumeUnit: "base" | "quote";
   evaluationTime: number;
   latestSourceAvailableAt: number | null;
   dataQuality: MarketFrameQuality;
@@ -466,6 +470,12 @@ export async function buildMarketIntelligenceSnapshot(
   if (typeof input.symbol !== "string" || !/^[A-Z0-9]{3,30}$/.test(input.symbol)) {
     throw new TypeError("symbol must be normalized uppercase alphanumeric");
   }
+  if (!["spot", "linear_perpetual", "inverse_perpetual"].includes(input.instrumentCategory)) {
+    throw new TypeError("Instrument category is invalid");
+  }
+  if (!["base", "quote"].includes(input.volumeUnit)) {
+    throw new TypeError("Candle volume unit must be base or quote");
+  }
   if (!validTime(input.evaluationTime)) throw new RangeError("evaluationTime must be a non-negative safe integer");
   validateConfig(input.config);
   if (!input.frames || typeof input.frames !== "object") throw new TypeError("Market frames are required");
@@ -544,6 +554,8 @@ export async function buildMarketIntelligenceSnapshot(
     schemaVersion: 1,
     engineVersion: MARKET_INTELLIGENCE_VERSION,
     symbol: input.symbol,
+    instrumentCategory: input.instrumentCategory,
+    volumeUnit: input.volumeUnit,
     evaluationTime: input.evaluationTime,
     config: input.config,
     frames: frameResults.map((result) => result.hashSource),
@@ -574,6 +586,8 @@ export async function buildMarketIntelligenceSnapshot(
     snapshotId: "market-intel-v1:" + contentHash,
     contentHash,
     symbol: input.symbol,
+    instrumentCategory: input.instrumentCategory,
+    volumeUnit: input.volumeUnit,
     evaluationTime: input.evaluationTime,
     latestSourceAvailableAt,
     dataQuality,
