@@ -58,8 +58,8 @@ function assertPlanMatchesDecision(plan: ShadowTradePlan, decision: DecisionJour
   ) {
     throw new Error("Shadow plan identity and scope do not match the parent decision candidate");
   }
-  if (!candidate.triggerConfirmed) {
-    throw new Error("A shadow entry requires a trigger confirmed in the original decision");
+  if (!candidate.triggerConfirmed && plan.entry.orderType !== "limit") {
+    throw new Error("An unconfirmed candidate requires a pre-defined limit-entry trigger");
   }
   const candidatePlan = candidate.plan;
   if (
