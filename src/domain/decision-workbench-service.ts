@@ -1,4 +1,3 @@
-import type { DecisionGate } from "./decision-engine";
 import { assessCandidateGates, type CandidateGatePolicy } from "./decision-gates";
 import type { DecisionJournalVersions } from "./decision-journal";
 import {
