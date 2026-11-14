@@ -69,6 +69,10 @@ export function validatePaperAccountSnapshot(value: unknown): asserts value is P
   for (const key of ["initialCash", "cash", "realizedPnl", "totalFees", "dailyStartEquity"] as const) {
     if (!finite(account[key])) throw new TypeError("Paper account field is invalid: " + key);
   }
+  if ((account.initialCash as number) <= 0 || (account.cash as number) < 0 ||
+      (account.totalFees as number) < 0 || (account.dailyStartEquity as number) <= 0) {
+    throw new RangeError("Paper account balances are outside valid ranges");
+  }
   if (!account.config || typeof account.config !== "object" || Array.isArray(account.config)) {
     throw new TypeError("Paper account configuration is missing");
   }
@@ -79,6 +83,13 @@ export function validatePaperAccountSnapshot(value: unknown): asserts value is P
   if (typeof account.tradingDay !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(account.tradingDay)) {
     throw new TypeError("Paper account trading day is invalid");
   }
+  if ((config.initialCash as number) !== account.initialCash ||
+      (config.feeRate as number) < 0 || (config.feeRate as number) > 1 ||
+      (config.slippageRate as number) < 0 || (config.slippageRate as number) > 1 ||
+      (config.maxPositionValueFraction as number) <= 0 || (config.maxPositionValueFraction as number) > 1 ||
+      (config.maxDailyLossFraction as number) < 0 || (config.maxDailyLossFraction as number) > 1) {
+    throw new RangeError("Paper account configuration values are outside valid ranges");
+  }
   if (!account.positions || typeof account.positions !== "object" || Array.isArray(account.positions) ||
       !Array.isArray(account.fills) || !Array.isArray(account.openOrders)) {
     throw new TypeError("Paper account positions, fills or open orders are invalid");
@@ -86,25 +97,30 @@ export function validatePaperAccountSnapshot(value: unknown): asserts value is P
   for (const [symbol, position] of Object.entries(account.positions as Record<string, unknown>)) {
     if (!position || typeof position !== "object") throw new TypeError("Paper position is invalid");
     const row = position as Record<string, unknown>;
-    if (row.symbol !== symbol || !finite(row.quantity) || row.quantity <= 0 ||
+    if (!/^[A-Z0-9]{5,20}$/.test(symbol) || row.symbol !== symbol || !finite(row.quantity) || row.quantity <= 0 ||
         !finite(row.averageEntryPrice) || row.averageEntryPrice <= 0 ||
         !finite(row.markPrice) || row.markPrice <= 0) throw new TypeError("Paper position is invalid: " + symbol);
   }
   for (const fill of account.fills) {
     if (!fill || typeof fill !== "object") throw new TypeError("Paper fill is invalid");
     const row = fill as Record<string, unknown>;
-    if (typeof row.id !== "string" || typeof row.symbol !== "string" ||
+    if (typeof row.id !== "string" || !row.id || typeof row.symbol !== "string" || !/^[A-Z0-9]{5,20}$/.test(row.symbol) ||
         (row.side !== "buy" && row.side !== "sell") ||
-        !["quantity", "referencePrice", "price", "fee", "timestamp", "realizedPnl"].every((key) => finite(row[key]))) {
+        !["quantity", "referencePrice", "price", "fee", "timestamp", "realizedPnl"].every((key) => finite(row[key])) ||
+        (row.quantity as number) <= 0 || (row.referencePrice as number) <= 0 || (row.price as number) <= 0 ||
+        (row.fee as number) < 0 || !Number.isSafeInteger(row.timestamp)) {
       throw new TypeError("Paper fill is invalid");
     }
   }
   for (const order of account.openOrders) {
     if (!order || typeof order !== "object") throw new TypeError("Paper open order is invalid");
     const row = order as Record<string, unknown>;
-    if (typeof row.id !== "string" || typeof row.symbol !== "string" ||
+    if (typeof row.id !== "string" || !row.id || typeof row.symbol !== "string" || !/^[A-Z0-9]{5,20}$/.test(row.symbol) ||
         (row.side !== "buy" && row.side !== "sell") ||
         !["requestedQuantity", "remainingQuantity", "referencePrice", "createdAt", "lastAttemptAt"].every((key) => finite(row[key])) ||
+        (row.requestedQuantity as number) <= 0 || (row.remainingQuantity as number) <= 0 ||
+        (row.remainingQuantity as number) > (row.requestedQuantity as number) || (row.referencePrice as number) <= 0 ||
+        !Number.isSafeInteger(row.createdAt) || !Number.isSafeInteger(row.lastAttemptAt) ||
         (row.status !== "open" && row.status !== "partial")) throw new TypeError("Paper open order is invalid");
   }
 }
