@@ -487,3 +487,14 @@ Updated: 2026-11-14
 - Collective verification: GitHub CI run [43577794291](https://github.com/ImNotBrook/NEXUS/actions/runs/43577794291) passed 80 test files / 512 tests, scheduled-runner and derivatives type checks, dependency audit (0 vulnerabilities), and production build. GitHub Pages deployment [43577794277](https://github.com/ImNotBrook/NEXUS/actions/runs/43577794277) succeeded.
 - Integration coverage verifies that reports saved through `ResearchRunStore`, reloaded from IndexedDB, and passed into the leaderboard produce the expected compatible group and ranking. Store tests also verify complete-history retrieval; UI refresh uses all saved runs while the separate history panel remains limited to the newest 50.
 - Stage 9 remains PARTIAL: dedicated execution-stress family aggregation and explicit nested/holdout leaderboard views remain future work. The current v1 deliberately does not mix those distinct report types.
+
+
+## Stage 9 — Execution-stress family aggregation (in progress)
+
+- Added optional versioned stress-family metadata to persisted research-run records without a database migration or second persistence store. Existing records remain readable and unassigned.
+- Added a family reconstruction domain service. It requires the full expected scenario set exactly once, consistent dataset identity/provenance/date range and the same ordered candidate manifest. Incomplete, duplicated or inconsistent families are excluded.
+- Reuses the established execution-stress survivor ranking; no new ranking metric or strategy promotion path was introduced.
+- Added focused domain tests for complete family reconstruction, incomplete/duplicate/mismatched families, legacy records and deterministic family ordering, plus storage metadata persistence/validation tests.
+- Added an Execution-stress survivors section to Strategy Research. Nested walk-forward and sealed holdout remain separate ledgers/views; unlike report types are not mixed.
+- New family metadata is written only for execution-stress scenarios. Protective-exit sensitivity reports remain ordinary unassigned research records.
+- Remaining verification: inspect CI test/type/build results, add persisted-store-to-family integration coverage if needed, then verify the deployed phone UI. Stage 9 remains PARTIAL until collective verification is complete.
