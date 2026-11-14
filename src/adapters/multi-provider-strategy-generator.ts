@@ -191,7 +191,7 @@ export async function generateAiStrategyProposalsWithFallback(
   validateContext(context);
   const providers = resolveAiProviderConfigs(env);
   if (providers.length === 0) {
-    return { status: "not_configured", provider: null, model: null, proposals: [], attempts: [] };
+    return { status: "not_configured", provider: null, model: null, proposals: [], composedStrategies: [], attempts: [] };
   }
 
   const attempts: AiProviderAttempt[] = [];
