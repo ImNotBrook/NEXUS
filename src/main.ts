@@ -142,6 +142,7 @@ if (decisionWorkbenchMount) mountDecisionWorkbenchConsole(decisionWorkbenchMount
     gatePolicy: {
       instrumentCategory: context.snapshot.instrumentCategory,
       equity: paperAccount ? getPaperAccountSummary(paperAccount).equity : 10_000,
+      availableCapital: paperAccount?.cash ?? 10_000,
       existingExposure,
       maxRiskPerTrade: 20,
       maxRiskFraction: 0.002,
