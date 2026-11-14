@@ -100,6 +100,7 @@ describe("buildMarketIntelligenceSnapshot", () => {
     }), testHasher);
     expect(snapshot).toMatchObject({
       symbol: "BTCUSDT",
+      config: CONFIG,
       macroTrend: "uptrend",
       primaryTrend: "uptrend",
       tacticalTrend: "downtrend",
