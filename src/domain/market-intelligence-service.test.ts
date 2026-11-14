@@ -26,8 +26,9 @@ function makeCandles(interval: string, priceOffset = 0, count = 60): Candle[] {
   const intervalMs = INTERVALS[interval];
   const boundary = Math.floor(NOW / intervalMs) * intervalMs;
   const start = boundary - count * intervalMs;
+  const referenceStart = boundary - 60 * intervalMs;
   return Array.from({ length: count }, (_, index) => {
-    const close = 1_000 + index * 2 + priceOffset;
+    const close = 1_000 + ((start + index * intervalMs - referenceStart) / intervalMs) * 2 + priceOffset;
     return {
       timestamp: start + index * intervalMs,
       open: close,
