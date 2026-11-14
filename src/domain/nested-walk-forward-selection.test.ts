@@ -100,6 +100,10 @@ describe("runNestedWalkForwardSelection", () => {
     expect(result.candidateResults[0].folds[0].selectedStopLossPct).toBeUndefined();
     expect(result.candidateResults[0].folds[0].selectedTakeProfitPct).toBe(3);
     expect(result.candidateResults[0].folds[0].innerSelection.completedTrades).toBeGreaterThanOrEqual(1);
+    expect(result.candidateResults[0].totalFees).toBeGreaterThan(0);
+    expect(result.candidateResults[0].totalFillEvents).toBeGreaterThan(0);
+    expect(result.candidateResults[0].averageExposurePct).toBeGreaterThan(0);
+    expect(result.candidateResults[0].completedTurnover).toBe(0);
   });
 
   it("rejects invalid fold geometry and selection thresholds", () => {
