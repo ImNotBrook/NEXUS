@@ -24,10 +24,17 @@ describe("workspace navigation", () => {
       ["decisions", "Research"],
       ["outcomes", "Research"],
       ["research", "Research"],
+      ["strategies", "Research"],
       ["skills", "Research"],
       ["automation", "Automation"],
       ["system", "Controls"],
     ]);
+  });
+
+  it("explains that strategy definitions are researchable but not paper-approved", () => {
+    const studio = WORKSPACE_PAGES.find((page) => page.id === "strategies");
+    expect(studio?.help).toContain("do not grant paper-trading approval");
+    expect(studio?.help).toContain("human review");
   });
 
   it("explains the optional AI and human approval gates for automation", () => {
