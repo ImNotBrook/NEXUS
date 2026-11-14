@@ -54,4 +54,6 @@ Selecting the best of multiple trials on the same out-of-sample sample creates m
 
 ## Storage and recovery
 
-Strategy definitions are stored in the strategyLibrary IndexedDB object store (database schema v12). They are device-local. Clearing browser site data can erase the library; keep independent backups of important definitions. Neither strategy definitions nor research-run trial manifests are currently included in the local backup envelope; backup integration remains a required Stage 10 follow-up.
+Strategy definitions are stored in the strategyLibrary IndexedDB object store (database schema v12). They are device-local. The Strategy Studio now provides a separate strategy-library backup: download all versions, then select the matching file on another NEXUS installation and review the preview before confirming restore. Restore is additive and idempotent: identical versions are skipped, conflicting content blocks import, and no saved version is overwritten. The backup is a checksummed but unencrypted JSON file.
+
+Research-run reports and their parameter-trial manifests are still not included in backup files. Nested research, sealed holdouts and other local ledgers also remain outside the current backup formats. Clearing browser site data can erase those unbacked-up records; keep independent backups of the strategy library and decision/paper data.
