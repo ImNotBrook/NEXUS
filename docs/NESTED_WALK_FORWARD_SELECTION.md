@@ -10,7 +10,7 @@ NEXUS can select protective stop-loss and take-profit settings using inner walk-
 4. Select parameters independently for each candidate using the highest compounded inner OOS return. Ties are resolved by lower worst-fold drawdown; exact ties preserve baseline-first grid order.
 5. Scenarios below the configured minimum completed-trade count are ineligible. If none qualifies, retain the disabled baseline.
 6. Freeze the selected stop/target configuration and evaluate it once on the outer test window with the same fees, spread, slippage, participation cap, market-impact assumptions, capital and allocation.
-7. Aggregate outer-fold returns and report parameter stability across outer folds.
+7. Aggregate outer-fold returns, drawdown, trade expectancy/profit factor, fees, completed turnover, average exposure, protective exit counts, fill events, pending quantity and parameter stability.
 
 ## Leakage controls
 
