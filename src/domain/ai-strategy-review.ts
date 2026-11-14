@@ -1,5 +1,6 @@
 import { parseAiStrategyProposals, type AiStrategyProposal } from "./ai-strategy-proposals";
 import { createStrategyDefinition, type StrategyDefinition } from "./strategy-studio";
+import { parseComposedStrategy, type ComposedStrategySpecification } from "../strategies/composed-strategy-compiler";
 
 const AI_PROVIDER_IDS = ["groq", "gemini", "zai", "cloudflare", "nvidia"] as const;
 
@@ -11,6 +12,7 @@ export interface ParsedAutomatedResearchAiArtifact {
   provider: "groq" | "gemini" | "zai" | "cloudflare" | "nvidia";
   model: string;
   proposals: AiStrategyProposal[];
+  composedStrategies: Readonly<ComposedStrategySpecification>[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -44,10 +46,11 @@ export function parseAutomatedResearchAiArtifact(input: unknown): ParsedAutomate
   if (generation.status !== "generated" || typeof generation.provider !== "string" ||
       !AI_PROVIDER_IDS.includes(generation.provider as typeof AI_PROVIDER_IDS[number]) ||
       typeof generation.model !== "string" || !generation.model.trim() ||
-      !Array.isArray(generation.proposals)) {
+      !Array.isArray(generation.proposals) || !Array.isArray(generation.composedStrategies) || generation.composedStrategies.length < 1 || generation.composedStrategies.length > 2) {
     throw new TypeError("Artifact does not contain successful AI-generated proposals");
   }
   const proposals = parseAiStrategyProposals({ candidates: generation.proposals });
+  const composedStrategies = generation.composedStrategies.map(parseComposedStrategy);
   return {
     schemaVersion: 1,
     createdAt: input.createdAt,
@@ -56,6 +59,7 @@ export function parseAutomatedResearchAiArtifact(input: unknown): ParsedAutomate
     provider: generation.provider as typeof AI_PROVIDER_IDS[number],
     model: generation.model,
     proposals,
+    composedStrategies,
   };
 }
 
@@ -92,6 +96,36 @@ export function createHumanReviewedStrategyDefinition(
     createdAt: approvedAt,
     origin: "human",
     description: proposal.rationale.trim(),
+    aiProvenance: {
+      provider: source.provider,
+      model: source.model,
+      generatedAt: source.createdAt,
+      symbol: source.symbol,
+      interval: source.interval,
+    },
+  });
+}
+
+/** Converts a complete AI-composed rule set into a human-approved immutable library version. */
+export function createHumanReviewedComposedStrategyDefinition(
+  specification: Readonly<ComposedStrategySpecification>,
+  approvedAt: number,
+  source: Pick<ParsedAutomatedResearchAiArtifact, "createdAt" | "symbol" | "interval" | "provider" | "model">,
+): Readonly<StrategyDefinition> {
+  if (!Number.isSafeInteger(approvedAt) || approvedAt < 0) {
+    throw new RangeError("A valid human approval timestamp is required");
+  }
+  const validated = parseComposedStrategy(specification);
+  return createStrategyDefinition({
+    schemaVersion: 1,
+    id: "ai-composed-" + validated.id,
+    version: "1.0.0",
+    name: validated.name,
+    family: "composed-rule",
+    parameters: validated,
+    createdAt: approvedAt,
+    origin: "human",
+    description: validated.marketHypothesis,
     aiProvenance: {
       provider: source.provider,
       model: source.model,
