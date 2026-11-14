@@ -72,6 +72,17 @@ function validateStrategy(strategy: ApprovedDonchianStrategy, evaluationTime: nu
   }
 }
 
+function strategyReference(strategy: ApprovedDonchianStrategy): StrategyCandidateGenerationResult["strategyRef"] {
+  return {
+    id: strategy.id,
+    version: strategy.version,
+    approval: strategy.approvedBy?.trim() && strategy.approvalRationale?.trim() &&
+      Number.isSafeInteger(strategy.approvedAt)
+      ? { approvedBy: strategy.approvedBy, rationale: strategy.approvalRationale, approvedAt: strategy.approvedAt }
+      : null,
+  };
+}
+
 function blocked(
   strategy: ApprovedDonchianStrategy,
   reasonCodes: string[],
@@ -81,14 +92,7 @@ function blocked(
     candidate: null,
     thesis: structuredClone(EMPTY_THESIS),
     reasonCodes,
-    strategyRef: {
-      id: strategy.id,
-      version: strategy.version,
-      approval: strategy.approvedBy?.trim() && strategy.approvalRationale?.trim() &&
-        Number.isSafeInteger(strategy.approvedAt)
-        ? { approvedBy: strategy.approvedBy, rationale: strategy.approvalRationale, approvedAt: strategy.approvedAt }
-        : null,
-    },
+    strategyRef: strategyReference(strategy),
   };
 }
 
@@ -168,7 +172,7 @@ export function generateDonchianStrategyCandidate(
       candidate: null,
       thesis: structuredClone(EMPTY_THESIS),
       reasonCodes: ["DONCHIAN_TRIGGER_ABSENT"],
-      strategyRef: { id: strategy.id, version: strategy.version },
+      strategyRef: strategyReference(strategy),
     };
   }
 
@@ -183,7 +187,7 @@ export function generateDonchianStrategyCandidate(
         invalidation: [],
       },
       reasonCodes: ["SPOT_SHORT_UNSUPPORTED"],
-      strategyRef: { id: strategy.id, version: strategy.version },
+      strategyRef: strategyReference(strategy),
     };
   }
 
@@ -199,7 +203,7 @@ export function generateDonchianStrategyCandidate(
         invalidation: [],
       },
       reasonCodes: ["HIGHER_TIMEFRAME_CONFLICT"],
-      strategyRef: { id: strategy.id, version: strategy.version },
+      strategyRef: strategyReference(strategy),
     };
   }
 
@@ -260,6 +264,6 @@ export function generateDonchianStrategyCandidate(
     candidate,
     thesis,
     reasonCodes: ["DONCHIAN_BREAKOUT_CONFIRMED"],
-    strategyRef: { id: strategy.id, version: strategy.version },
+    strategyRef: strategyReference(strategy),
   };
 }
