@@ -104,6 +104,47 @@ describe("StrategyLibraryStore", () => {
     expect(report.dataset.metadata?.symbol).toBe("BTCUSDT");
   });
 
+  it("exports the complete strategy library and restores it idempotently after reload", async () => {
+    const database = memoryIndexedDb();
+    const writer = new StrategyLibraryStore(database);
+    const reader = new StrategyLibraryStore(database);
+    const saved = await writer.save(definition);
+    const backup = await writer.exportAll();
+    expect(backup).toEqual([saved]);
+    const preview = await reader.previewRestore(backup);
+    expect(preview).toEqual({ added: 0, unchanged: 1, conflicts: [] });
+    const emptyDatabase = memoryIndexedDb();
+    const destination = new StrategyLibraryStore(emptyDatabase);
+    const firstRestore = await destination.restoreAll(backup);
+    const secondRestore = await destination.restoreAll(backup);
+    expect(firstRestore).toEqual({ added: 1, unchanged: 0 });
+    expect(secondRestore).toEqual({ added: 0, unchanged: 1 });
+    expect((await new StrategyLibraryStore(emptyDatabase).list())[0].definition).toEqual(definition);
+  });
+
+  it("blocks a strategy backup with conflicting content under an existing ID/version", async () => {
+    const database = memoryIndexedDb();
+    const store = new StrategyLibraryStore(database);
+    await store.save(definition);
+    const conflicting = [{
+      id: "btc-sma@1.0.0", createdAt: 1000,
+      definition: { ...definition, name: "Altered content" },
+    }];
+    const preview = await store.previewRestore(conflicting);
+    expect(preview.conflicts).toEqual(["Strategy version has different content: btc-sma@1.0.0"]);
+    await expect(store.restoreAll(conflicting)).rejects.toThrow(/different content/);
+    expect((await store.list())[0].definition.name).toBe("BTC SMA");
+  });
+
+  it("rejects malformed and duplicate records in a strategy backup", async () => {
+    const store = new StrategyLibraryStore(memoryIndexedDb());
+    await expect(store.previewRestore([{ id: "wrong", createdAt: 1000, definition }])).rejects.toThrow(/identity/i);
+    await expect(store.restoreAll([
+      { id: "btc-sma@1.0.0", createdAt: 1000, definition },
+      { id: "btc-sma@1.0.0", createdAt: 1000, definition },
+    ])).rejects.toThrow(/duplicate/i);
+  });
+
   it("rejects duplicate versions instead of overwriting an immutable definition", async () => {
     const store = new StrategyLibraryStore(memoryIndexedDb());
     await store.save(definition);
