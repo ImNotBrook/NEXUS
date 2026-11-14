@@ -20,8 +20,10 @@ import {
   type ApprovedDonchianStrategy,
 } from "./strategy-candidate-generator";
 import type { Candle } from "./candles";
+import { buildShadowTradePlan, type ShadowPlanBuildResult } from "./shadow-plan-builder";
+import { registerShadowPlan, type ShadowOutcomeJournal } from "./journalled-shadow-outcome";
 
-export interface DecisionWorkbenchJournal extends MarketDecisionJournal, DecisionJournalWriter {}
+export interface DecisionWorkbenchJournal extends MarketDecisionJournal, DecisionJournalWriter, ShadowOutcomeJournal {}
 
 export interface DecisionWorkbenchInput {
   snapshot: MarketIntelligenceSnapshot;
@@ -46,6 +48,8 @@ export interface DecisionWorkbenchResult {
   generation: ReturnType<typeof generateDonchianStrategyCandidate>;
   assessment: DecisionWorkbenchAssessment;
   gateAssessment: CandidateGateAssessment | null;
+  shadowPlan: ShadowPlanBuildResult;
+  shadowPlanRegistered: boolean;
 }
 
 function marketDataStatus(
@@ -112,7 +116,13 @@ export async function runDecisionWorkbench(
       decisionId: input.decisionId,
       randomUUID: input.randomUUID,
     });
-    return { generation, assessment, gateAssessment: gates };
+    const shadowPlan = buildShadowTradePlan(assessment.record);
+    let shadowPlanRegistered = false;
+    if (shadowPlan.status === "ready") {
+      await registerShadowPlan(shadowPlan.plan, input.journal);
+      shadowPlanRegistered = true;
+    }
+    return { generation, assessment, gateAssessment: gates, shadowPlan, shadowPlanRegistered };
   }
 
   const disposition: "WAIT" | "REJECT" | "NO_SETUP" =
@@ -163,9 +173,13 @@ export async function runDecisionWorkbench(
     input.journal,
     input.randomUUID,
   );
+  const assessment = { ...journalled, marketDataStatus: dataStatus };
+  const shadowPlan = buildShadowTradePlan(assessment.record);
   return {
     generation,
-    assessment: { ...journalled, marketDataStatus: dataStatus },
+    assessment,
     gateAssessment: null,
+    shadowPlan,
+    shadowPlanRegistered: false,
   };
 }
