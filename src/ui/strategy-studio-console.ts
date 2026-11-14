@@ -98,13 +98,13 @@ export function mountStrategyStudioConsole(root: HTMLElement): void {
   section.append(backupPanel);
   root.append(section);
 
-  let pendingBackup: LocalBackupEnvelope<StoredStrategyDefinition[]> | null = null;
+  let pendingBackup: LocalBackupEnvelope<{ records: StoredStrategyDefinition[] }> | null = null;
   exportBackup.addEventListener("click", async () => {
     exportBackup.disabled = true;
     try {
       const records = await store.exportAll();
       if (!records.length) throw new Error("There are no saved strategy versions to back up");
-      const backup = await createLocalBackup("strategy-library", records);
+      const backup = await createLocalBackup("strategy-library", { records });
       downloadJson("nexus-strategy-library-backup-" + new Date().toISOString().slice(0, 10) + ".json", backup);
       backupPreview.textContent = "Full strategy library backup downloaded · " + records.length + " immutable version(s).";
     } catch (error) {
@@ -124,10 +124,10 @@ export function mountStrategyStudioConsole(root: HTMLElement): void {
     backupPreview.textContent = "Verifying strategy backup checksum and records…";
     try {
       const envelope = await parseLocalBackup(await file.text(), "strategy-library");
-      if (!Array.isArray(envelope.payload)) throw new Error("Strategy backup must contain a record array");
-      const preview = await store.previewRestore(envelope.payload);
-      pendingBackup = envelope as unknown as LocalBackupEnvelope<StoredStrategyDefinition[]>;
-      backupPreview.textContent = "Verified " + file.name + " · " + envelope.payload.length +
+      if (!Array.isArray(envelope.payload.records)) throw new Error("Strategy backup must contain a record array");
+      const preview = await store.previewRestore(envelope.payload.records);
+      pendingBackup = envelope as unknown as LocalBackupEnvelope<{ records: StoredStrategyDefinition[] }>;
+      backupPreview.textContent = "Verified " + file.name + " · " + envelope.payload.records.length +
         " version(s) · " + preview.added + " new · " + preview.unchanged + " identical · " +
         preview.conflicts.length + " conflict(s). " +
         (preview.conflicts.length ? preview.conflicts.join("; ") : "Confirm to import without overwriting existing versions.");
@@ -140,7 +140,7 @@ export function mountStrategyStudioConsole(root: HTMLElement): void {
     if (!pendingBackup) return;
     restoreBackup.disabled = true;
     try {
-      const result = await store.restoreAll(pendingBackup.payload);
+      const result = await store.restoreAll(pendingBackup.payload.records);
       backupPreview.textContent = "Restore complete · added " + result.added +
         " version(s) · skipped identical " + result.unchanged + ". Existing definitions were not overwritten.";
       pendingBackup = null;
