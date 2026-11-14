@@ -39,7 +39,7 @@
     },
     {
       "id": "nexus-indicator-selection",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "path": ".agents/skills/nexus-indicator-selection/SKILL.md",
       "scope": "research_methodology"
     }

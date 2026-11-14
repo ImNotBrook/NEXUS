@@ -29,11 +29,20 @@ Before selecting features, read:
 
 ## Regime guidance
 
-- Directional trend: EMA for direction; MACD may provide supporting momentum context; ATR describes realized range. Avoid blindly fading RSI extremes.
-- Range: RSI and Bollinger Bands can frame stretch and dispersion; ATR helps detect range expansion. Do not assume a range will persist.
-- High volatility: ATR is primary for range magnitude; Bollinger Bands add dispersion context. High volatility is not a directional signal.
-- Low volatility: Bollinger Band width and ATR can describe compression. Compression does not predict breakout direction.
+- Directional trend: EMA or WMA for direction; ADX measures trend strength; Donchian channels frame prior-window breakouts; ATR describes realized range. Avoid blindly fading RSI extremes.
+- Range: RSI and Stochastic can describe bounded momentum, but are correlated; Bollinger Bands frame dispersion; CCI provides a different typical-price deviation measure; ATR helps detect range expansion. Do not assume a range will persist.
+- High volatility: ATR is primary for range magnitude; Bollinger and Keltner channels add dispersion/range context. High volatility is not a directional signal.
+- Low volatility: Bollinger Band width, Keltner width and ATR can describe compression; Donchian channels define prior range boundaries. Compression does not predict breakout direction.
 - Unknown/warm-up: use descriptive baselines only and do not force a regime classification.
+
+## Indicator families
+
+- Trend: SMA, EMA, WMA, ADX.
+- Momentum: RSI, MACD, Stochastic, CCI, ROC.
+- Volatility: ATR, Bollinger Bands, Keltner Channels.
+- Volume: OBV, VWAP, MFI.
+- Market structure: Donchian Channels.
+- Derivatives, breadth and sentiment data features remain planned until their ingestion and quality pipelines are implemented.
 
 ## Prohibited practices
 
