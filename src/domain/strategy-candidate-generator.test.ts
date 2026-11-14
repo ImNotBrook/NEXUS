@@ -86,6 +86,28 @@ describe("generateDonchianStrategyCandidate", () => {
     expect(result.reasonCodes).toContain("HIGHER_TIMEFRAME_CONFLICT");
   });
 
+  it("never proposes a short candidate for a spot instrument", () => {
+    const bearishMarket = {
+      ...snapshot("downtrend"),
+      frames: {
+        ...snapshot("downtrend").frames,
+        "1h": { ...snapshot("downtrend").frames["1h"], latestCandleAt: now - 3_600_000 },
+      },
+    };
+    const breakdown = candles(
+      [106, 105, 104, 99],
+      [107, 106, 105, 100],
+      [105, 104, 103, 98],
+    );
+    const result = generateDonchianStrategyCandidate({
+      snapshot: bearishMarket, candles: breakdown, crossFeedStatus: "within_tolerance",
+      strategy, evaluationTime: now,
+    });
+    expect(result.status).toBe("no_setup");
+    expect(result.candidate).toBeNull();
+    expect(result.reasonCodes).toContain("SPOT_SHORT_UNSUPPORTED");
+  });
+
   it("fails closed on degraded market data or cross-feed discrepancy", () => {
     const result = generateDonchianStrategyCandidate({
       snapshot: { ...snapshot(), dataQuality: "degraded" }, candles: breakout,
