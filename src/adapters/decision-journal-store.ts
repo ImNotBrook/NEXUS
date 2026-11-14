@@ -134,6 +134,95 @@ export class DecisionJournalStore {
       .map((event) => structuredClone(event));
   }
 
+  async exportAll(): Promise<{ records: DecisionJournalRecord[]; events: DecisionJournalEvent[] }> {
+    const database = await this.openDatabase();
+    const transaction = database.transaction(
+      [DECISION_JOURNAL_STORE, DECISION_JOURNAL_EVENT_STORE],
+      "readonly",
+    );
+    const done = transactionComplete(transaction);
+    const recordsRequest = requestResult(
+      transaction.objectStore(DECISION_JOURNAL_STORE).getAll() as IDBRequest<DecisionJournalRecord[]>,
+    );
+    const eventsRequest = requestResult(
+      transaction.objectStore(DECISION_JOURNAL_EVENT_STORE).getAll() as IDBRequest<DecisionJournalEvent[]>,
+    );
+    const [records, events] = await Promise.all([recordsRequest, eventsRequest, done]).then(
+      ([recordRows, eventRows]) => [recordRows, eventRows] as const,
+    );
+    return {
+      records: records.map((record) => structuredClone(record)),
+      events: events.map((event) => structuredClone(event)),
+    };
+  }
+
+  /**
+   * Imports a complete journal snapshot in one IndexedDB transaction.
+   * Existing IDs are accepted only when byte-for-byte equivalent; conflicting
+   * IDs abort the entire restore. No existing record or event is overwritten.
+   */
+  async restoreAll(snapshot: {
+    records: DecisionJournalRecord[];
+    events: DecisionJournalEvent[];
+  }): Promise<{ addedRecords: number; addedEvents: number; unchangedRecords: number; unchangedEvents: number }> {
+    if (!snapshot || !Array.isArray(snapshot.records) || !Array.isArray(snapshot.events)) {
+      throw new TypeError("A complete decision journal backup is required");
+    }
+    const importedRecords = new Map<string, DecisionJournalRecord>();
+    for (const record of snapshot.records) {
+      validateDecisionJournalRecord(record);
+      if (importedRecords.has(record.decisionId)) throw new Error("Backup contains duplicate decision IDs");
+      importedRecords.set(record.decisionId, record);
+    }
+    const importedEvents = new Map<string, DecisionJournalEvent>();
+    for (const event of snapshot.events) {
+      validateDecisionJournalEvent(event);
+      if (importedEvents.has(event.eventId)) throw new Error("Backup contains duplicate event IDs");
+      importedEvents.set(event.eventId, event);
+    }
+    const existing = await this.exportAll();
+    const existingRecords = new Map(existing.records.map((record) => [record.decisionId, record]));
+    const existingEvents = new Map(existing.events.map((event) => [event.eventId, event]));
+    const equal = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
+    let unchangedRecords = 0;
+    let unchangedEvents = 0;
+    for (const [id, record] of importedRecords) {
+      const current = existingRecords.get(id);
+      if (current && !equal(current, record)) throw new Error("Restore conflict: existing decision ID has different content: " + id);
+      if (current) unchangedRecords += 1;
+    }
+    for (const [id, event] of importedEvents) {
+      const current = existingEvents.get(id);
+      if (current && !equal(current, event)) throw new Error("Restore conflict: existing event ID has different content: " + id);
+      if (current) unchangedEvents += 1;
+      const parent = importedRecords.get(event.decisionId) ?? existingRecords.get(event.decisionId);
+      if (!parent) throw new Error("Backup event references a missing decision: " + event.eventId);
+      if (event.occurredAt < parent.decisionAt) throw new Error("Backup event predates its decision: " + event.eventId);
+    }
+    const newRecords = [...importedRecords.values()].filter((record) => !existingRecords.has(record.decisionId));
+    const newEvents = [...importedEvents.values()].filter((event) => !existingEvents.has(event.eventId));
+    if (!newRecords.length && !newEvents.length) {
+      return { addedRecords: 0, addedEvents: 0, unchangedRecords, unchangedEvents };
+    }
+    const database = await this.openDatabase();
+    const transaction = database.transaction(
+      [DECISION_JOURNAL_STORE, DECISION_JOURNAL_EVENT_STORE],
+      "readwrite",
+    );
+    const done = transactionComplete(transaction);
+    const decisionStore = transaction.objectStore(DECISION_JOURNAL_STORE);
+    const eventStore = transaction.objectStore(DECISION_JOURNAL_EVENT_STORE);
+    for (const record of newRecords) decisionStore.add(structuredClone(record));
+    for (const event of newEvents) eventStore.add(structuredClone(event));
+    await done;
+    return {
+      addedRecords: newRecords.length,
+      addedEvents: newEvents.length,
+      unchangedRecords,
+      unchangedEvents,
+    };
+  }
+
   async close(): Promise<void> {
     if (!this.databasePromise) return;
     const database = await this.databasePromise;
