@@ -1,6 +1,7 @@
 import { validateCandles, type Candle } from "./candles";
 import { resolveMarketFill, validateMarketExecutionConfig, type MarketExecutionConfig } from "./execution-model";
 import type { StrategyEvaluator, BacktestTrade } from "./backtest";
+import { resolveLongProtectiveExit, validateProtectiveExitConfig, type ProtectiveExitConfig } from "./protective-orders";
 
 export interface PaperAgentPosition {
   entryTimestamp: number;
@@ -21,6 +22,9 @@ export interface PaperAgentPendingOrder {
   remainingQuantity: number;
   submittedAt: number;
   reason: BacktestTrade["exitReason"];
+  kind?: "market" | "limit";
+  limitPrice?: number;
+  referencePriceOverride?: number;
 }
 
 export interface PaperAgentFill {
@@ -79,6 +83,7 @@ export interface PaperTradingAgentConfig {
   allocationFraction: number;
   maxDailyLossFraction: number;
   executionModel: MarketExecutionConfig;
+  protectiveOrders?: ProtectiveExitConfig;
 }
 
 function utcDay(timestamp: number): string {
@@ -98,6 +103,7 @@ function validateConfig(config: PaperTradingAgentConfig): void {
     throw new RangeError("maxDailyLossFraction must be in (0, 1)");
   }
   validateMarketExecutionConfig(config.executionModel);
+  if (config.protectiveOrders) validateProtectiveExitConfig(config.protectiveOrders);
 }
 
 export function createPaperTradingAgentState(
@@ -170,6 +176,12 @@ function validateState(state: PaperTradingAgentState): void {
     !finiteNonNegative(state.pendingOrder.remainingQuantity) || state.pendingOrder.remainingQuantity <= 0 ||
     !Number.isSafeInteger(state.pendingOrder.submittedAt) ||
     !["signal", "stop-loss", "take-profit"].includes(state.pendingOrder.reason) ||
+    (state.pendingOrder.kind !== undefined && state.pendingOrder.kind !== "market" && state.pendingOrder.kind !== "limit") ||
+    (state.pendingOrder.limitPrice !== undefined &&
+      (!Number.isFinite(state.pendingOrder.limitPrice) || state.pendingOrder.limitPrice <= 0)) ||
+    (state.pendingOrder.referencePriceOverride !== undefined &&
+      (!Number.isFinite(state.pendingOrder.referencePriceOverride) || state.pendingOrder.referencePriceOverride <= 0)) ||
+    (state.pendingOrder.kind === "limit" && (state.pendingOrder.side !== "sell" || state.pendingOrder.limitPrice === undefined)) ||
     state.pendingOrder.submittedAt > state.lastProcessedTimestamp
   )) throw new TypeError("Persisted paper order failed validation");
   if (state.fills.length > 500 || state.trades.length > 500 || state.equityCurve.length > 500) {
@@ -197,7 +209,8 @@ function fillPendingOrder(
   const pending = state.pendingOrder;
   if (!pending || candle.timestamp <= pending.submittedAt) return;
 
-  const equity = equityAt(candle.open, state);
+  const referencePrice = pending.referencePriceOverride ?? candle.open;
+  const equity = equityAt(referencePrice, state);
   const dailyLoss = (state.dailyStartEquity - equity) / state.dailyStartEquity;
   if (pending.side === "buy" && dailyLoss >= config.maxDailyLossFraction) {
     state.pendingOrder = null;
@@ -206,10 +219,10 @@ function fillPendingOrder(
 
   let requested = pending.remainingQuantity;
   if (pending.side === "buy") {
-    const allocatedValue = (state.position?.quantity ?? 0) * candle.open;
+    const allocatedValue = (state.position?.quantity ?? 0) * referencePrice;
     const capacityValue = Math.max(0, equity * config.allocationFraction - allocatedValue);
     const affordableValue = Math.min(state.cash, capacityValue);
-    const maxAffordable = affordableValue / (candle.open * (1 + config.executionModel.feeRate));
+    const maxAffordable = affordableValue / (referencePrice * (1 + config.executionModel.feeRate));
     requested = Math.min(requested, maxAffordable);
   } else {
     requested = Math.min(requested, state.position?.quantity ?? 0);
@@ -220,12 +233,42 @@ function fillPendingOrder(
     return;
   }
 
-  const fill = resolveMarketFill({
-    side: pending.side,
-    requestedQuantity: requested,
-    referencePrice: candle.open,
-    candleVolume: candle.volume,
-  }, config.executionModel);
+  let fill: {
+    status: "filled" | "partial" | "unfilled";
+    filledQuantity: number;
+    remainingQuantity: number;
+    referencePrice: number;
+    executionPrice: number;
+    notional: number;
+    fee: number;
+    totalAdverseBps: number;
+  };
+  if (pending.kind === "limit") {
+    const limitPrice = pending.limitPrice!;
+    if (candle.high < limitPrice) return;
+    const filledQuantity = Math.min(requested,
+      candle.volume * config.executionModel.maxParticipationRate);
+    const executionPrice = Math.max(candle.open, limitPrice);
+    const notional = filledQuantity * executionPrice;
+    const fee = notional * config.executionModel.feeRate;
+    fill = {
+      status: filledQuantity <= 0 ? "unfilled" : filledQuantity < requested ? "partial" : "filled",
+      filledQuantity,
+      remainingQuantity: Math.max(0, requested - filledQuantity),
+      referencePrice: limitPrice,
+      executionPrice,
+      notional,
+      fee,
+      totalAdverseBps: 0,
+    };
+  } else {
+    fill = resolveMarketFill({
+      side: pending.side,
+      requestedQuantity: requested,
+      referencePrice,
+      candleVolume: candle.volume,
+    }, config.executionModel);
+  }
 
   if (fill.filledQuantity > 0) {
     if (pending.side === "buy") {
@@ -299,7 +342,11 @@ function fillPendingOrder(
 
   const remaining = Math.max(0, pending.remainingQuantity - fill.filledQuantity);
   state.pendingOrder = remaining > 1e-12
-    ? { ...pending, remainingQuantity: remaining }
+    ? {
+        ...pending,
+        remainingQuantity: remaining,
+        referencePriceOverride: undefined,
+      }
     : null;
 }
 
@@ -366,6 +413,29 @@ export function runPaperTradingAgentCycle(
     }
 
     fillPendingOrder(state, candle, config);
+
+    let protectiveExitTriggered = false;
+    if (state.position && !state.pendingOrder && config.protectiveOrders &&
+        candle.timestamp > state.position.entryTimestamp) {
+      const protective = resolveLongProtectiveExit(state.position.entryPrice, candle, config.protectiveOrders);
+      if (protective) {
+        protectiveExitTriggered = true;
+        const targetPrice = config.protectiveOrders.takeProfitPct !== undefined
+          ? state.position.entryPrice * (1 + config.protectiveOrders.takeProfitPct / 100)
+          : undefined;
+        state.pendingOrder = {
+          side: "sell",
+          remainingQuantity: state.position.quantity,
+          submittedAt: candle.timestamp - 1,
+          reason: protective.reason,
+          kind: protective.reason === "take-profit" ? "limit" : "market",
+          ...(protective.reason === "take-profit" && targetPrice !== undefined
+            ? { limitPrice: targetPrice } : {}),
+          referencePriceOverride: protective.referencePrice,
+        };
+        fillPendingOrder(state, candle, config);
+      }
+    }
     recordEquity(state, candle);
 
     if (state.pendingOrder?.side === "buy" && signal === "sell") {
@@ -374,7 +444,7 @@ export function runPaperTradingAgentCycle(
       state.pendingOrder = null;
     }
 
-    if (!state.pendingOrder && signal === "buy" && !state.position) {
+    if (!protectiveExitTriggered && !state.pendingOrder && signal === "buy" && !state.position) {
       const dailyLoss = (state.dailyStartEquity - state.lastEquity) / state.dailyStartEquity;
       if (dailyLoss < config.maxDailyLossFraction) {
         const budget = Math.min(state.cash, state.lastEquity * config.allocationFraction);

@@ -100,6 +100,62 @@ describe("persistent paper trading agent", () => {
     expect(next.position).toBeNull();
   });
 
+  it("executes stop-loss exits at the trigger with adverse market costs", () => {
+    const data = candles([100, 100, 100, 90, 90], [10_000, 10_000, 10_000, 10_000, 10_000]);
+    const state = createPaperTradingAgentState("test-stop", 10_000, data[0].timestamp);
+    const next = runPaperTradingAgentCycle(state, data, (history) =>
+      history.length === 2 ? "buy" : "hold", {
+        ...config,
+        protectiveOrders: { stopLossPct: 5 },
+      });
+    expect(next.position).toBeNull();
+    expect(next.completedTrades).toBe(1);
+    expect(next.trades[0].exitReason).toBe("stop-loss");
+    expect(next.fills.at(-1)?.totalAdverseBps).toBeGreaterThan(0);
+  });
+
+  it("executes take-profit as a limit order and preserves opening price improvement", () => {
+    const data = candles([100, 100, 100, 110, 111], [10_000, 10_000, 10_000, 10_000, 10_000]);
+    const state = createPaperTradingAgentState("test-target", 10_000, data[0].timestamp);
+    const next = runPaperTradingAgentCycle(state, data, (history) =>
+      history.length === 2 ? "buy" : "hold", {
+        ...config,
+        protectiveOrders: { takeProfitPct: 5 },
+      });
+    expect(next.position).toBeNull();
+    expect(next.completedTrades).toBe(1);
+    expect(next.trades[0].exitReason).toBe("take-profit");
+    expect(next.trades[0].exitPrice).toBeCloseTo(110, 8);
+    expect(next.fills.at(-1)?.totalAdverseBps).toBe(0);
+  });
+
+  it("chooses the adverse stop when stop and target are both touched in one candle", () => {
+    const data = candles([100, 100, 100, 100, 100], [10_000, 10_000, 10_000, 10_000, 10_000]);
+    data[3] = { ...data[3], high: 112, low: 88 };
+    const state = createPaperTradingAgentState("test-collision", 10_000, data[0].timestamp);
+    const next = runPaperTradingAgentCycle(state, data, (history) =>
+      history.length === 2 ? "buy" : "hold", {
+        ...config,
+        protectiveOrders: { stopLossPct: 5, takeProfitPct: 5 },
+      });
+    expect(next.position).toBeNull();
+    expect(next.trades[0].exitReason).toBe("stop-loss");
+  });
+
+  it("keeps a partial take-profit limit pending until a later candle reaches its limit", () => {
+    const data = candles([100, 100, 100, 106, 104, 106], [10_000, 10_000, 10_000, 1, 10_000, 10_000]);
+    const state = createPaperTradingAgentState("test-target-partial", 10_000, data[0].timestamp);
+    const next = runPaperTradingAgentCycle(state, data, (history) =>
+      history.length === 2 ? "buy" : "hold", {
+        ...config,
+        protectiveOrders: { takeProfitPct: 5 },
+      });
+    expect(next.position).toBeNull();
+    expect(next.pendingOrder).toBeNull();
+    expect(next.completedTrades).toBe(1);
+    expect(next.fills.some((fill) => fill.status === "partial" && fill.side === "sell")).toBe(true);
+  });
+
   it("rejects a persisted state without a configuration fingerprint", () => {
     const data = candles([100, 100, 101]);
     const state = createPaperTradingAgentState("test-fingerprint", 10_000, data[0].timestamp);

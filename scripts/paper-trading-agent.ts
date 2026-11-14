@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fetchBinanceHistory } from "../src/adapters/binance-public";
 import { createBaselineResearchCandidates } from "../src/strategies/baseline-research-candidates";
+import type { ProtectiveExitConfig } from "../src/domain/protective-orders";
 import {
   createPaperTradingAgentState,
   runPaperTradingAgentCycle,
@@ -25,6 +26,7 @@ interface PaperTradingConfig {
   approvedBy: string | null;
   approvalRationale: string | null;
   strategy: PaperStrategyConfig | null;
+  protectiveOrders?: ProtectiveExitConfig | null;
   risk: {
     initialCapitalUsdt: number;
     allocationFraction: number;
@@ -125,6 +127,7 @@ async function main(): Promise<void> {
   const executionConfig: PaperTradingAgentConfig = {
     allocationFraction: config.risk.allocationFraction,
     maxDailyLossFraction: config.risk.maxDailyLossFraction,
+    protectiveOrders: config.protectiveOrders ?? undefined,
     executionModel: {
       feeRate: config.risk.feeRate,
       baseSlippageBps: config.risk.baseSlippageBps,
@@ -141,6 +144,7 @@ async function main(): Promise<void> {
     approvedBy: config.approvedBy,
     approvalRationale: config.approvalRationale,
     strategy: config.strategy,
+    protectiveOrders: config.protectiveOrders ?? null,
     risk: config.risk,
   })).digest("hex");
   let state: PaperTradingAgentState;
@@ -198,7 +202,7 @@ async function main(): Promise<void> {
       partialFillEvents: nextState.totalPartialFillEvents,
       pendingOrder: nextState.pendingOrder,
     },
-    assumptions: config.risk,
+    assumptions: { ...config.risk, protectiveOrders: config.protectiveOrders ?? null },
     safeguards: {
       paperOnly: true,
       liveTrading: false,
