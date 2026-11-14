@@ -6,7 +6,7 @@ Updated: 2026-11-14
 
 - Stage 2 Decision Workbench is connected to live public market refresh, deterministic Donchian candidate generation, human session approval, candidate-relative evidence, hard risk/economics gates and append-only decision journalling.
 - Stage 3 Shadow Outcomes is connected. Eligible candidate decisions register an immutable shadow plan at the original decision timestamp. Manual outcome collection fetches closed Binance 1H candles, checks historical continuity, simulates the frozen plan and appends content-addressed outcome events.
-- Stage 4 v1 Causal NO_SETUP Diagnostics is connected. Eligible `DONCHIAN_TRIGGER_ABSENT` records freeze their exact initial channel window and strategy parameters at decision time. Manual replay checks only the first `expiryBars` closed 1H candles and journals the first Donchian breakout. This is explicitly a Donchian-only diagnostic: it does not replay higher-timeframe filters, create a trade plan or enter shadow performance cohorts.
+- Stage 4 v1 Causal NO_SETUP Diagnostics is connected. A follow-up now journals a terminal `no_setup_replay_completed` event only after the entire frozen expiry window has been observed without a breakout; partial windows are reported as pending and remain eligible for later evaluation. Eligible `DONCHIAN_TRIGGER_ABSENT` records freeze their exact initial channel window and strategy parameters at decision time. Manual replay checks only the first `expiryBars` closed 1H candles and journals the first Donchian breakout. This is explicitly a Donchian-only diagnostic: it does not replay higher-timeframe filters, create a trade plan or enter shadow performance cohorts.
 - The horizon-proof candle for Stage 3 contributes only its timestamp to maturity; its OHLCV is excluded from the simulated path. Incomplete, ambiguous, unresolved or data-degraded observations are excluded from Stage 3 learning cohorts.
 - The mobile workspace includes **Decision workbench**, **Decision journal** and **Shadow outcomes**, with a separate manual NO_SETUP replay control.
 - Latest verified CI at commit `8a7597868a1f7ab2ebc20b1674c30da236a7dec1`: 72 test files and 475 tests passed; TypeScript checks, dependency audit (0 vulnerabilities) and production build passed.
@@ -14,7 +14,7 @@ Updated: 2026-11-14
 - CI run: https://github.com/ImNotBrook/NEXUS/actions/runs/43566974309
 - Deployment run: https://github.com/ImNotBrook/NEXUS/actions/runs/43566974427
 - No paid plans, billing activation, exchange credentials or live-order adapter were added.
-- Domain tests cover candidate generation -> decision journal -> decision-time plan registration -> shadow replay -> maturity-gated learning, plus NO_SETUP frozen registration -> as-of replay -> first-trigger event and idempotent re-evaluation. Remaining verification: exercise the deployed Shadow outcomes and NO_SETUP replay screens on the Galaxy A55; the physical device workflow has not been independently operated by the development agent.
+- Domain tests cover candidate generation -> decision journal -> decision-time plan registration -> shadow replay -> maturity-gated learning, plus NO_SETUP frozen registration -> as-of replay -> first-trigger event, pending-window handling, terminal no-trigger journalling and idempotent re-evaluation. Remaining verification: exercise the deployed Shadow outcomes and NO_SETUP replay screens on the Galaxy A55; the physical device workflow has not been independently operated by the development agent.
 
 
 ## Completed
