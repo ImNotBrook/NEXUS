@@ -11,10 +11,12 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+let helpPopoverSequence = 0;
+
 function attachHelp(button: HTMLButtonElement, explanation: string, host: HTMLElement): void {
   const bubble = element("div", "help-popover", explanation);
   bubble.hidden = true;
-  bubble.id = `help-${Math.random().toString(36).slice(2)}`;
+  bubble.id = `help-${++helpPopoverSequence}`;
   button.setAttribute("aria-expanded", "false");
   button.setAttribute("aria-controls", bubble.id);
   button.addEventListener("click", () => {
