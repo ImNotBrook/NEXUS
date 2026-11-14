@@ -36,7 +36,7 @@ jobs:
 
       - name: Install existing project dependencies
         working-directory: source
-        run: npm ci
+        run: npm install
 
       - name: Compile the typed public-data adapters
         working-directory: source
