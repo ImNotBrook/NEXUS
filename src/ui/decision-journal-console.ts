@@ -52,11 +52,11 @@ function renderRecord(record: DecisionJournalRecord): HTMLElement {
   return article;
 }
 
-interface JournalBackupPayload {
+interface JournalBackupPayload extends Record<string, unknown> {
   records: DecisionJournalRecord[];
   events: DecisionJournalEvent[];
 }
-interface PaperBackupPayload {
+interface PaperBackupPayload extends Record<string, unknown> {
   account: PaperAccount;
 }
 
