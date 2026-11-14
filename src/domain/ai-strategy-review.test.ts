@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
+import type { AiStrategyProposal } from "./ai-strategy-proposals";
 import {
   createHumanReviewedStrategyDefinition,
   parseAutomatedResearchAiArtifact,
 } from "./ai-strategy-review";
 
-const proposal = {
+const proposal: AiStrategyProposal = {
   family: "sma-crossover",
   parameters: { fastPeriod: 8, slowPeriod: 24 },
   rationale: "Tests a faster trend trigger against a slower baseline.",
