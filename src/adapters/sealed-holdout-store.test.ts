@@ -96,7 +96,8 @@ describe("SealedHoldoutStore", () => {
   it("keeps an incomplete reservation visible and validates malformed manifests", async () => {
     const store = new SealedHoldoutStore(memoryIndexedDb());
     await store.reserve(seal, 10);
-    expect(await store.list()).toMatchObject([{ status: "sealed", report: undefined }]);
+    expect(await store.list()).toMatchObject([{ status: "sealed" }]);
+    expect((await store.list())[0]).not.toHaveProperty("report");
     await expect(store.reserve({ ...seal, holdoutBars: 0 }, 20)).rejects.toThrow();
     await expect(store.list(0)).rejects.toThrow();
   });
