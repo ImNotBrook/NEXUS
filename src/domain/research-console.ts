@@ -9,6 +9,7 @@ import { runNestedWalkForwardSelection, type NestedWalkForwardResult, type Neste
 import { NestedResearchRunStore } from "../adapters/nested-research-run-store";
 import { prepareSealedHoldout, evaluateSealedHoldout } from "./sealed-holdout";
 import { SealedHoldoutStore } from "../adapters/sealed-holdout-store";
+import { buildStatisticalRobustnessReport } from "./statistical-robustness";
 
 const INTERVAL_MS: Partial<Record<BinanceInterval, number>> = {
   "1m": 60_000, "3m": 180_000, "5m": 300_000, "15m": 900_000,
@@ -185,6 +186,26 @@ function renderReport(target: HTMLElement, report: ResearchBatchResult): void {
       metric("TAKE-PROFIT EXITS", String(candidate.evaluation.folds.reduce((sum, fold) => sum + fold.result.trades.filter((trade) => trade.exitReason === "take-profit").length, 0))),
     );
     card.append(stats);
+
+    const robustness = buildStatisticalRobustnessReport(candidate.evaluation, report.candidateResults.length);
+    const robustnessPanel = el("section", "research-result");
+    robustnessPanel.append(el("h4", "", "Statistical robustness · " + robustness.status.replaceAll("_", " ")));
+    robustnessPanel.append(el("p", "small", robustness.interpretation));
+    const robustnessStats = el("div", "research-summary");
+    robustnessStats.append(
+      metric("WIN-RATE 95% WILSON CI", robustness.winRateConfidence95
+        ? robustness.winRateConfidence95.lowerPct.toFixed(1) + "–" + robustness.winRateConfidence95.upperPct.toFixed(1) + "%"
+        : "—"),
+      metric("EXPECTANCY 95% BLOCK CI", robustness.expectancyBlockBootstrap95
+        ? robustness.expectancyBlockBootstrap95.lower.toFixed(2) + "–" + robustness.expectancyBlockBootstrap95.upper.toFixed(2) + " USDT"
+        : "Not enough trades"),
+      metric("MEDIAN FOLD RETURN", robustness.medianFoldReturnPct === null ? "—" : robustness.medianFoldReturnPct.toFixed(2) + "%"),
+      metric("WORST FOLD RETURN", robustness.worstFoldReturnPct === null ? "—" : robustness.worstFoldReturnPct.toFixed(2) + "%"),
+      metric("UNRESOLVED FOLDS", String(robustness.foldsWithUnresolvedExposure)),
+    );
+    robustnessPanel.append(robustnessStats);
+    for (const warning of robustness.warnings) robustnessPanel.append(el("p", "small", "• " + warning));
+    card.append(robustnessPanel);
 
     const regimes = el("div", "regime-results");
     regimes.append(el("h4", "", "Performance by market regime"));
