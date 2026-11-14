@@ -20,6 +20,7 @@ function memoryIndexedDb(): IDBFactory {
         if (!rows) throw new Error("Missing object store");
         return {
           add: (value: Record<string, unknown>) => {
+            transaction.hasPendingWrite = true;
             const keyPath = name === "decisionJournal" ? "decisionId" : "eventId";
             const key = String(value[keyPath]);
             const request: Record<string, unknown> = {};
@@ -43,7 +44,7 @@ function memoryIndexedDb(): IDBFactory {
             queueMicrotask(() => {
               request.result = rows.get(key);
               (request.onsuccess as (() => void) | undefined)?.();
-              if (!aborted) (transaction.oncomplete as (() => void) | undefined)?.();
+              if (!aborted && !transaction.hasPendingWrite) (transaction.oncomplete as (() => void) | undefined)?.();
             });
             return request;
           },
@@ -172,7 +173,7 @@ describe("DecisionJournalStore", () => {
   it("rejects events timestamped before their decision", async () => {
     const store = new DecisionJournalStore(memoryIndexedDb());
     await store.append(record);
-    await expect(store.appendEvent({ ...event, occurredAt: record.decisionAt - 1 })).rejects.toThrow(/before/i);
+    await expect(store.appendEvent({ ...event, occurredAt: record.decisionAt - 1 })).rejects.toThrow(/precede/i);
   });
 
 });
