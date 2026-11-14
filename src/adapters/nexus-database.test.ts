@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { openNexusDatabase } from "./nexus-database";
 
-function versionedMemoryIndexedDb(): IDBFactory {
-  const stores = new Set<string>();
-  let version = 0;
+function versionedMemoryIndexedDb(initialVersion = 0, initialStores: string[] = []): IDBFactory {
+  const stores = new Set<string>(initialStores);
+  let version = initialVersion;
   const database = {
     objectStoreNames: { contains: (name: string) => stores.has(name) },
     createObjectStore: (name: string) => { stores.add(name); return { createIndex: () => undefined }; },
@@ -46,6 +46,20 @@ describe("NEXUS IndexedDB schema", () => {
     expect(database.objectStoreNames.contains("derivativesObservations")).toBe(true);
     expect(database.objectStoreNames.contains("decisionJournal")).toBe(true);
     expect(database.objectStoreNames.contains("decisionJournalEvents")).toBe(true);
+    database.close();
+  });
+
+  it("upgrades an existing v11 database by adding the strategy library without dropping existing stores", async () => {
+    const factory = versionedMemoryIndexedDb(11, [
+      "paperAccounts", "marketSnapshots", "researchRuns", "nestedResearchRuns",
+      "strategyConfigLedger", "decisionJournal", "decisionJournalEvents",
+    ]);
+    const database = await openNexusDatabase(factory);
+    expect(database.objectStoreNames.contains("strategyLibrary")).toBe(true);
+    expect(database.objectStoreNames.contains("paperAccounts")).toBe(true);
+    expect(database.objectStoreNames.contains("researchRuns")).toBe(true);
+    expect(database.objectStoreNames.contains("strategyConfigLedger")).toBe(true);
+    expect(database.objectStoreNames.contains("decisionJournal")).toBe(true);
     database.close();
   });
 
