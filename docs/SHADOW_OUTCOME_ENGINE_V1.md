@@ -29,7 +29,8 @@ Candles must be strictly ordered, valid OHLC and use **base-asset volume**. Cand
 - Partial fills are carried forward. A triggered stop remains a market exit; a target remains a limit exit.
 - Residual entry quantity is cancelled after an exit trigger or when the entry expires.
 - A market entry that gaps outside the original stop/target corridor is invalidated rather than filled.
-- Stops and targets are inactive on the entry candle because OHLC cannot establish the intrabar sequence after an entry fill.
+- Market entries execute at the candle open, so subsequent OHLC movement in that candle can trigger protective levels.
+- Limit entries can fill intrabar. If a stop or target also trades in that candle, the outcome is marked ambiguous; otherwise that candle is excluded from MFE/MAE and exit evaluation because the fill time is unknown.
 - If stop and target are both first touched intrabar and the path is unknowable, the plan either resolves adverse stop-first or returns ambiguous, as declared by the plan.
 
 ## Output semantics
@@ -45,7 +46,7 @@ Candles must be strictly ordered, valid OHLC and use **base-asset volume**. Cand
 
 horizonReached indicates whether the supplied candles reach or pass the declared horizon. An open outcome at a reached horizon is unresolved and must not enter mature-outcome calibration. Version 1 does not fabricate a closing fill at the horizon.
 
-Net P&L is realised only on exited quantity and includes allocated entry fees plus exit fees. Entry/exit fees are also exposed separately. MFE/MAE are reported in basis points relative to the weighted average entry price, using post-entry candles only.
+Net P&L is realised only on exited quantity and includes allocated entry fees plus exit fees. Entry/exit fees are also exposed separately. MFE/MAE are reported in basis points relative to the weighted average entry price. For market entries, the entry candle's high/low is post-open and is included; for limit entries, the fill candle is excluded because its intrabar fill time is unknown.
 
 ## Explicit v1 limitations
 
