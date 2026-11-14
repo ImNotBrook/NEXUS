@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPaperAccount, executePaperMarketOrder, markPaperAccount } from "./paper-broker";
+import { createPaperAccount, executePaperMarketOrder, markPaperAccount, normalizePaperAccountSnapshot } from "./paper-broker";
 
 describe("paper broker", () => {
   const timestamp = Date.UTC(2026, 0, 1);
@@ -8,6 +8,19 @@ describe("paper broker", () => {
     expect(account.cash).toBe(10_000);
     expect(account.initialCash).toBe(10_000);
     expect(account.fills).toHaveLength(0);
+  });
+
+  it("normalizes a legacy paper backup that predates open-order persistence", () => {
+    const legacy = { ...createPaperAccount({}, timestamp) } as Record<string, unknown>;
+    delete legacy.openOrders;
+    const normalized = normalizePaperAccountSnapshot(legacy);
+    expect(normalized.openOrders).toEqual([]);
+  });
+
+  it("does not repair invalid legacy positions or fills while normalizing", () => {
+    const legacy = { ...createPaperAccount({}, timestamp), positions: null };
+    delete (legacy as unknown as Record<string, unknown>).openOrders;
+    expect(() => normalizePaperAccountSnapshot(legacy)).toThrow(/positions, fills or open orders/i);
   });
 
   it("applies adverse slippage and fees to a buy fill", () => {
