@@ -1,5 +1,5 @@
-import type { DecisionGate, DecisionResult } from "./decision-engine";
-import type { DecisionJournalRecord, DecisionJournalVersions } from "./decision-journal";
+import type { DecisionGate } from "./decision-engine";
+import type { DecisionJournalVersions } from "./decision-journal";
 import {
   evaluateAndJournalDecision,
   type DecisionJournalWriter,
