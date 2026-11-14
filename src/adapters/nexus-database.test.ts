@@ -40,6 +40,7 @@ describe("NEXUS IndexedDB schema", () => {
     expect(database.objectStoreNames.contains("researchRuns")).toBe(true);
     expect(database.objectStoreNames.contains("nestedResearchRuns")).toBe(true);
     expect(database.objectStoreNames.contains("strategyConfigLedger")).toBe(true);
+    expect(database.objectStoreNames.contains("strategyLibrary")).toBe(true);
     expect(database.objectStoreNames.contains("researchHypotheses")).toBe(true);
     expect(database.objectStoreNames.contains("skillRegistry")).toBe(true);
     expect(database.objectStoreNames.contains("derivativesObservations")).toBe(true);
@@ -60,6 +61,7 @@ describe("NEXUS IndexedDB schema", () => {
     expect(second.objectStoreNames.contains("researchRuns")).toBe(true);
     expect(second.objectStoreNames.contains("nestedResearchRuns")).toBe(true);
     expect(second.objectStoreNames.contains("strategyConfigLedger")).toBe(true);
+    expect(second.objectStoreNames.contains("strategyLibrary")).toBe(true);
     expect(second.objectStoreNames.contains("researchHypotheses")).toBe(true);
     expect(second.objectStoreNames.contains("skillRegistry")).toBe(true);
     expect(second.objectStoreNames.contains("derivativesObservations")).toBe(true);
