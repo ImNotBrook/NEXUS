@@ -63,6 +63,27 @@ describe("evaluateDecision", () => {
     expect(result.reasonCodes).toContain("NO_CANDIDATE");
   });
 
+  it("waits when candidate generation is blocked by market data quality", () => {
+    const result = evaluateDecision(input({
+      candidate: null,
+      marketDataStatus: "fail",
+      candidateAbsenceStatus: "WAIT",
+      candidateAbsenceReasonCodes: ["MARKET_DATA_NOT_READY"],
+    }));
+    expect(result.status).toBe("WAIT");
+    expect(result.reasonCodes).toContain("MARKET_DATA_NOT_READY");
+  });
+
+  it("preserves strategy governance rejection when no candidate is generated", () => {
+    const result = evaluateDecision(input({
+      candidate: null,
+      candidateAbsenceStatus: "REJECT",
+      candidateAbsenceReasonCodes: ["STRATEGY_NOT_APPROVED"],
+    }));
+    expect(result.status).toBe("REJECT");
+    expect(result.reasonCodes).toContain("STRATEGY_NOT_APPROVED");
+  });
+
   it("never allows strong evidence to override a failed risk gate", () => {
     const result = evaluateDecision(input({
       riskGate: { eligible: false, reasonCodes: ["MAX_DRAWDOWN_REACHED"] },
