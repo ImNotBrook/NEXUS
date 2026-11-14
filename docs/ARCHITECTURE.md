@@ -19,8 +19,10 @@ A static, installable PWA is the first delivery target. It can be hosted on a fr
 13. **Qualification Guard** — independently computed evidence gate; review eligibility is not execution permission.
 14. **Persistence** — browser-local IndexedDB initially; export/import for user-controlled backups.
 
-## Trust boundaries and data flow
+## Trust boundaries and target data flow
 Public market data -> schema validation -> normalized candles -> causal market intelligence snapshot -> evidence normalization/challenge -> deterministic EDE and risk gates -> paper broker (ENTER only) -> immutable paper ledger and decision journal -> shadow outcome evaluation -> maturity-aware learning reports.
+
+This is the target end-to-end flow. A module existing and passing unit tests does not mean it is already wired into the live workspace or paper workflow.
 
 AI research and analyst agents are advisory. AI output is untrusted input and cannot write directly to risk policy, qualification evidence, account ledger or execution permissions. Agents return structured evidence and arguments; they do not vote or execute. Proposed changes require tests, versioning and human approval.
 
@@ -53,5 +55,10 @@ The first version should be deployable as static files using a genuinely free ti
 - Deterministic long-only backtest, bounded Binance historical pagination, walk-forward folds and an out-of-sample fold runner: implemented; strategy optimisation and untouched final holdout remain pending.
 - BTC/USDT paper broker with fee/slippage and risk controls: implemented; no live execution adapter or credentials.
 - GitHub Pages deployment and CI workflows: implemented and latest main-branch runs verified successful at commit 15c1ef4.
-- Market Intelligence, EDE, Decision Journal, Shadow Outcome Engine and Learning & Validation: specifications committed on feature branch; runtime implementation and tests pending.
+- Deterministic Market Intelligence v1: implemented as a tested domain module. It builds 1D/4H/1H/15M causal snapshots, preserves instrument/volume units, reports trend/volatility/alignment/phase and explicit missing liquidity/positioning dimensions. It is not yet wired into the workspace refresh flow.
+- EDE: deterministic decision kernel and journalled decision pipeline implemented and tested as domain modules; no automatic candidate generator or live workspace decision flow is connected yet.
+- Decision Journal: append-only IndexedDB store and journalled decision pipeline implemented and tested; export/import backup and workspace integration remain pending.
+- Shadow Outcome Engine v1: tested spot-long simulator with explicit costs, partial fills, ambiguity and horizon semantics; journal integration is implemented. No paper-account or exchange order mutation is possible.
+- Learning & Validation v1: tested maturity-gated descriptive cohorts for ENTER/WAIT/REJECT, simulation-version separation and no-fill accounting. No automatic learning, parameter changes, calibrated probabilities, decision-quality labels or UI integration.
+- Market structure/SMC causal event engine, derivatives-aware shadow simulation, NO_SETUP missed-opportunity detector, regime challenger models and end-to-end workspace wiring remain pending.
 - AI research/skill learning remains proposal-based: generated research is untrusted, changes to risk policy or permissions require explicit approval and auditable versioning.
