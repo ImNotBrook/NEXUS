@@ -67,3 +67,8 @@ Historical collection currently uses one public source (Binance). A continuous s
 - A replay that observes all `expiryBars` closed candles without a breakout appends one immutable `no_setup_replay_completed` event with detector version, evaluation timestamp, observed bar count and explicit Donchian-only scope.
 - Subsequent manual runs recognise the terminal completion event and do not fetch or append the same replay again. A detected first breakout remains represented by `missed_opportunity_detected` and takes precedence.
 - This terminal event means only that the Donchian-only detector found no breakout in its frozen window; it does not prove that the full strategy was invalid or unprofitable.
+
+
+## Local backup and restore
+
+See [LOCAL_BACKUPS.md](LOCAL_BACKUPS.md) for the complete backup/restore procedure and safety rules. The Decision journal page exports every decision record and linked event in one backup. Paper-account state is exported separately. Both use versioned SHA-256 checksummed JSON envelopes. Journal restore is additive and atomic across the decision and event stores; conflicting IDs block the operation. Paper restore can replace only an untouched starter account; an account with fills, open orders, positions, realised P&L or fees is protected.
