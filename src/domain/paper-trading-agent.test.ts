@@ -100,6 +100,13 @@ describe("persistent paper trading agent", () => {
     expect(next.position).toBeNull();
   });
 
+  it("rejects a persisted state without a configuration fingerprint", () => {
+    const data = candles([100, 100, 101]);
+    const state = createPaperTradingAgentState("test-fingerprint", 10_000, data[0].timestamp);
+    const invalid = { ...state, configFingerprint: "" };
+    expect(() => runPaperTradingAgentCycle(invalid, data, () => "hold", config)).toThrow("state failed validation");
+  });
+
   it("fails closed if persisted checkpoint is outside available candle history", () => {
     const data = candles([100, 100, 101]);
     const state = createPaperTradingAgentState("test-history", 10_000, data[0].timestamp - DAY * 10);
