@@ -1,4 +1,5 @@
 import type { DecisionGate } from "./decision-engine";
+import { assessCandidateGates, type CandidateGatePolicy } from "./decision-gates";
 import type { DecisionJournalVersions } from "./decision-journal";
 import {
   evaluateAndJournalDecision,
@@ -25,8 +26,7 @@ export interface DecisionWorkbenchInput {
   crossFeedStatus: CrossFeedStatus;
   strategy: ApprovedDonchianStrategy;
   evaluationTime: number;
-  riskGate: DecisionGate;
-  economicsGate: DecisionGate;
+  gatePolicy: Omit<CandidateGatePolicy, "candleVolume">;
   minimumSupportingFamilies: number;
   versions: DecisionJournalVersions;
   clockSource: string;
@@ -76,14 +76,32 @@ export async function runDecisionWorkbench(
   };
 
   if (generation.candidate) {
+    if (input.gatePolicy.instrumentCategory !== input.snapshot.instrumentCategory) {
+      throw new TypeError("Risk policy instrument category must match the market snapshot");
+    }
+    const latestCandle = input.candles[input.candles.length - 1];
+    if (!latestCandle) throw new RangeError("A candidate cannot be gated without a latest completed candle");
+    const gates = assessCandidateGates(generation.candidate, {
+      ...input.gatePolicy,
+      candleVolume: latestCandle.volume,
+    });
+    const thesis = {
+      ...generation.thesis,
+      alternatives: [
+        ...generation.thesis.alternatives,
+        "Human strategy approval by " + generation.strategyRef.approval!.approvedBy +
+          " at " + generation.strategyRef.approval!.approvedAt + ": " +
+          generation.strategyRef.approval!.rationale,
+      ],
+    };
     const assessment = await evaluateMarketCandidateAndJournal({
       snapshot: input.snapshot,
       candidate: generation.candidate,
       crossFeedStatus: input.crossFeedStatus,
-      riskGate: input.riskGate,
-      economicsGate: input.economicsGate,
+      riskGate: gates.riskGate,
+      economicsGate: gates.economicsGate,
       minimumSupportingFamilies: input.minimumSupportingFamilies,
-      thesis: generation.thesis,
+      thesis,
       versions,
       clockSource: input.clockSource,
       journal: input.journal,
@@ -106,6 +124,11 @@ export async function runDecisionWorkbench(
     alternatives: [
       ...generation.thesis.alternatives,
       ...generation.reasonCodes.map((reason) => "Candidate generator: " + reason),
+      ...(generation.strategyRef.approval
+        ? ["Human strategy approval by " + generation.strategyRef.approval.approvedBy +
+            " at " + generation.strategyRef.approval.approvedAt + ": " +
+            generation.strategyRef.approval.rationale]
+        : []),
     ],
     invalidation: [...generation.thesis.invalidation],
   };
@@ -116,8 +139,8 @@ export async function runDecisionWorkbench(
       candidateAbsenceStatus: disposition,
       candidateAbsenceReasonCodes: generation.reasonCodes,
       marketDataStatus: dataStatus,
-      riskGate: structuredClone(input.riskGate),
-      economicsGate: structuredClone(input.economicsGate),
+      riskGate: { eligible: true, reasonCodes: [] },
+      economicsGate: { eligible: true, reasonCodes: [] },
       minimumSupportingFamilies: input.minimumSupportingFamilies,
       evidence: [],
     },
