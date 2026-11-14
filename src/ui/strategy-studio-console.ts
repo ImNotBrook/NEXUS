@@ -1,6 +1,6 @@
 import { StrategyLibraryStore, type StoredStrategyDefinition } from "../adapters/strategy-library-store";
 import { createLocalBackup, parseLocalBackup, type LocalBackupEnvelope } from "../domain/local-backup";
-import { createHumanReviewedStrategyDefinition, parseAutomatedResearchAiArtifact } from "../domain/ai-strategy-review";
+import { createHumanReviewedComposedStrategyDefinition, createHumanReviewedStrategyDefinition, parseAutomatedResearchAiArtifact } from "../domain/ai-strategy-review";
 import {
   STRATEGY_TEMPLATE_CATALOG,
   createStrategyDefinition,
@@ -138,6 +138,46 @@ export function mountStrategyStudioConsole(root: HTMLElement): void {
           }
         });
         card.append(heading, detail, rationale, approval, result);
+        aiProposalList.append(card);
+      });
+      parsed.composedStrategies.forEach((specification, index) => {
+        const card = el("article", "research-result");
+        const trigger = specification.entry.trigger;
+        const triggerText = trigger.type === "sma_cross"
+          ? "SMA cross " + trigger.fastPeriod + "/" + trigger.slowPeriod
+          : trigger.type === "rsi_recovery"
+            ? "RSI " + trigger.period + " recovery above " + trigger.oversold
+            : "Donchian breakout " + trigger.period;
+        const confirmationText = specification.entry.confirmations.map((filter) =>
+          "EMA alignment " + filter.fastPeriod + "/" + filter.slowPeriod,
+        ).join(" AND ") || "No additional confirmation";
+        const exit = specification.exit.type === "opposite_sma_cross"
+          ? "Opposite SMA cross " + specification.exit.fastPeriod + "/" + specification.exit.slowPeriod
+          : specification.exit.type === "rsi_overbought"
+            ? "RSI " + specification.exit.period + " >= " + specification.exit.threshold
+            : "Close below SMA " + specification.exit.period;
+        const heading = el("h4", "", "AI-composed strategy " + (index + 1) + " · " + specification.name);
+        const details = el("p", "small", "Entry: " + triggerText + " · " + confirmationText + " · Exit: " + exit + " · Regime: " + specification.regimeScope);
+        const hypothesis = el("p", "small", "Hypothesis: " + specification.marketHypothesis);
+        const invalidation = el("p", "small", "Invalidation: " + specification.invalidation);
+        const approval = el("button", "primary-button", "Approve and save complete strategy");
+        approval.type = "button";
+        const result = el("p", "small", "Not approved · no strategy has been saved.");
+        result.setAttribute("role", "status");
+        approval.addEventListener("click", async () => {
+          approval.disabled = true;
+          try {
+            const definition = createHumanReviewedComposedStrategyDefinition(specification, Date.now(), parsed);
+            const saved = await store.save(definition as StrategyDefinition);
+            result.textContent = "Human-approved and saved as " + saved.id + ". Eligible for historical research only; paper execution still requires separate qualification and approval.";
+            approval.textContent = "Approved";
+            await refreshLibrary();
+          } catch (error) {
+            result.textContent = error instanceof Error ? "Approval/save refused: " + error.message : "Approval/save refused";
+            approval.disabled = false;
+          }
+        });
+        card.append(heading, details, hypothesis, invalidation, approval, result);
         aiProposalList.append(card);
       });
     } catch (error) {
