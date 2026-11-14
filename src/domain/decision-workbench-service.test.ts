@@ -97,6 +97,7 @@ describe("runDecisionWorkbench integration", () => {
     expect(result.assessment.record.candidate).toBeNull();
     expect(result.shadowPlan).toMatchObject({ status: "not_simulatable", reasonCode: "NO_CANDIDATE" });
     expect(result.shadowPlanRegistered).toBe(false);
+    expect(result.noSetupReplayRegistered).toBe(true);
   });
 
   it("lets the deterministic risk gate reject a generated candidate and journals it", async () => {
