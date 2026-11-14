@@ -60,3 +60,25 @@ The cache is device-local, not a cloud backup. Browser data clearing or eviction
 - Bollinger Bands: trailing SMA plus/minus the configured number of population standard deviations.
 
 All series preserve input length and use null during warm-up. Values are deterministic and do not inspect future observations.
+
+
+## Public derivatives observations
+
+The Bybit adapter adds separate, provider-stamped observations for:
+- Funding rate history: settlement rate and settlement timestamp.
+- Open interest: timestamped size, preserving the unit convention. Bybit documents linear open interest in base-asset units and inverse open interest in quote-currency units.
+- Long/short account ratio: buy-side and sell-side account shares. These are account-holder proportions, not notional position sizes.
+
+The adapter uses public V5 endpoints and requires no API key:
+- `/v5/market/funding/history` (maximum 200 records per request).
+- `/v5/market/open-interest` (maximum 200 records per request; supports a cursor).
+- `/v5/market/account-ratio` (maximum 500 records per request; supports a cursor).
+
+Funding history requires `startTime` and `endTime` together if either is supplied. Each endpoint has its own interval and instrument semantics. The adapter sorts observations chronologically, rejects duplicate timestamps and malformed values, and surfaces HTTP/API errors. It does not retry indefinitely or silently synthesize missing observations.
+
+This first adapter returns one bounded page. Historical collection, cursor checkpointing and persistence are separate follow-up work; no scheduled derivatives collector is enabled yet. Funding rates must be interpreted per instrument's actual settlement interval. Open-interest values from different contract categories must never be compared without unit conversion. Account ratios describe the exchange's account population, not market-wide capital or notional exposure.
+
+Official references:
+- [Bybit funding history](https://bybit-exchange.github.io/docs/v5/market/history-fund-rate)
+- [Bybit open interest](https://bybit-exchange.github.io/docs/v5/market/open-interest)
+- [Bybit long/short account ratio](https://bybit-exchange.github.io/docs/v5/market/long-short-ratio)
