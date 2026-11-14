@@ -189,7 +189,7 @@ export async function loadMarketIntelligence(
     });
     const snapshot: MarketSnapshot = {
       ...rawSnapshot,
-      candles: closedCandles(rawSnapshot.candles, definition.intervalMs, input.evaluationTime),
+      candles: closedCandles(rawSnapshot.candles, definition.intervalMs, input.evaluationTime).slice(-historyLimit),
     };
     const quality = assessFrameQuality(snapshot, definition.intervalMs, input.evaluationTime);
     return { timeframe, snapshot, quality };
@@ -228,7 +228,7 @@ export async function loadMarketIntelligence(
           interval: "1h",
           limit: historyLimit,
         });
-        const secondaryClosed = closedCandles(rawSecondary, intervalMs, input.evaluationTime);
+        const secondaryClosed = closedCandles(rawSecondary, intervalMs, input.evaluationTime).slice(-historyLimit);
         const primaryClosed = closedCandles(primaryHourly.candles, intervalMs, input.evaluationTime);
         const secondarySnapshot: MarketSnapshot = {
           symbol: input.symbol,
