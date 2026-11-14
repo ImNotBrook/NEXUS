@@ -83,11 +83,17 @@ describe("Decision Journal record contract", () => {
     })).toThrow();
   });
 
-  it("rejects evidence that cannot be linked to the decision symbol", () => {
-    expect(() => validateDecisionJournalRecord({
+  it("retains rejected cross-symbol evidence in the immutable audit snapshot", () => {
+    const mismatched = { ...evidence, symbol: "ETHUSDT" };
+    const audited = {
       ...record,
-      evidence: [{ ...evidence, symbol: "ETHUSDT" }],
-    })).toThrow();
+      evidence: [mismatched],
+      result: {
+        ...result,
+        invalidEvidence: [{ evidenceId: mismatched.id, reason: "SYMBOL_MISMATCH" as const }],
+      },
+    };
+    expect(() => validateDecisionJournalRecord(audited)).not.toThrow();
   });
 
   it("rejects duplicate evidence IDs and missing software-policy versions", () => {
