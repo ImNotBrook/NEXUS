@@ -369,5 +369,24 @@ Updated: 2026-11-14
 - The mobile research console saves successful nested runs automatically, lists the newest 50, supports reopening a full report after reload and allows individual deletion.
 - Records remain local to the device/browser profile. Clearing site data or browser storage can remove them; this is not cloud backup or cross-device sync.
 - Added adapter tests for complete round-trip persistence, newest-first ordering, immutable read copies, deletion isolation and invalid payload rejection, plus database schema tests.
-- Feature branch: `feature/persist-nested-research-runs`; CI verification pending.
+- PR #17 merged into `main`; PR CI passed 203 tests across 38 files, dependency audit reported 0 vulnerabilities, and strict TypeScript/Vite production build passed. Main CI #110 and Pages deployment #27 also passed.
 - No paid services, billing changes, exchange credentials or live execution introduced.
+
+
+## Mobile workspace sidebar and help (2026-11-14)
+
+- Fixed a rendering defect where the grouped navigation element was created but never appended to the sidebar.
+- Sidebar now exposes all seven workspace destinations across Workspace, Research, Automation and Controls groups.
+- Page-level and panel-level question-mark buttons open touch-friendly explanatory popovers with accessible expanded state.
+- PR #21 merged to main. CI passed 207 tests across 39 files, dependency audit, strict TypeScript and production build. Pages deployment #27? No: the current deployment is associated with PR #21 merge commit `761c4667208b356f56213ef5d54e29dfa344c169` and completed successfully.
+- No real-device Android browser E2E suite exists yet; manual Galaxy A55 verification is still required.
+
+
+## Scheduled and AI-assisted candidate research (2026-11-14)
+
+- Added a daily 00:15 UTC GitHub Actions research workflow plus manual dispatch. It fetches up to 1,500 completed BTCUSDT 1-hour candles and evaluates candidates using expanding walk-forward folds with a 2-bar embargo.
+- Generates 16 deterministic variants across SMA crossover, RSI mean-reversion and Donchian breakout families. Optional Groq inference can propose up to four more bounded parameter candidates using strict JSON schema output; no generated code is executed.
+- Candidate backtests include configurable fee, slippage, half-spread, participation and market-impact assumptions. The full versioned report is uploaded as a 30-day GitHub Actions artifact.
+- AI inference is optional and requires the user to create a Groq API key and add it as the repository Actions secret `GROQ_API_KEY`. Without it, deterministic research still runs.
+- PR #22 merged to main as `5aee08405babd25266bd4834c105f5515f1cb89e`. PR CI passed 217 tests across 43 files, dependency audit, TypeScript checking of the scheduled runner and production build.
+- This phase does not auto-promote strategies, place paper orders or enable live trading. The automation workflow's first manual/scheduled run still needs to be executed and its artifact inspected. No paid plan or billing activation is required.
