@@ -88,7 +88,7 @@ function closedCandleProviders(
 ): MarketDataProvider[] {
   return providers.map((provider) => ({
     name: provider.name,
-    async fetchCandles(request) {
+    async fetchCandles(request: Parameters<MarketDataProvider["fetchCandles"]>[0]) {
       const definition = Object.values(TIMEFRAME_CONFIG)
         .find((item) => item.interval === request.interval);
       if (!definition) throw new RangeError("Unsupported market timeframe: " + request.interval);
