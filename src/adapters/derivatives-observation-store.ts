@@ -136,15 +136,19 @@ export class DerivativesObservationStore {
     const transaction = database.transaction(DERIVATIVES_OBSERVATION_STORE, "readwrite");
     const done = transactionComplete(transaction);
     const store = transaction.objectStore(DERIVATIVES_OBSERVATION_STORE);
-    const recordsRequest = requestResult(store.index("series").getAll(series) as IDBRequest<StoredRecord[]>);
-    const [records] = await Promise.all([recordsRequest]);
+    const recordsRequest = store.index("series").getAll(series) as IDBRequest<StoredRecord[]>;
     let removed = 0;
-    for (const record of records) {
-      if (record.timestamp < cutoff) {
-        store.delete(record.key);
-        removed += 1;
+    recordsRequest.onsuccess = () => {
+      for (const record of recordsRequest.result) {
+        if (record.timestamp < cutoff) {
+          store.delete(record.key);
+          removed += 1;
+        }
       }
-    }
+    };
+    recordsRequest.onerror = () => {
+      // The transaction error/abort handler below rejects the operation.
+    };
     await done;
     return removed;
   }
