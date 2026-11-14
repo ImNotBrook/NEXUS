@@ -27,6 +27,8 @@ describe("Groq strategy generator adapter", () => {
     expect(requestUrl).toBe(GROQ_CHAT_COMPLETIONS_URL);
     expect(requestInit?.method).toBe("POST");
     expect(String(requestInit?.body)).toContain("BTCUSDT");
+    expect(String(requestInit?.body)).toContain('"type":"json_schema"');
+    expect(String(requestInit?.body)).toContain('"strict":true');
     expect(proposals).toHaveLength(1);
   });
 
