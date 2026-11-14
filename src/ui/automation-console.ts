@@ -47,7 +47,7 @@ export function mountAutomationConsole(container: HTMLElement): void {
   const paper = el("section", "panel automation-panel paper-agent-panel");
   paper.append(el("span", "panel-label", "PAPER EXECUTION AGENT"));
   paper.append(el("h2", "", "Persistent automated paper trading"));
-  paper.append(el("p", "small", "A separate daily worker processes newly closed hourly candles, simulates next-open orders, carries partial fills forward and stores its checkpoint on a dedicated repository branch."));
+  paper.append(el("p", "small", "A separate hourly worker processes newly closed hourly candles, simulates next-open orders, carries partial fills forward and stores its checkpoint on a dedicated repository branch."));
   paper.append(el("p", "automation-notice", "DISABLED BY DEFAULT · The worker cannot start until a human approves one exact strategy configuration. It is paper-only, long-only, unleveraged and has a daily loss lockout. Live trading is not available."));
   const paperActions = el("div", "automation-actions");
   const paperWorkflow = el("a", "automation-link", "Open paper trading workflow");
