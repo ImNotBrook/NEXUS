@@ -130,9 +130,10 @@ function completedNetR(plan: ShadowTradePlan, outcome: ShadowOutcome): number | 
     !Number.isFinite(outcome.exitFilledQuantity) ||
     !closeEnough(outcome.exitFilledQuantity, outcome.entryFilledQuantity) ||
     !Number.isFinite(outcome.positionRemainingQuantity) ||
+    outcome.positionRemainingQuantity < -EPSILON ||
     outcome.positionRemainingQuantity > EPSILON ||
-    !Number.isSafeInteger(outcome.entryTimestamp) ||
-    !Number.isSafeInteger(outcome.exitTimestamp) ||
+    !validTimestamp(outcome.entryTimestamp) ||
+    !validTimestamp(outcome.exitTimestamp) ||
     (outcome.exitTimestamp as number) < (outcome.entryTimestamp as number) ||
     !Number.isFinite(outcome.entryAveragePrice) ||
     (outcome.entryAveragePrice ?? 0) <= plan.stopPrice ||
