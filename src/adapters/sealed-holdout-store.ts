@@ -33,6 +33,7 @@ function overlaps(a: SealedHoldoutSeal, b: SealedHoldoutSeal): boolean {
 
 function validSeal(seal: SealedHoldoutSeal): boolean {
   return !!seal && seal.protocol === "NEXUS_FINAL_HOLDOUT_V1" &&
+    typeof seal.provider === "string" && !!seal.provider.trim() &&
     !!seal.identity && typeof seal.identity.symbol === "string" && !!seal.identity.symbol &&
     typeof seal.identity.interval === "string" && !!seal.identity.interval &&
     Number.isSafeInteger(seal.identity.startTimestamp) && Number.isSafeInteger(seal.identity.endTimestamp) &&
