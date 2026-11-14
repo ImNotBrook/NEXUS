@@ -2,7 +2,7 @@ import { DecisionJournalStore } from "../adapters/decision-journal-store";
 import { PaperAccountStore } from "../adapters/paper-account-store";
 import type { DecisionJournalEvent, DecisionJournalRecord } from "../domain/decision-journal";
 import type { PaperAccount } from "../domain/paper-broker";
-import { isPristinePaperAccount, validatePaperAccountSnapshot } from "../domain/paper-broker";
+import { isPristinePaperAccount, normalizePaperAccountSnapshot } from "../domain/paper-broker";
 import {
   createLocalBackup,
   parseLocalBackup,
@@ -243,8 +243,11 @@ export function mountDecisionJournalConsole(root: HTMLElement): void {
     paperPreview.textContent = "Checking paper account backup…";
     try {
       const envelope = await parseLocalBackup(await file.text(), "paper-account");
-      validatePaperAccountSnapshot(envelope.payload.account);
-      pendingPaper = envelope as unknown as LocalBackupEnvelope<PaperBackupPayload>;
+      const account = normalizePaperAccountSnapshot(envelope.payload.account);
+      pendingPaper = {
+        ...envelope,
+        payload: { ...envelope.payload, account },
+      } as unknown as LocalBackupEnvelope<PaperBackupPayload>;
       const current = await paperStore.load();
       if (current && !isPristinePaperAccount(current)) {
         paperPreview.textContent = "Verified backup, but this device already has paper trading activity. Restore is blocked to protect existing state. Export the current account first; active accounts are never overwritten.";
