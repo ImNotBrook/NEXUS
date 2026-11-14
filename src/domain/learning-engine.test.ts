@@ -131,7 +131,7 @@ function makeObservation(
   const decision = overrides.decision ?? makeDecision(plan);
   const outcome = overrides.outcome ?? makeOutcome(plan);
   return {
-    observationId: "shadow-outcome:hash-1",
+    observationId: "shadow-outcome:" + plan.decisionId + ":" + plan.candidateId,
     recordedAt: 11_000,
     observedThrough: 10_000,
     dataQuality: "pass",
@@ -156,8 +156,8 @@ describe("evaluateLearningCohorts", () => {
       maturedCandidates: 1,
       completedTrades: 1,
       noFillCandidates: 0,
-      meanNetR: 1.958,
-      medianNetR: 1.958,
+      meanNetR: expect.closeTo(1.958),
+      medianNetR: expect.closeTo(1.958),
       winRate: 1,
       meanMfeBps: 1_100,
       meanMaeBps: -200,
@@ -187,6 +187,7 @@ describe("evaluateLearningCohorts", () => {
       makeObservation({ plan: waitPlan, decision: makeDecision(waitPlan, "WAIT"), outcome: makeOutcome(waitPlan, "expired") }),
       makeObservation({ plan: rejectPlan, decision: makeDecision(rejectPlan, "REJECT"), outcome: makeOutcome(rejectPlan) }),
     ]);
+    expect(report.excluded).toEqual([]);
     expect(report.cohorts.map((cohort) => cohort.decisionStatus).sort()).toEqual(["ENTER", "REJECT", "WAIT"]);
     expect(report.eligibleObservations).toBe(3);
   });
@@ -274,10 +275,10 @@ describe("evaluateLearningCohorts", () => {
     const wrongVersion = makeOutcome(base.plan, "completed", { simulationVersion: "other-version" });
     const report = evaluateLearningCohorts([
       base,
-      makeObservation({ decision: wrongDecision }),
-      makeObservation({ decision: wrongCandidate }),
-      makeObservation({ decision: wrongSymbol }),
-      makeObservation({ outcome: wrongVersion }),
+      makeObservation({ observationId: "mismatch-decision", decision: wrongDecision }),
+      makeObservation({ observationId: "mismatch-candidate", decision: wrongCandidate }),
+      makeObservation({ observationId: "mismatch-symbol", decision: wrongSymbol }),
+      makeObservation({ observationId: "mismatch-version", outcome: wrongVersion }),
     ]);
     expect(report.eligibleObservations).toBe(1);
     expect(report.excluded).toHaveLength(4);
