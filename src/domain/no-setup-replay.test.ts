@@ -15,7 +15,7 @@ const spec: NoSetupReplaySpec = {
   decisionAt, lookback: 3, initialWindow: initial,
   strategyId: "donchian-breakout", strategyVersion: "1.0.0",
   atrStopMultiple: 2, rewardRiskMultiple: 2, riskBudget: 20,
-  maxNotional: 2_000, expiryBars: 2,
+  maxNotional: 2_000, expiryBars: 4,
 };
 
 function candle(timestamp: number, close: number, high = close + 1): Candle {
