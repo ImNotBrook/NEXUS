@@ -287,8 +287,18 @@ function renderPaperAccount(): void {
 
 async function initializePaperAccount(): Promise<void> {
   try {
-    paperAccount = await paperStore.load() ?? createPaperAccount();
-    await paperStore.save(paperAccount);
+    paperAccount = await paperStore.load();
+    if (!paperAccount) {
+      const starter = createPaperAccount();
+      try {
+        await paperStore.createIfAbsent(starter);
+        paperAccount = starter;
+      } catch {
+        // A restore may have won the first-write race. Prefer that restored state.
+        paperAccount = await paperStore.load();
+        if (!paperAccount) throw new Error("Could not initialize or restore the local paper account");
+      }
+    }
     renderPaperAccount();
     if (paperStatusElement) paperStatusElement.textContent = "Local account ready · simulated funds only · data stored on this device";
   } catch (error) {
