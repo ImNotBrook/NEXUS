@@ -40,6 +40,8 @@ The buildStrategyParameterTrials function produces a deterministic Cartesian gri
 - every trial receives a unique immutable strategy identity;
 - the manifest includes generator version, base ID/version, all trial IDs and the parameter grid.
 
+The Strategy Research console exposes this workflow: select a saved human-authored definition, edit the JSON grid, preview the generated IDs/count and then run the normal walk-forward research batch. Family-specific example grids are loaded when the selected strategy changes. The selected base candidate is replaced by its variants for that run; other baseline and human-authored candidates remain. Both legacy and execution-aware reports retain the exact trial manifest, and saved experiment history displays the trial count and base ID/version after reload.
+
 Selecting the best of multiple trials on the same out-of-sample sample creates multiple-testing/selection bias. Use nested walk-forward selection or a fresh sealed holdout for independent confirmation. Trial generation does not automatically select or promote a winner.
 
 ## Explicit non-goals
@@ -52,4 +54,4 @@ Selecting the best of multiple trials on the same out-of-sample sample creates m
 
 ## Storage and recovery
 
-Strategy definitions are stored in the strategyLibrary IndexedDB object store (database schema v12). They are device-local. Clearing browser site data can erase the library; keep independent backups of important definitions. The current Stage 10 increment does not yet add strategy-library export to the backup envelope.
+Strategy definitions are stored in the strategyLibrary IndexedDB object store (database schema v12). They are device-local. Clearing browser site data can erase the library; keep independent backups of important definitions. Neither strategy definitions nor research-run trial manifests are currently included in the local backup envelope; backup integration remains a required Stage 10 follow-up.
