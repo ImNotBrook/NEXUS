@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { journalShadowOutcome, type ShadowOutcomeJournal } from "./journalled-shadow-outcome";
+import { journalShadowOutcome, registerShadowPlan, type ShadowOutcomeJournal } from "./journalled-shadow-outcome";
 import type { DecisionJournalEvent, DecisionJournalRecord } from "./decision-journal";
 import type { ShadowTradePlan } from "./shadow-outcome-engine";
 import type { Candle } from "./candles";
@@ -99,6 +99,34 @@ const testHasher = async (value: unknown): Promise<string> => {
   }
   return (hash >>> 0).toString(16).padStart(8, "0");
 };
+
+describe("registerShadowPlan", () => {
+  it("registers the fixed plan at decision time before any outcome candle is observed", async () => {
+    const journal = new MemoryJournal();
+    const result = await registerShadowPlan(plan, journal, testHasher);
+    expect(result.event.eventType).toBe("shadow_plan_registered");
+    expect(result.event.occurredAt).toBe(plan.decisionAt);
+    expect(result.event.payload.plan).toEqual(plan);
+    expect(result.alreadyRecorded).toBe(false);
+  });
+
+  it("is idempotent for the same immutable plan and rejects altered plans", async () => {
+    const journal = new MemoryJournal();
+    const first = await registerShadowPlan(plan, journal, testHasher);
+    const second = await registerShadowPlan(plan, journal, testHasher);
+    expect(second.event.eventId).toBe(first.event.eventId);
+    expect(second.alreadyRecorded).toBe(true);
+    await expect(registerShadowPlan({ ...plan, stopPrice: 94 }, journal, testHasher))
+      .rejects.toThrow(/match/i);
+    expect(journal.events).toHaveLength(1);
+  });
+
+  it("requires a parent decision record before registering a plan", async () => {
+    const journal = new MemoryJournal(new Set());
+    await expect(registerShadowPlan(plan, journal, testHasher)).rejects.toThrow(/missing decision/i);
+    expect(journal.events).toHaveLength(0);
+  });
+});
 
 describe("journalShadowOutcome", () => {
   it("simulates and appends an immutable outcome event linked to its decision", async () => {
