@@ -22,5 +22,6 @@ See [AGENTS.md](AGENTS.md) for engineering rules, [docs/ARCHITECTURE.md](docs/AR
 - [Evidence & Decision Engine](docs/DECISION_ENGINE_SPEC.md) — evidence normalization, contradiction handling, decision states and deterministic risk gates.
 - [Decision & Learning Loop](docs/DECISION_LEARNING_LOOP_SPEC.md) — immutable journal, shadow outcomes, maturity and controlled learning.
 - [Decision Workbench](docs/DECISION_WORKBENCH.md) — approved deterministic candidate generation, hard risk/economics gates and journalled decisions.
+- [Shadow Outcomes & Learning](docs/SHADOW_OUTCOMES_OPERATIONS.md) — pre-registered shadow plans, causal historical replay, maturity audits and descriptive cohorts.
 
 The initial frontend is a static TypeScript application. It must remain usable from a modern Android browser and must not depend on a permanently running backend.
