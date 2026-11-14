@@ -22,7 +22,9 @@ export interface NoSetupReplayServiceReport {
   evaluated: number;
   triggersDetected: number;
   noTrigger: number;
+  pending: number;
   alreadyDetected: number;
+  alreadyEvaluated: number;
   detected: Array<{ decisionId: string; triggerAt: number; entryReferencePrice: number }>;
   failures: Array<{ decisionId: string; reason: string }>;
 }
@@ -54,7 +56,9 @@ export async function evaluateNoSetupReplays(input: {
     evaluated: 0,
     triggersDetected: 0,
     noTrigger: 0,
+    pending: 0,
     alreadyDetected: 0,
+    alreadyEvaluated: 0,
     detected: [],
     failures: [],
   };
@@ -76,6 +80,10 @@ export async function evaluateNoSetupReplays(input: {
         report.alreadyDetected += 1;
         continue;
       }
+      if (events.some((event) => event.eventType === "no_setup_replay_completed")) {
+        report.alreadyEvaluated += 1;
+        continue;
+      }
       const startTime = (Math.floor(spec.decisionAt / NO_SETUP_REPLAY_INTERVAL_MS) + 1) *
         NO_SETUP_REPLAY_INTERVAL_MS;
       const candles = input.now < startTime
@@ -84,6 +92,30 @@ export async function evaluateNoSetupReplays(input: {
       const result = findFirstCausalDonchianTrigger(spec, candles, input.now);
       report.evaluated += 1;
       if (result.status === "no_trigger") {
+        if (result.evaluationBars < spec.expiryBars) {
+          report.pending += 1;
+          continue;
+        }
+        const event: DecisionJournalEvent = {
+          schemaVersion: 1,
+          eventId: "no-setup-replay-completed:" + record.decisionId + ":" + spec.detectorVersion,
+          decisionId: record.decisionId,
+          eventType: "no_setup_replay_completed",
+          occurredAt: input.now,
+          payload: {
+            detectorVersion: spec.detectorVersion,
+            diagnosticScope: "donchian_only",
+            fullStrategyFiltersReplayed: false,
+            simulatedTrade: false,
+            evaluationBars: result.evaluationBars,
+            expiryBars: spec.expiryBars,
+            evaluationAsOf: input.now,
+            result: "no_breakout_within_frozen_window",
+          },
+        };
+        validateDecisionJournalEvent(event);
+        const persisted = await input.journal.appendEvent(event);
+        if (persisted.eventId !== event.eventId) throw new Error("Journal returned a different replay completion identity");
         report.noTrigger += 1;
         continue;
       }
