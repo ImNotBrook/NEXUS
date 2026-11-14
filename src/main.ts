@@ -331,6 +331,17 @@ async function submitPaperOrder(side: "buy" | "sell"): Promise<void> {
 paperBuyButton?.addEventListener("click", () => { void submitPaperOrder("buy"); });
 paperSellButton?.addEventListener("click", () => { void submitPaperOrder("sell"); });
 
+window.addEventListener("nexus:paper-account-updated", () => {
+  void paperStore.load().then((account) => {
+    if (!account) return;
+    paperAccount = account;
+    renderPaperAccount();
+    if (paperStatusElement) paperStatusElement.textContent = "Paper account restored · local simulated funds only";
+  }).catch((error: unknown) => {
+    if (paperStatusElement) paperStatusElement.textContent = error instanceof Error ? error.message : "Paper account reload failed";
+  });
+});
+
 async function loadMarketSnapshot(): Promise<void> {
   if (!priceElement || !changeElement || !rsiElement || !updatedElement || !refreshButton) return;
   refreshButton.disabled = true;
