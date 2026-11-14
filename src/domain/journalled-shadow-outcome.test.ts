@@ -119,11 +119,11 @@ describe("journalShadowOutcome", () => {
     expect(result.alreadyRecorded).toBe(false);
   });
 
-  it("is idempotent for the same plan, candle snapshot and recording timestamp", async () => {
+  it("is idempotent for the same plan and candle snapshot across polling timestamps", async () => {
     const journal = new MemoryJournal();
     const candles = [candle(2_000, 100, 101, 99, 100)];
     const first = await journalShadowOutcome(plan, candles, 4_000, journal, testHasher);
-    const second = await journalShadowOutcome(plan, candles, 4_000, journal, testHasher);
+    const second = await journalShadowOutcome(plan, candles, 4_500, journal, testHasher);
     expect(second.event.eventId).toBe(first.event.eventId);
     expect(second.alreadyRecorded).toBe(true);
     expect(journal.events).toHaveLength(1);
