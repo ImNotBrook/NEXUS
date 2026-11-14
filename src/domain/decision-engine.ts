@@ -56,6 +56,9 @@ export interface DecisionGate {
 export interface DecisionInput {
   evaluationTime: number;
   candidate: DecisionCandidate | null;
+  /** Explicit disposition and reasons when a reviewed generator cannot supply a candidate. */
+  candidateAbsenceStatus?: "WAIT" | "REJECT" | "NO_SETUP";
+  candidateAbsenceReasonCodes?: string[];
   marketDataStatus: "pass" | "degraded" | "fail";
   riskGate: DecisionGate;
   economicsGate: DecisionGate;
@@ -242,8 +245,24 @@ export function evaluateDecision(input: DecisionInput): DecisionResult {
   }
 
   if (!input.candidate) {
-    result.status = "NO_SETUP";
-    result.reasonCodes.push("NO_CANDIDATE");
+    const absenceStatus = input.candidateAbsenceStatus ?? "NO_SETUP";
+    const absenceReasons = input.candidateAbsenceReasonCodes ?? [];
+    if (
+      !["WAIT", "REJECT", "NO_SETUP"].includes(absenceStatus) ||
+      !Array.isArray(absenceReasons) ||
+      absenceReasons.some((reason) => typeof reason !== "string" || !reason.trim()) ||
+      !["pass", "degraded", "fail"].includes(input.marketDataStatus)
+    ) {
+      result.status = "REJECT";
+      result.reasonCodes.push("INVALID_DECISION_CONFIGURATION");
+      return result;
+    }
+    result.status = absenceStatus;
+    result.reasonCodes.push("NO_CANDIDATE", ...unique(absenceReasons));
+    if (absenceStatus === "WAIT" && input.marketDataStatus !== "pass" &&
+        !result.reasonCodes.includes("MARKET_DATA_NOT_READY")) {
+      result.reasonCodes.push("MARKET_DATA_NOT_READY");
+    }
     return result;
   }
 
