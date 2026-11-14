@@ -1,4 +1,5 @@
 import "./style.css";
+import { mountWorkspaceLayout } from "./ui/workspace-layout";
 import { mountResearchConsole } from "./domain/research-console";
 import { mountSkillConsole } from "./domain/skill-console";
 import { evaluateQualification } from "./domain/qualification";
@@ -79,6 +80,7 @@ const researchConsoleMount = document.querySelector<HTMLElement>("#research-cons
 if (researchConsoleMount) mountResearchConsole(researchConsoleMount);
 const skillConsoleMount = document.querySelector<HTMLElement>("#skill-console-mount");
 if (skillConsoleMount) mountSkillConsole(skillConsoleMount);
+mountWorkspaceLayout(root);
 
 const priceElement = document.querySelector<HTMLElement>("#btc-price");
 const changeElement = document.querySelector<HTMLElement>("#btc-change");
