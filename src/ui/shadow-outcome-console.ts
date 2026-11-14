@@ -1,6 +1,8 @@
 import type { ShadowOutcomeServiceReport } from "../domain/shadow-outcome-service";
+import type { NoSetupReplayServiceReport } from "../domain/no-setup-replay-service";
 
 export type ShadowOutcomeRunner = () => Promise<ShadowOutcomeServiceReport>;
+export type NoSetupReplayRunner = () => Promise<NoSetupReplayServiceReport>;
 
 function node<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -101,7 +103,7 @@ function renderReport(report: ShadowOutcomeServiceReport): HTMLElement {
 }
 
 /** Manual, explicit collector; no background polling or paid service is used. */
-export function mountShadowOutcomeConsole(root: HTMLElement, run: ShadowOutcomeRunner): void {
+export function mountShadowOutcomeConsole(root: HTMLElement, run: ShadowOutcomeRunner, runNoSetupReplay?: NoSetupReplayRunner): void {
   const panel = node("section", "panel journal-panel");
   panel.append(
     node("span", "panel-label", "CAUSAL OUTCOME EVALUATION"),
@@ -119,6 +121,43 @@ export function mountShadowOutcomeConsole(root: HTMLElement, run: ShadowOutcomeR
   panel.append(status);
   const output = node("div", "workbench-output");
   panel.append(output);
+  if (runNoSetupReplay) {
+    panel.append(node("h3", "", "Causal NO_SETUP diagnostics"));
+    panel.append(node("p", "small", "Replays only the first post-decision 1H Donchian breakout using frozen decision-time inputs. This diagnostic does not replay higher-timeframe filters, create a trade plan, or enter shadow P&L cohorts."));
+    const replayButton = node("button", "refresh-button", "Evaluate NO_SETUP replays");
+    replayButton.type = "button";
+    const replayStatus = node("p", "small", "Ready · manual evaluation only");
+    replayStatus.setAttribute("role", "status");
+    const replayOutput = node("div", "workbench-output");
+    panel.append(replayButton, replayStatus, replayOutput);
+    replayButton.addEventListener("click", () => {
+      replayButton.disabled = true;
+      replayStatus.textContent = "Fetching closed hourly candles and replaying frozen rules…";
+      replayOutput.replaceChildren();
+      void runNoSetupReplay().then((report) => {
+        const metrics = node("div", "workbench-metrics");
+        metrics.append(
+          metric("Registered specs", String(report.replaySpecsFound)),
+          metric("Evaluated", String(report.evaluated)),
+          metric("First triggers", String(report.triggersDetected)),
+          metric("No trigger yet", String(report.noTrigger)),
+          metric("Already detected", String(report.alreadyDetected)),
+        );
+        replayOutput.append(metrics);
+        for (const item of report.detected) {
+          replayOutput.append(node("p", "small", item.decisionId + " · first trigger " +
+            new Date(item.triggerAt).toLocaleString() + " · reference " + item.entryReferencePrice.toFixed(2) + " USDT"));
+        }
+        for (const failure of report.failures) {
+          replayOutput.append(node("p", "small", failure.decisionId + " · " + failure.reason));
+        }
+        replayOutput.append(node("p", "workbench-safety", "DONCHIAN-ONLY DIAGNOSTIC · Not a full strategy pass · Not a simulated fill · Not included in performance statistics"));
+        replayStatus.textContent = "Replay complete · " + report.triggersDetected + " new trigger(s)";
+      }).catch((error: unknown) => {
+        replayStatus.textContent = error instanceof Error ? "Replay failed: " + error.message : "Replay failed";
+      }).finally(() => { replayButton.disabled = false; });
+    });
+  }
   root.replaceChildren(panel);
 
   evaluate.addEventListener("click", () => {
