@@ -45,7 +45,7 @@ describe("recommendIndicators", () => {
 
   it("adds volatility tools in high and low volatility regimes", () => {
     const high = recommendIndicators({ trend: "uptrend", volatility: "high" });
-    expect(high.find((item) => item.indicator.id === "atr")?.relevance).toBe("supporting");
+    expect(high.find((item) => item.indicator.id === "atr")?.relevance).toBe("primary");
     expect(high.some((item) => item.rationale.startsWith("High volatility"))).toBe(true);
 
     const low = recommendIndicators({ trend: "range", volatility: "low" });
