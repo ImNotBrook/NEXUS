@@ -414,4 +414,17 @@ describe("evaluateLearningCohorts", () => {
     expect(report.cohorts[0].meanNetR).toBeNull();
   });
 
+  it("rejects negative or non-monotonic fill timestamps", () => {
+    const plan = makePlan();
+    const outcome = makeOutcome(plan, "completed", {
+      entryTimestamp: -1,
+      exitTimestamp: 0,
+    });
+    const report = evaluateLearningCohorts([
+      makeObservation({ plan, decision: makeDecision(plan), outcome }),
+    ]);
+    expect(report.eligibleObservations).toBe(0);
+    expect(report.excluded[0].reason).toBe("invalid_fill_accounting");
+  });
+
 });
