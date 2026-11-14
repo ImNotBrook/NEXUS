@@ -11,7 +11,7 @@ const makeFrame = (timeframe: "1d" | "4h" | "1h" | "15m", trend: "uptrend" | "do
   trendPersistencePct: 80, atrPct: 0.8, volatilityRankPct: 50, relativeVolume20: 1.2, reason: null,
 });
 const market = (): MarketIntelligenceSnapshot => ({
-  schemaVersion: 1, engineVersion: "market-intelligence-1", snapshotId: "snapshot-service-1",
+  schemaVersion: 1, engineVersion: "market-intelligence-v1", snapshotId: "snapshot-service-1",
   contentHash: "b".repeat(64), symbol: "BTCUSDT", instrumentCategory: "spot", volumeUnit: "base",
   evaluationTime: now, config: { fastEmaPeriod: 5, slowEmaPeriod: 13, atrPeriod: 14, trendThresholdPct: 0.1, lowVolatilityAtrPct: 0.3, highVolatilityAtrPct: 1.5 },
   latestSourceAvailableAt: now - 1_000, dataQuality: "pass",
