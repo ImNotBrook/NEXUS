@@ -28,7 +28,17 @@ These templates reuse existing deterministic baseline evaluators. They do not in
 
 ## Research integration
 
-Saved human-authored definitions are reloaded from the local strategy library and included as candidates in the next historical walk-forward research batch. Candidate IDs include the exact strategy ID and version. AI-origin records are not included in research until the governance/review workflow is implemented.
+Saved human-authored definitions are reloaded from the local strategy library and included as candidates in the next historical walk-forward research batch. Candidate IDs include the exact strategy ID and version. AI-origin proposals are not included in research until a human explicitly approves them in the AI Strategy Proposal Inbox. The current import accepts the versioned JSON report emitted by the scheduled Automated Research GitHub Actions workflow.
+
+## AI-led strategy generation and review
+
+NEXUS, not the user, is intended to generate the strategy candidates. The scheduled **NEXUS Automated Research** workflow requests 1–4 bounded proposals from the configured provider-neutral AI route using recent BTCUSDT 1h market context. It compiles only the reviewed SMA crossover, RSI mean-reversion and Donchian breakout templates, merges them with deterministic candidates and evaluates all candidates on the same dataset and walk-forward execution-cost assumptions.
+
+The workflow uploads `automated-research.json` as a GitHub Actions artifact for 30 days. On Android, download the artifact ZIP from the latest successful **NEXUS Automated Research** run, extract it with the Files app, then import `automated-research.json` in the **AI Strategy Proposal Inbox**.
+
+The inbox validates artifact schema, provider identity and every proposal's family/parameter bounds. It shows the AI rationale and parameters. Each proposal has an explicit **Approve and save strategy** action. Approval creates an immutable strategy version with `origin: human`; this is the only path by which that AI proposal enters the saved strategy library and normal historical research. Import alone does not save or approve anything.
+
+This is currently AI-led parameter discovery inside three reviewed strategy families—not unrestricted generated code or arbitrary new strategy logic. The user reviews candidates; they do not need to invent them. The scheduled report artifact is temporary (30 days), so download and keep it if its proposals matter. Provider API credentials remain server-side in GitHub Actions secrets and are never exposed to the PWA. AI provider access is optional and can fail or be rate-limited; deterministic research continues without AI.
 
 ## Parameter trials
 
@@ -49,7 +59,7 @@ Selecting the best of multiple trials on the same out-of-sample sample creates m
 - No paper or live orders are created by saving a definition or running research.
 - No risk limit, qualification rule, approval or permission is modified.
 - No AI-generated code is executed.
-- No AI-origin strategy is automatically admitted to research.
+- No unreviewed AI proposal is admitted to research; explicit user approval is required.
 - No strategy is promoted based on a leaderboard or a single historical result.
 
 ## Storage and recovery
