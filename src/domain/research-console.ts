@@ -4,7 +4,7 @@ import { runResearchBatch, type ResearchBatchResult, type ResearchPipelineConfig
 import { createBaselineResearchCandidates } from "../strategies/baseline-research-candidates";
 import { ResearchRunStore, type StoredResearchRun } from "../adapters/research-run-store";
 import { StrategyLibraryStore } from "../adapters/strategy-library-store";
-import { createResearchCandidateFromDefinition } from "./strategy-studio";
+import { buildStrategyParameterTrials, createResearchCandidateFromDefinition, type StrategyDefinition, type StrategyTrialSet } from "./strategy-studio";
 import { compareResearchRuns } from "./research-comparison";
 import { runProtectiveExitSensitivity } from "./protective-exit-sensitivity";
 import { runExecutionStressTest } from "./execution-stress-test";
@@ -407,6 +407,14 @@ export function mountResearchConsole(container: HTMLElement): void {
         <button id="run-research" type="submit">Run research batch</button>
       </form>
       <section class="research-result sensitivity-controls">
+        <h3>Strategy parameter trials</h3>
+        <p class="small">Generate up to 25 deterministic variants from a saved human-authored strategy. Enter a JSON grid using only that strategy family's parameters. The exact manifest is saved with each report produced by the next research run.</p>
+        <label>Saved human strategy<select id="strategy-trial-base"><option value="">Loading saved strategies…</option></select></label>
+        <label>Parameter grid (JSON)<textarea id="strategy-trial-grid" rows="4" spellcheck="false">{ "fastPeriod": [6, 8, 10], "slowPeriod": [20, 24] }</textarea></label>
+        <button id="preview-strategy-trials" type="button">Preview parameter trials</button>
+        <div id="strategy-trial-preview" aria-live="polite">No trial set prepared.</div>
+      </section>
+      <section class="research-result sensitivity-controls">
         <h3>Protective-exit sensitivity grid</h3>
         <p class="small">Run an independent grid on the last fetched dataset and identical walk-forward folds. Leave either grid blank to test the disabled setting on that axis.</p>
         <label>Stop-loss grid (%)<input id="sensitivity-stops" value="2, 4" inputmode="decimal" /></label>
@@ -452,6 +460,10 @@ export function mountResearchConsole(container: HTMLElement): void {
   const executionStressLeaderboardTarget = container.querySelector<HTMLElement>("#execution-stress-leaderboard");
   const compareButton = container.querySelector<HTMLButtonElement>("#compare-research");
   const comparisonTarget = container.querySelector<HTMLElement>("#research-comparison");
+  const strategyTrialBase = container.querySelector<HTMLSelectElement>("#strategy-trial-base");
+  const strategyTrialGrid = container.querySelector<HTMLTextAreaElement>("#strategy-trial-grid");
+  const previewStrategyTrialsButton = container.querySelector<HTMLButtonElement>("#preview-strategy-trials");
+  const strategyTrialPreview = container.querySelector<HTMLElement>("#strategy-trial-preview");
   const sensitivityButton = container.querySelector<HTMLButtonElement>("#run-sensitivity");
   const sensitivityStops = container.querySelector<HTMLInputElement>("#sensitivity-stops");
   const sensitivityTargets = container.querySelector<HTMLInputElement>("#sensitivity-targets");
@@ -466,6 +478,7 @@ export function mountResearchConsole(container: HTMLElement): void {
   const holdoutResults = container.querySelector<HTMLElement>("#sealed-holdout-results");
   const holdoutHistory = container.querySelector<HTMLElement>("#sealed-holdout-history");
   if (!form || !button || !status || !results || !history || !leaderboardTarget || !executionStressLeaderboardTarget || !compareButton || !comparisonTarget ||
+      !strategyTrialBase || !strategyTrialGrid || !previewStrategyTrialsButton || !strategyTrialPreview ||
       !sensitivityButton || !sensitivityStops || !sensitivityTargets || !sensitivityResults ||
       !executionStressButton || !executionStressResults ||
       !nestedButton || !nestedMinTrades || !nestedResults || !nestedHistory ||
@@ -474,6 +487,37 @@ export function mountResearchConsole(container: HTMLElement): void {
   const nestedRunStore = new NestedResearchRunStore();
   const sealedHoldoutStore = new SealedHoldoutStore();
   let sensitivityContext: { candles: Candle[]; candidates: ReturnType<typeof createBaselineResearchCandidates>; pipeline: ResearchPipelineConfig; metadata: { symbol: string; interval: string; provider: string } } | null = null;
+  let preparedStrategyTrials: { definition: StrategyDefinition; trialSet: StrategyTrialSet } | null = null;
+  let savedHumanStrategies: StrategyDefinition[] = [];
+  void strategyLibraryStore.list(100).then((records) => {
+    savedHumanStrategies = records.map((record) => record.definition).filter((definition) => definition.origin === "human");
+    strategyTrialBase.replaceChildren(new Option("Select a saved human strategy", ""));
+    for (const definition of savedHumanStrategies) {
+      strategyTrialBase.add(new Option(definition.name + " · " + definition.id + "@" + definition.version, definition.id + "@" + definition.version));
+    }
+    if (savedHumanStrategies.length === 0) strategyTrialBase.replaceChildren(new Option("Save a human strategy in Strategy Studio first", ""));
+  }).catch((error: unknown) => {
+    strategyTrialBase.replaceChildren(new Option("Strategy library unavailable", ""));
+    strategyTrialPreview.textContent = error instanceof Error ? error.message : "Could not load saved strategies";
+  });
+  previewStrategyTrialsButton.addEventListener("click", () => {
+    try {
+      const definition = savedHumanStrategies.find((item) => item.id + "@" + item.version === strategyTrialBase.value);
+      if (!definition) throw new RangeError("Select a saved human-authored strategy first");
+      const grid = JSON.parse(strategyTrialGrid.value) as Readonly<Record<string, readonly number[]>>;
+      const trialSet = buildStrategyParameterTrials(definition, grid);
+      preparedStrategyTrials = { definition, trialSet };
+      strategyTrialPreview.replaceChildren(
+        el("strong", "", trialSet.trialCount + " deterministic trials prepared"),
+        el("p", "small", "Base " + definition.id + "@" + definition.version + " · candidates " + trialSet.manifest.trialIds.join(", ")),
+        el("p", "small", trialSet.manifest.selectionBiasWarning),
+        el("p", "small", "Trials will replace this base strategy's ordinary custom candidate in the next research batch. No trial is promoted or approved for paper trading."),
+      );
+    } catch (error) {
+      preparedStrategyTrials = null;
+      strategyTrialPreview.textContent = error instanceof Error ? error.message : "Invalid parameter grid";
+    }
+  });
   const selectedRunIds = new Set<string>();
   let cachedRuns: StoredResearchRun[] = [];
 
@@ -592,7 +636,7 @@ export function mountResearchConsole(container: HTMLElement): void {
         });
         info.append(
           el("strong", "", record.report.config ? (record.report.config.executionModel ? "Execution-aware" : "Legacy") + " · " + record.report.candidateResults.length + " strategies · " + record.report.dataset.candleCount.toLocaleString() + " candles" : "Saved experiment"),
-          el("span", "small", new Date(record.createdAt).toLocaleString() + " · " + record.report.dataset.fingerprint),
+          el("span", "small", new Date(record.createdAt).toLocaleString() + " · " + record.report.dataset.fingerprint + (record.strategyTrials ? " · " + record.strategyTrials.trialCount + " trials · " + record.strategyTrials.baseStrategyId + "@" + record.strategyTrials.baseVersion : "")),
         );
         const actions = el("div", "saved-run-actions");
         const open = el("button", "saved-run-open", "Open");
@@ -905,8 +949,12 @@ export function mountResearchConsole(container: HTMLElement): void {
         const savedStrategies = await strategyLibraryStore.list(100);
         const customCandidates = savedStrategies
           .filter((record) => record.definition.origin === "human")
+          .filter((record) => !preparedStrategyTrials ||
+            record.definition.id + "@" + record.definition.version !==
+              preparedStrategyTrials.definition.id + "@" + preparedStrategyTrials.definition.version)
           .map((record) => createResearchCandidateFromDefinition(record.definition));
-        const candidates = [...baselineCandidates, ...customCandidates];
+        const trialCandidates = preparedStrategyTrials?.trialSet.candidates ?? [];
+        const candidates = [...baselineCandidates, ...customCandidates, ...trialCandidates];
         const metadata = {
           symbol: settings.symbol, interval: settings.interval, provider: "Binance public spot",
         };
@@ -945,10 +993,11 @@ export function mountResearchConsole(container: HTMLElement): void {
           sensitivityPanel.append(el("p", "small", delta.name + " · OOS return " + delta.returnDeltaPct.toFixed(2) + " pp · worst drawdown " + (delta.worstFoldDrawdownDeltaPct?.toFixed(2) ?? "—") + " pp · completed trade delta " + delta.tradeCountDelta));
         }
         results.append(sensitivityPanel);
-        const legacySaved = await runStore.save(legacyReport);
-        const executionSaved = await runStore.save(executionReport);
+        const trialManifest = preparedStrategyTrials?.trialSet.manifest;
+        const legacySaved = await runStore.save(legacyReport, Date.now(), undefined, trialManifest);
+        const executionSaved = await runStore.save(executionReport, Date.now(), undefined, trialManifest);
         await refreshHistory();
-        status.textContent = `Completed · ${candles.length.toLocaleString()} candles · ${legacyReport.candidateResults[0].evaluation.foldCount} OOS folds per strategy · legacy ${legacySaved.id} · execution-aware ${executionSaved.id}`;
+        status.textContent = `Completed · ${candles.length.toLocaleString()} candles · ${legacyReport.candidateResults[0].evaluation.foldCount} OOS folds per strategy · legacy ${legacySaved.id} · execution-aware ${executionSaved.id}` + (trialManifest ? ` · ${trialManifest.trialCount} trials linked to both reports` : "");
       } catch (error) {
         status.textContent = error instanceof Error ? error.message : "Research batch failed";
       } finally {
