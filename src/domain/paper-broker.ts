@@ -60,6 +60,55 @@ export interface PaperOrderRequest {
   timestamp: number;
 }
 
+
+/** Structural validation used only when importing an existing paper-account snapshot. */
+export function validatePaperAccountSnapshot(value: unknown): asserts value is PaperAccount {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("Paper account backup must be an object");
+  const account = value as Record<string, unknown>;
+  const finite = (item: unknown): item is number => typeof item === "number" && Number.isFinite(item);
+  for (const key of ["initialCash", "cash", "realizedPnl", "totalFees", "dailyStartEquity"] as const) {
+    if (!finite(account[key])) throw new TypeError("Paper account field is invalid: " + key);
+  }
+  if (!account.config || typeof account.config !== "object" || Array.isArray(account.config)) {
+    throw new TypeError("Paper account configuration is missing");
+  }
+  const config = account.config as Record<string, unknown>;
+  for (const key of ["initialCash", "feeRate", "slippageRate", "maxPositionValueFraction", "maxDailyLossFraction"] as const) {
+    if (!finite(config[key])) throw new TypeError("Paper account configuration is invalid: " + key);
+  }
+  if (typeof account.tradingDay !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(account.tradingDay)) {
+    throw new TypeError("Paper account trading day is invalid");
+  }
+  if (!account.positions || typeof account.positions !== "object" || Array.isArray(account.positions) ||
+      !Array.isArray(account.fills) || !Array.isArray(account.openOrders)) {
+    throw new TypeError("Paper account positions, fills or open orders are invalid");
+  }
+  for (const [symbol, position] of Object.entries(account.positions as Record<string, unknown>)) {
+    if (!position || typeof position !== "object") throw new TypeError("Paper position is invalid");
+    const row = position as Record<string, unknown>;
+    if (row.symbol !== symbol || !finite(row.quantity) || row.quantity <= 0 ||
+        !finite(row.averageEntryPrice) || row.averageEntryPrice <= 0 ||
+        !finite(row.markPrice) || row.markPrice <= 0) throw new TypeError("Paper position is invalid: " + symbol);
+  }
+  for (const fill of account.fills) {
+    if (!fill || typeof fill !== "object") throw new TypeError("Paper fill is invalid");
+    const row = fill as Record<string, unknown>;
+    if (typeof row.id !== "string" || typeof row.symbol !== "string" ||
+        (row.side !== "buy" && row.side !== "sell") ||
+        !["quantity", "referencePrice", "price", "fee", "timestamp", "realizedPnl"].every((key) => finite(row[key]))) {
+      throw new TypeError("Paper fill is invalid");
+    }
+  }
+  for (const order of account.openOrders) {
+    if (!order || typeof order !== "object") throw new TypeError("Paper open order is invalid");
+    const row = order as Record<string, unknown>;
+    if (typeof row.id !== "string" || typeof row.symbol !== "string" ||
+        (row.side !== "buy" && row.side !== "sell") ||
+        !["requestedQuantity", "remainingQuantity", "referencePrice", "createdAt", "lastAttemptAt"].every((key) => finite(row[key])) ||
+        (row.status !== "open" && row.status !== "partial")) throw new TypeError("Paper open order is invalid");
+  }
+}
+
 const DEFAULT_CONFIG: PaperBrokerConfig = {
   initialCash: 10_000,
   feeRate: 0.001,
