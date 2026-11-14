@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ResearchRunStore } from "./research-run-store";
 import type { ResearchBatchResult } from "../domain/research-pipeline";
 import { buildResearchLeaderboard } from "../domain/research-leaderboard";
+import { buildExecutionStressLeaderboard } from "../domain/execution-stress-leaderboard";
 
 function memoryIndexedDb(): IDBFactory {
   const stores = new Map<string, Map<string, unknown>>();
