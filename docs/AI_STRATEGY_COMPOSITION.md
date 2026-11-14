@@ -45,7 +45,7 @@ Every field is parsed before use. The fixed compiler turns valid specifications 
 
 If a provider is missing, rate-limited or returns invalid output, the entire AI generation attempt fails closed to deterministic research. NEXUS does not quietly run a partial or malformed strategy.
 
-The full report contains the AI specifications and research results. The public proposal feed contains only the validated parameter proposals and composed specifications plus provider/model and dataset context; it never contains credentials, raw provider response bodies or account data.
+The full report contains the AI specifications and research results. The public proposal feed contains only the validated parameter proposals and composed specifications plus provider/model and dataset context; it never contains credentials, raw provider response bodies or account data. A scheduled run with no successful AI generation skips publication, preserving the last valid feed rather than replacing it with an empty deterministic fallback.
 
 ## Human approval and storage
 
