@@ -1,5 +1,5 @@
 export const NEXUS_DATABASE_NAME = "nexus-local";
-export const NEXUS_DATABASE_VERSION = 9;
+export const NEXUS_DATABASE_VERSION = 10;
 export const PAPER_ACCOUNT_STORE = "paperAccounts";
 export const MARKET_SNAPSHOT_STORE = "marketSnapshots";
 export const HISTORICAL_CANDLE_STORE = "historicalCandles";
@@ -9,6 +9,8 @@ export const STRATEGY_CONFIG_LEDGER_STORE = "strategyConfigLedger";
 export const RESEARCH_HYPOTHESIS_STORE = "researchHypotheses";
 export const SKILL_REGISTRY_STORE = "skillRegistry";
 export const DERIVATIVES_OBSERVATION_STORE = "derivativesObservations";
+export const DECISION_JOURNAL_STORE = "decisionJournal";
+export const DECISION_JOURNAL_EVENT_STORE = "decisionJournalEvents";
 
 /**
  * One schema owner for every local adapter. A single versioned upgrade creates
@@ -53,6 +55,16 @@ export function openNexusDatabase(factory: IDBFactory = indexedDB): Promise<IDBD
         const derivativesStore = database.createObjectStore(DERIVATIVES_OBSERVATION_STORE, { keyPath: "key" });
         derivativesStore.createIndex("series", "series", { unique: false });
         derivativesStore.createIndex("timestamp", "timestamp", { unique: false });
+      }
+      if (!database.objectStoreNames.contains(DECISION_JOURNAL_STORE)) {
+        const decisionStore = database.createObjectStore(DECISION_JOURNAL_STORE, { keyPath: "decisionId" });
+        decisionStore.createIndex("decisionAt", "decisionAt", { unique: false });
+        decisionStore.createIndex("symbol", "symbol", { unique: false });
+      }
+      if (!database.objectStoreNames.contains(DECISION_JOURNAL_EVENT_STORE)) {
+        const eventStore = database.createObjectStore(DECISION_JOURNAL_EVENT_STORE, { keyPath: "eventId" });
+        eventStore.createIndex("decisionId", "decisionId", { unique: false });
+        eventStore.createIndex("occurredAt", "occurredAt", { unique: false });
       }
     };
     request.onsuccess = () => {
