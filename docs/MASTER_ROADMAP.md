@@ -40,7 +40,7 @@ NEXUS is intended to become a mobile-first AI trading intelligence and automated
 | 6 | Sealed final holdout | DONE | Chronological final holdout, embargo and local overlap lock |
 | 7 | Statistical robustness | DONE | Confidence intervals, bootstrap, fold consistency and conservative statuses |
 | 8 | Execution stress testing and best-first ranking | DONE | Adverse execution scenarios and deterministic candidate ordering |
-| 9 | Global research leaderboard | NEXT | Compare saved runs only within defensible compatibility groups; distinguish raw best from robust/stress-tested |
+| 9 | Global research leaderboard | PARTIAL | Ordinary saved-run leaderboard is connected; nested/holdout separation is preserved; dedicated stress-family aggregation and broader integration verification remain |
 | 10 | Strategy creation studio | PLANNED | Versioned strategy specifications, reusable templates, rule composer and safe candidate generation |
 | 11 | AI analyst and research agents | PARTIAL | Governed provider adapters and proposal foundations exist; complete multi-agent workflow, evidence citations, structured outputs and evaluations |
 | 12 | Market intelligence expansion | PARTIAL | Core multi-timeframe technical evidence exists; complete resilient market coverage, liquidity/order-book and derivatives dimensions with source-quality controls |
@@ -52,6 +52,8 @@ NEXUS is intended to become a mobile-first AI trading intelligence and automated
 | 18 | End-to-end acceptance and release hardening | PLANNED | Phone-first acceptance of market data → AI analysis → strategy research → decision → paper execution → outcomes → learning |
 
 ## Active stage: 9 — Global Research Leaderboard
+
+Implementation note: v1 reads ordinary `ResearchRunStore` records only. Nested research and sealed holdout remain in their own ledgers. Execution-stress scenarios are not yet aggregated as a dedicated stress-survivor family because the current persistence contract stores scenario reports individually without a scenario-family manifest. See [RESEARCH_LEADERBOARD.md](RESEARCH_LEADERBOARD.md).
 
 ### Scope
 - Read existing locally persisted research runs; do not create a second source of truth.
