@@ -11,7 +11,7 @@
 
 The skill is grounded in NEXUS's existing deterministic implementations of SMA, EMA, RSI, ATR, MACD and Bollinger Bands, plus the causal trend/volatility classifier in `src/domain/market-regimes.ts`. The catalogue documents additional technical, derivatives, breadth and sentiment measures but explicitly marks them as planned.
 
-The skill does not import third-party trading logic or add runtime dependencies. It is a project-authored selection protocol and a metadata catalogue.
+The skill does not import third-party trading logic or add runtime dependencies. It is a project-authored selection protocol and a metadata catalogue. The calculation library now includes sixteen deterministic indicators: SMA, EMA, WMA, RSI, ATR, MACD, Bollinger Bands, ADX, Stochastic, CCI, ROC, OBV, VWAP, MFI, Donchian Channels and Keltner Channels. Funding, open interest, account ratio, breadth and sentiment remain data features, not computed indicators.
 
 ## Baseline versus candidate evaluation
 
