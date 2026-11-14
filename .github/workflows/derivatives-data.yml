@@ -1,0 +1,76 @@
+name: NEXUS Derivatives Data Collection
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nexus-derivatives-collection
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout NEXUS source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: source
+
+      - name: Checkout persistent market ledger
+        uses: actions/checkout@v4
+        with:
+          ref: nexus-market-ledger
+          path: ledger
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install existing project dependencies
+        working-directory: source
+        run: npm ci
+
+      - name: Compile the typed public-data adapters
+        working-directory: source
+        run: >-
+          npx tsc
+          src/adapters/bybit-derivatives.ts
+          src/domain/derivatives-data.ts
+          src/domain/derivatives-ledger.ts
+          --rootDir src
+          --outDir .cache/derivatives-build
+          --target ES2022
+          --module commonjs
+          --moduleResolution node
+          --strict
+          --skipLibCheck
+          --lib ES2022,DOM
+
+      - name: Collect public Bybit derivatives history
+        working-directory: source
+        env:
+          BYBIT_SYMBOLS: BTCUSDT,ETHUSDT,SOLUSDT
+        run: node scripts/collect-derivatives.cjs ../ledger/data/derivatives
+
+      - name: Commit updated public market observations
+        if: always()
+        env:
+          LEDGER_BRANCH: nexus-market-ledger
+        run: |
+          git -C ledger config user.name "github-actions[bot]"
+          git -C ledger config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C ledger add data/derivatives
+          if ! git -C ledger diff --cached --quiet; then
+            git -C ledger commit -m "data: update Bybit derivatives history"
+            git -C ledger push origin "HEAD:${LEDGER_BRANCH}"
+          else
+            echo "No derivatives ledger changes to commit."
+          fi
