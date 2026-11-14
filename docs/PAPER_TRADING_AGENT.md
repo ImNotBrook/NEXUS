@@ -1,6 +1,6 @@
 # Automated paper trading
 
-NEXUS has a checkpointed, long-only paper-trading worker. It runs daily at 00:30 UTC or manually from GitHub Actions.
+NEXUS has a checkpointed, long-only paper-trading worker. It runs hourly at 5 minutes past the hour (UTC) or manually from GitHub Actions.
 
 ## Human approval gate
 
@@ -25,4 +25,4 @@ Do not enable a strategy merely because it had the highest return in one researc
 
 This is simulated execution only. Candle volume is a coarse liquidity proxy; it does not model order-book depth, queue position, latency, exchange rejects, tick/lot sizes or actual executable liquidity. The current agent does not automatically choose or promote a strategy, and it does not submit live orders.
 
-The ledger branch is part of the public repository. It contains simulated balances and strategy results only; never put credentials, personal data or exchange account information in it. The workflow uses no exchange keys and requires no paid service or billing activation.
+The ledger branch is part of the public repository. It contains simulated balances and strategy results only; never put credentials, personal data or exchange account information in it. GitHub scheduled jobs are best-effort and can be delayed; a missed run is caught up on the next successful run while the checkpoint remains within the 600-candle history window. The workflow uses no exchange keys and requires no paid service or billing activation.
