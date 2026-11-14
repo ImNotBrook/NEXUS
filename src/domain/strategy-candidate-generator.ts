@@ -8,6 +8,7 @@ export interface ApprovedDonchianStrategy {
   id: string;
   version: string;
   approvedBy: string;
+  approvalRationale: string;
   approvedAt: number;
   lookback: number;
   atrStopMultiple: number;
@@ -30,7 +31,11 @@ export interface StrategyCandidateGenerationResult {
   candidate: DecisionCandidate | null;
   thesis: DecisionJournalThesis;
   reasonCodes: string[];
-  strategyRef: { id: string; version: string };
+  strategyRef: {
+    id: string;
+    version: string;
+    approval: { approvedBy: string; rationale: string; approvedAt: number } | null;
+  };
 }
 
 const INTERVAL_MS = 3_600_000;
@@ -46,9 +51,10 @@ function validateStrategy(strategy: ApprovedDonchianStrategy, evaluationTime: nu
   if (![strategy.id, strategy.version].every((value) => typeof value === "string" && value.trim())) {
     throw new TypeError("Strategy ID and version are required");
   }
-  if (!strategy.approvedBy?.trim() || !Number.isSafeInteger(strategy.approvedAt) ||
+  if (!strategy.approvedBy?.trim() || !strategy.approvalRationale?.trim() ||
+      !Number.isSafeInteger(strategy.approvedAt) ||
       strategy.approvedAt < 0 || strategy.approvedAt > evaluationTime) {
-    throw new TypeError("Strategy approval must be explicit and predate the evaluation");
+    throw new TypeError("Strategy approval must include an actor, rationale and pre-evaluation timestamp");
   }
   if (!Number.isSafeInteger(strategy.lookback) || strategy.lookback < 2 || strategy.lookback > 500) {
     throw new RangeError("Donchian lookback must be between 2 and 500");
@@ -75,7 +81,14 @@ function blocked(
     candidate: null,
     thesis: structuredClone(EMPTY_THESIS),
     reasonCodes,
-    strategyRef: { id: strategy.id, version: strategy.version },
+    strategyRef: {
+      id: strategy.id,
+      version: strategy.version,
+      approval: strategy.approvedBy?.trim() && strategy.approvalRationale?.trim() &&
+        Number.isSafeInteger(strategy.approvedAt)
+        ? { approvedBy: strategy.approvedBy, rationale: strategy.approvalRationale, approvedAt: strategy.approvedAt }
+        : null,
+    },
   };
 }
 
@@ -96,7 +109,14 @@ export function generateDonchianStrategyCandidate(
   if (!strategy || typeof strategy !== "object") throw new TypeError("A strategy configuration is required");
 
   // An unapproved strategy is a governance block, not a reason to silently use defaults.
-  if (!strategy.approvedBy?.trim()) return blocked(strategy, ["STRATEGY_NOT_APPROVED"]);
+  if (!strategy.id?.trim() || !strategy.version?.trim()) {
+    throw new TypeError("Strategy ID and version are required");
+  }
+  if (!strategy.approvedBy?.trim() || !strategy.approvalRationale?.trim() ||
+      !Number.isSafeInteger(strategy.approvedAt) || strategy.approvedAt < 0 ||
+      strategy.approvedAt > input.evaluationTime) {
+    return blocked(strategy, ["STRATEGY_NOT_APPROVED"]);
+  }
   validateStrategy(strategy, input.evaluationTime);
 
   const snapshot = input.snapshot;
