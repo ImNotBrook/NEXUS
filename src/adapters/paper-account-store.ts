@@ -1,4 +1,4 @@
-import { isPristinePaperAccount, validatePaperAccountSnapshot, type PaperAccount } from "../domain/paper-broker";
+import { isPristinePaperAccount, normalizePaperAccountSnapshot, validatePaperAccountSnapshot, type PaperAccount } from "../domain/paper-broker";
 import { openNexusDatabase, PAPER_ACCOUNT_STORE } from "./nexus-database";
 
 const ACCOUNT_STORE = PAPER_ACCOUNT_STORE;
@@ -50,7 +50,7 @@ export class PaperAccountStore {
       transaction.objectStore(ACCOUNT_STORE).get(this.accountId) as IDBRequest<StoredPaperAccount | undefined>,
     );
     const [record] = await Promise.all([recordPromise, done]);
-    return record?.account ?? null;
+    return record ? normalizePaperAccountSnapshot(record.account) : null;
   }
 
   async save(account: PaperAccount): Promise<void> {
