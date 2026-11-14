@@ -77,6 +77,9 @@ describe("AI strategy review boundary", () => {
     expect(definition.origin).toBe("human");
     expect(definition.aiProvenance?.provider).toBe("groq");
     expect(Object.isFrozen(definition.parameters)).toBe(true);
+    const alteredRules = { ...parsed.composedStrategies[0], exit: { type: "rsi_overbought" as const, period: 14, threshold: 75 } };
+    const altered = createHumanReviewedComposedStrategyDefinition(alteredRules, 1_800_000_000_000, parsed);
+    expect(altered.id).not.toBe(definition.id);
   });
 
   it("rejects invalid approval timestamps", () => {
