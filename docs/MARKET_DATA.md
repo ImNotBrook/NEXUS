@@ -58,6 +58,16 @@ The cache is device-local, not a cloud backup. Browser data clearing or eviction
 - ATR: Wilder smoothing; first true range is high minus low.
 - MACD: EMA(fast) minus EMA(slow); signal is EMA of the valid MACD line.
 - Bollinger Bands: trailing SMA plus/minus the configured number of population standard deviations.
+- WMA: trailing weighted mean with linearly increasing weights toward the newest close.
+- ROC: percentage change from the close one configured period earlier.
+- Stochastic: close location within the trailing high/low range; %D is an SMA of %K. A flat range returns 50.
+- CCI: typical-price deviation from its trailing mean, scaled by mean absolute deviation and 0.015; zero deviation returns 0.
+- ADX: Wilder-smoothed directional movement; +DI/-DI describe directional components and ADX describes strength without direction. ADX first becomes valid after 2 × period − 1 bars.
+- OBV: cumulative volume signed by close-to-close direction; the initial value is anchored at zero.
+- VWAP: cumulative typical-price volume weighting over the supplied input window; this window defines the anchor.
+- MFI: rolling positive/negative typical-price volume flow; zero-flow windows return 50.
+- Donchian Channels: highest high and lowest low over the prior period candles, explicitly excluding the current candle.
+- Keltner Channels: EMA centre with upper/lower bands offset by a multiple of Wilder ATR.
 
 All series preserve input length and use null during warm-up. Values are deterministic and do not inspect future observations.
 
