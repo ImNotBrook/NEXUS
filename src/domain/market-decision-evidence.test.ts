@@ -69,6 +69,16 @@ describe("buildDecisionEvidenceFromMarketSnapshot", () => {
     expect(result.marketDataStatus).toBe("degraded");
   });
 
+
+  it("scores higher-timeframe alignment relative to candidate direction, not as universally bullish", () => {
+    const result = buildDecisionEvidenceFromMarketSnapshot(
+      snapshot(),
+      { symbol: "BTCUSDT", side: "short" },
+      "within_tolerance",
+    );
+    expect(result.evidence.find((item) => item.id.endsWith(":alignment"))?.polarity).toBe("contradicts");
+  });
+
   it("rejects symbol mismatches and future-dated evidence", () => {
     expect(() => buildDecisionEvidenceFromMarketSnapshot(snapshot(), { ...candidate, symbol: "ETHUSDT" }, "within_tolerance"))
       .toThrow(/symbol/i);
