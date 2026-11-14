@@ -29,7 +29,8 @@ v1 groups by:
 - symbol;
 - timeframe;
 - original decision status (ENTER, WAIT, REJECT);
-- setup family.
+- setup family;
+- simulation version (kept separate to prevent mixing results from different fill models).
 
 Each cohort reports its first/last decision timestamps, matured candidate count, completed trade count, no-fill candidate count, mean/median net R, win rate, and mean MFE/MAE for completed trades.
 
@@ -39,7 +40,7 @@ Net R is:
 
 This is cost-adjusted net P&L divided by gross price risk for the actually filled quantity. Fees are included in net P&L. The denominator excludes fees and is not a full account-level risk budget.
 
-Only the latest mature observation for each decision/candidate/simulation version is counted. Earlier mature snapshots are listed as superseded. This prevents evolving journal snapshots from inflating sample sizes.
+Only the latest mature observation for each decision/candidate/simulation version is counted. Cohorts from different simulation versions are never pooled. Earlier mature snapshots are listed as superseded. This prevents evolving journal snapshots from inflating sample sizes.
 
 ## Exclusions
 
