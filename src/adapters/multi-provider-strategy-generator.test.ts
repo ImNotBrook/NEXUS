@@ -42,6 +42,19 @@ describe("multi-provider strategy generator", () => {
     expect(providers[1].model).toBe("gemini-2.5-flash");
   });
 
+
+  it("keeps NVIDIA opt-in but permits explicit selection", () => {
+    const providers = resolveAiProviderConfigs({
+      NVIDIA_API_KEY: "nvidia-test-key-12345",
+    });
+    expect(providers).toEqual([]);
+    const optedIn = resolveAiProviderConfigs({
+      NVIDIA_API_KEY: "nvidia-test-key-12345",
+      NEXUS_AI_PROVIDER_ORDER: "nvidia",
+    });
+    expect(optedIn.map((provider) => provider.id)).toEqual(["nvidia"]);
+  });
+
   it("does not enable Cloudflare without both its token and account id", () => {
     expect(resolveAiProviderConfigs({
       CLOUDFLARE_API_TOKEN: "cloudflare-test-key-12345",
