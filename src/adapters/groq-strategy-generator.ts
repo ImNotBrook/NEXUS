@@ -61,7 +61,63 @@ export async function generateAiStrategyProposals(
       model,
       temperature: 0.2,
       max_tokens: 1200,
-      response_format: { type: "json_object" },
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "nexus_strategy_candidates",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              candidates: {
+                type: "array",
+                minItems: 1,
+                maxItems: 4,
+                items: {
+                  type: "object",
+                  properties: {
+                    family: { type: "string", enum: ["sma-crossover", "rsi-mean-reversion", "donchian-breakout"] },
+                    parameters: {
+                      anyOf: [
+                        {
+                          type: "object",
+                          properties: {
+                            fastPeriod: { type: "integer", minimum: 2, maximum: 30 },
+                            slowPeriod: { type: "integer", minimum: 5, maximum: 100 },
+                          },
+                          required: ["fastPeriod", "slowPeriod"],
+                          additionalProperties: false,
+                        },
+                        {
+                          type: "object",
+                          properties: {
+                            period: { type: "integer", minimum: 5, maximum: 50 },
+                            oversold: { type: "integer", minimum: 10, maximum: 40 },
+                            overbought: { type: "integer", minimum: 60, maximum: 90 },
+                          },
+                          required: ["period", "oversold", "overbought"],
+                          additionalProperties: false,
+                        },
+                        {
+                          type: "object",
+                          properties: { period: { type: "integer", minimum: 5, maximum: 100 } },
+                          required: ["period"],
+                          additionalProperties: false,
+                        },
+                      ],
+                    },
+                    rationale: { type: "string" },
+                  },
+                  required: ["family", "parameters", "rationale"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["candidates"],
+            additionalProperties: false,
+          },
+        },
+      },
       messages: [
         {
           role: "system",
