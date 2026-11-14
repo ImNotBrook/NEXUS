@@ -1,0 +1,142 @@
+import { describe, expect, it } from "vitest";
+import { journalShadowOutcome, type ShadowOutcomeJournal } from "./journalled-shadow-outcome";
+import type { DecisionJournalEvent } from "./decision-journal";
+import type { ShadowTradePlan } from "./shadow-outcome-engine";
+import type { Candle } from "./candles";
+
+const plan: ShadowTradePlan = {
+  schemaVersion: 1,
+  simulationVersion: "shadow-v1",
+  decisionId: "decision-shadow-1",
+  candidateId: "candidate-1",
+  symbol: "BTCUSDT",
+  instrumentCategory: "spot",
+  volumeUnit: "base",
+  side: "long",
+  decisionAt: 1_000,
+  entry: {
+    orderType: "market",
+    referencePrice: 100,
+    earliestEligibleAt: 2_000,
+    expiresAt: 5_000,
+    penetrationBps: 5,
+  },
+  stopPrice: 95,
+  targetPrice: 110,
+  quantity: 1,
+  horizonEnd: 10_000,
+  sameBarPolicy: "adverse_stop_first",
+  executionModel: {
+    feeRate: 0.001,
+    baseSlippageBps: 2,
+    halfSpreadBps: 3,
+    maxParticipationRate: 0.1,
+    marketImpactBpsAtMaxParticipation: 10,
+  },
+};
+const candle = (timestamp: number, open: number, high: number, low: number, close: number): Candle =>
+  ({ timestamp, open, high, low, close, volume: 1_000 });
+
+class MemoryJournal implements ShadowOutcomeJournal {
+  events: DecisionJournalEvent[] = [];
+  constructor(private readonly decisionIds = new Set([plan.decisionId])) {}
+  async appendEvent(event: DecisionJournalEvent): Promise<DecisionJournalEvent> {
+    if (!this.decisionIds.has(event.decisionId)) throw new Error("missing decision");
+    if (this.events.some((item) => item.eventId === event.eventId)) throw new Error("duplicate event");
+    this.events.push(structuredClone(event));
+    return structuredClone(event);
+  }
+  async listEvents(decisionId: string): Promise<DecisionJournalEvent[]> {
+    return this.events.filter((event) => event.decisionId === decisionId).map((event) => structuredClone(event));
+  }
+}
+const testHasher = async (value: unknown): Promise<string> => {
+  const text = JSON.stringify(value);
+  return text.length.toString(16) + "-" + text.slice(-20).length.toString(16) + "-" +
+    [...text].reduce((sum, char) => (sum + char.charCodeAt(0)) % 65535, 0).toString(16);
+};
+
+describe("journalShadowOutcome", () => {
+  it("simulates and appends an immutable outcome event linked to its decision", async () => {
+    const journal = new MemoryJournal();
+    const result = await journalShadowOutcome(
+      plan,
+      [candle(2_000, 100, 101, 99, 100), candle(3_000, 100, 112, 99, 111)],
+      4_000,
+      journal,
+      testHasher,
+    );
+    expect(result.outcome.status).toBe("completed");
+    expect(result.event.eventType).toBe("outcome_appended");
+    expect(result.event.decisionId).toBe(plan.decisionId);
+    expect(result.event.payload).toMatchObject({
+      simulationVersion: "shadow-v1",
+      horizonReached: false,
+      candleCount: 2,
+    });
+    expect(journal.events).toHaveLength(1);
+    expect(result.alreadyRecorded).toBe(false);
+  });
+
+  it("is idempotent for the same plan, candle snapshot and recording timestamp", async () => {
+    const journal = new MemoryJournal();
+    const candles = [candle(2_000, 100, 101, 99, 100)];
+    const first = await journalShadowOutcome(plan, candles, 4_000, journal, testHasher);
+    const second = await journalShadowOutcome(plan, candles, 4_000, journal, testHasher);
+    expect(second.event.eventId).toBe(first.event.eventId);
+    expect(second.alreadyRecorded).toBe(true);
+    expect(journal.events).toHaveLength(1);
+  });
+
+  it("appends a new event when the causal outcome candle snapshot changes", async () => {
+    const journal = new MemoryJournal();
+    const first = await journalShadowOutcome(
+      plan, [candle(2_000, 100, 101, 99, 100)], 4_000, journal, testHasher,
+    );
+    const second = await journalShadowOutcome(
+      plan, [candle(2_000, 100, 101, 99, 100), candle(3_000, 100, 105, 98, 102)],
+      4_000, journal, testHasher,
+    );
+    expect(second.event.eventId).not.toBe(first.event.eventId);
+    expect(journal.events).toHaveLength(2);
+  });
+
+  it("does not hash or store OHLC values beyond the declared horizon", async () => {
+    const journal = new MemoryJournal();
+    const base = [candle(2_000, 100, 101, 99, 100), candle(11_000, 100, 101, 99, 100)];
+    const extended = [...base, candle(12_000, 500, 600, 400, 550)];
+    const first = await journalShadowOutcome(plan, base, 4_000, journal, testHasher);
+    const second = await journalShadowOutcome(plan, extended, 4_000, journal, testHasher);
+    expect(second.event.eventId).toBe(first.event.eventId);
+    expect(second.alreadyRecorded).toBe(true);
+    expect(journal.events).toHaveLength(1);
+  });
+
+  it("rejects recording timestamps before the decision time", async () => {
+    await expect(journalShadowOutcome(plan, [], 999, new MemoryJournal(), testHasher))
+      .rejects.toThrow(/recording timestamp/i);
+  });
+
+  it("propagates missing-decision and persistence errors without fabricating an event", async () => {
+    const journal = new MemoryJournal(new Set());
+    await expect(journalShadowOutcome(plan, [], 4_000, journal, testHasher))
+      .rejects.toThrow(/missing decision/i);
+    expect(journal.events).toHaveLength(0);
+  });
+
+  it("uses an injected content hasher and produces deterministic event identifiers", async () => {
+    const journal = new MemoryJournal();
+    const result = await journalShadowOutcome(
+      plan, [], 4_000, journal, async () => "fixed-hash",
+    );
+    expect(result.event.eventId).toBe("shadow-outcome:fixed-hash");
+  });
+
+  it("rejects excessive outcome windows before storing large payloads", async () => {
+    const candles = Array.from({ length: 5_001 }, (_, index) =>
+      candle(2_000 + index, 100, 101, 99, 100),
+    );
+    await expect(journalShadowOutcome(plan, candles, 8_000, new MemoryJournal(), testHasher))
+      .rejects.toThrow(/5000/i);
+  });
+});
